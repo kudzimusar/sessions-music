@@ -12,8 +12,8 @@ class Statement{constructor(query){this.query=query;this.params=[]}bind(...param
 const db={prepare:q=>new Statement(q),async batch(steps){sql.exec('BEGIN');try{const r=steps.map(s=>sql.prepare(s.query).run(...s.params));sql.exec('COMMIT');return r}catch(e){sql.exec('ROLLBACK');throw e}}};
 const env={DB:db,SESSIONS_ADMIN_EMAILS:'operator@example.test'};globalThis.__expansion={env,user:null};
 const plugin={name:'expansion-fixture',setup(b){b.onResolve({filter:/cloudflare:workers/},()=>({path:'runtime',namespace:'fixture'}));b.onResolve({filter:/chatgpt-auth/},()=>({path:'auth',namespace:'fixture'}));b.onLoad({filter:/.*/,namespace:'fixture'},a=>({contents:a.path==='auth'?'export const getChatGPTUser=async()=>globalThis.__expansion.user;':'export const env=globalThis.__expansion.env;',loader:'js'}))}};
-await build({entryPoints:{registry:resolve('app/api/registry/route.ts'),planner:resolve('app/api/planner/route.ts'),billing:resolve('app/api/billing/route.ts'),providers:resolve('lib/billing-server.ts'),discovery:resolve('lib/discovery.ts')},bundle:true,platform:'node',format:'esm',outdir:temp,plugins:[plugin],packages:'bundle',logLevel:'silent'});
-const registry=await import(pathToFileURL(join(temp,'registry.js'))),planner=await import(pathToFileURL(join(temp,'planner.js'))),billing=await import(pathToFileURL(join(temp,'billing.js'))),providers=await import(pathToFileURL(join(temp,'providers.js'))),discovery=await import(pathToFileURL(join(temp,'discovery.js')));
+await build({entryPoints:{registry:resolve('app/api/registry/route.ts'),planner:resolve('app/api/planner/route.ts'),billing:resolve('app/api/billing/route.ts'),providers:resolve('lib/billing-server.ts'),discovery:resolve('lib/discovery.ts'),locations:resolve('lib/registry.ts'),readiness:resolve('lib/readiness.ts')},bundle:true,platform:'node',format:'esm',outdir:temp,plugins:[plugin],packages:'bundle',logLevel:'silent'});
+const registry=await import(pathToFileURL(join(temp,'registry.js'))),planner=await import(pathToFileURL(join(temp,'planner.js'))),billing=await import(pathToFileURL(join(temp,'billing.js'))),providers=await import(pathToFileURL(join(temp,'providers.js'))),discovery=await import(pathToFileURL(join(temp,'discovery.js'))),locations=await import(pathToFileURL(join(temp,'locations.js'))),readiness=await import(pathToFileURL(join(temp,'readiness.js')));
 const identify=email=>{globalThis.__expansion.user=email?{email,displayName:'Fixture User'}:null};
 const request=(p,path='/api/registry',origin='https://sessions.test')=>new Request('https://sessions.test'+path,{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify(p)});
 const action=async p=>{const r=await registry.POST(request(p));return {...await r.json(),status:r.status}};
@@ -37,6 +37,65 @@ test('near me sorts measured pins and excludes unknown or out-of-radius position
 test('ending a membership revokes new discounts without altering past booking prices',async()=>{identify('stranger@example.test');assert.equal((await action({type:'cancelMembership',studioId,id:member.id,consent:true})).status,403);identify(customer);assert.equal((await action({type:'cancelMembership',studioId,id:member.id,consent:true})).status,200);assert.equal((await state()).bookings.find(b=>b.id===booking.id).price,1600);const b=(await action({...book(),start:780})).booking;assert.equal(b.price,2000);assert.equal(b.priority,false)});
 test('billing has no pretend connections, rejects unauthorised changes and keeps secrets private',async()=>{identify(null);const b=await (await billing.GET(new Request('https://sessions.test/api/billing'))).json();assert.equal(b.amount,null);assert.ok(b.providers.every(p=>!p.ready));assert.equal((await billing.POST(request({action:'checkout',studioId,provider:'stripe',id:crypto.randomUUID(),consent:true},'/api/billing'))).status,401);identify(customer);assert.equal((await billing.POST(request({action:'checkout',studioId,provider:'stripe',id:crypto.randomUUID(),consent:true},'/api/billing'))).status,403);identify(owner);const r=await billing.POST(request({action:'checkout',studioId,provider:'stripe',id:crypto.randomUUID(),consent:true},'/api/billing'));assert.match((await r.json()).error,/not configured/);assert.equal(sql.prepare('SELECT count(*) n FROM billing_checkouts').get().n,0)});
 const originalFetch=globalThis.fetch;let stripeCreates=0,checkoutId,subscriptionPaid=false;const now=Date.now(),end=Math.floor(now/1000)+30*86400;
+test('four researched public locations make seeded near-me discovery useful without claiming entrances',async()=>{
+ const seeds=(await state()).studios.filter(s=>locations.studioSeeds.some(seed=>seed.id===s.id));
+ const origin={lat:-17.829165,lng:31.045351};
+ const nearby=discovery.findAStudioNearMe(seeds,origin,25);
+ assert.equal(nearby.length,4);assert.ok(nearby.every(r=>r.approximate));
+ assert.equal(nearby[0].distance,0);assert.equal(nearby[1].distance,0);
+ assert.equal(discovery.findAStudioNearMe(seeds,origin,1.5).length,3);
+ assert.deepEqual(discovery.findAStudioNearMe(seeds,origin,25,false),[]);
+ assert.ok(seeds.every(s=>s.location===null&&!s.bookingEnabled));
+ for(const {studio} of nearby){assert.ok(studio.publicLocation.source.url.startsWith('https://'));assert.equal(studio.publicLocation.source.checked,'2026-08-31');assert.match(locations.pinDescription(studio),/Approximate/);}
+});
+test('changed addresses invalidate public geometry and owner entrance pins always take precedence',()=>{
+ const s=locations.studioSeeds.find(s=>s.id==='onevibe-studiox');
+ assert.equal(locations.studioPin({...s,address:'Different business address'}),null);
+ assert.ok(locations.mapQuery({...s,address:'Different business address'}).includes('Different business address'));
+ const ownerPin={lat:-17.82,lng:31.04},owned={...s,location:ownerPin};
+ assert.equal(locations.studioPin(owned).approximate,false);assert.equal(locations.mapQuery(owned),'-17.82,31.04');
+ assert.equal(discovery.findAStudioNearMe([owned],ownerPin,1,false).length,1);
+ assert.deepEqual(discovery.findAStudioNearMe([owned],{lat:NaN,lng:31},1),[]);
+ assert.deepEqual(discovery.findAStudioNearMe([owned],ownerPin,-1),[]);
+});
+test('distance, price and capacity filters compose without treating missing prices as cheap rooms',()=>{
+ const seed=locations.studioSeeds[0],roomed={...seed,id:'roomed',rooms:[room]},origin=locations.studioPin(seed);
+ const settings={...discovery.defaultDiscovery,position:origin,budget:'40',duration:120,size:'6'};
+ assert.deepEqual(discovery.refineDiscovery([seed,roomed],settings,[]).map(s=>s.id),['roomed']);
+ assert.deepEqual(discovery.refineDiscovery([roomed],{...settings,size:'7'},[]),[]);
+ assert.deepEqual(discovery.refineDiscovery([roomed],{...settings,includeApproximate:false},[]),[]);
+ assert.deepEqual(discovery.refineDiscovery([{...roomed,hidden:true}],settings,[]),[]);
+});
+test('legacy location enrichment is idempotent and preserves owner records and corrected addresses',async()=>{
+ const id='bridgenorth-studios',before=sql.prepare('SELECT * FROM studio_registry WHERE id=?').get(id);
+ try{
+  sql.prepare("UPDATE studio_registry SET content=json_remove(content,'$.publicLocation'),revision=17 WHERE id=?").run(id);
+  let s=(await state()).studios.find(s=>s.id===id);assert.ok(s.publicLocation);assert.equal(s.revision,18);
+  s=(await state()).studios.find(s=>s.id===id);assert.equal(s.revision,18);
+  sql.prepare("UPDATE studio_registry SET content=json_set(json_remove(content,'$.publicLocation'),'$.address','Owner corrected address'),revision=19 WHERE id=?").run(id);
+  s=(await state()).studios.find(s=>s.id===id);assert.equal(s.publicLocation,undefined);assert.equal(s.address,'Owner corrected address');assert.equal(s.revision,19);
+  sql.prepare("UPDATE studio_registry SET content=json_remove(?,'$.publicLocation'),owner=?,revision=20 WHERE id=?").run(before.content,'protected-owner@example.test',id);
+  s=(await state()).studios.find(s=>s.id===id);assert.equal(s.publicLocation,undefined);assert.equal(s.revision,20);
+ }finally{sql.prepare('UPDATE studio_registry SET content=?,owner=?,revision=? WHERE id=?').run(before.content,before.owner,before.revision,id);}
+});
+test('Belvedere address backfill updates untouched legacy records but preserves reviewed corrections',async()=>{
+ const c=locations.kulchaAddressCorrection,before=sql.prepare('SELECT * FROM studio_registry WHERE id=?').get(c.id);
+ try{
+  sql.prepare("UPDATE studio_registry SET content=json_set(content,'$.address',?,'$.area','Harare'),revision=0 WHERE id=?").run(c.previous,c.id);
+  let s=(await state()).studios.find(s=>s.id===c.id);assert.equal(s.address,c.address);assert.equal(s.area,'Belvedere');assert.equal(s.revision,1);
+  assert.ok(s.sources.some(s=>s.url===c.source.url));assert.equal((await state()).studios.find(s=>s.id===c.id).revision,1);
+  sql.prepare("UPDATE studio_registry SET content=json_set(content,'$.address',?),revision=4 WHERE id=?").run(c.previous,c.id);
+  s=(await state()).studios.find(s=>s.id===c.id);assert.equal(s.address,c.previous);assert.equal(s.revision,4);
+ }finally{sql.prepare('UPDATE studio_registry SET content=?,owner=?,revision=? WHERE id=?').run(before.content,before.owner,before.revision,c.id);}
+});
+test('launch checklist separates implemented flows, missing inventory and inactive integrations',()=>{
+ const report=readiness.launchReadiness(locations.studioSeeds,{ai:false,gateways:[{name:'Stripe',ready:false},{name:'PayPal',ready:false},{name:'Paynow',ready:false}]});
+ assert.equal(report.length,8);assert.match(report[0].status,/4 approximate/);assert.match(report[0].detail,/8 profiles/);
+ assert.equal(report[1].status,'AI not connected');assert.equal(report[2].status,'AI not connected');
+ assert.match(report[3].detail,/Online membership checkout and studio payouts are not implemented/);
+ assert.match(report[4].status,/0 of 12/);assert.equal(report[7].status,'No payment gateway activated');
+ const unknown=readiness.launchReadiness([],{ai:null,gateways:null});assert.equal(unknown[1].status,'Configuration not checked');assert.equal(unknown[7].status,'Configuration not checked');
+});
 function configure(){Object.assign(env,{BILLING_ENABLED:'true',BILLING_WEBHOOK_READY:'true',BILLING_MODE:'test',BILLING_AMOUNT_CENTS:'1500',BILLING_ORIGIN:'https://sessions.test',BILLING_MERCHANT_NAME:'Fixture merchant',BILLING_SUPPORT_EMAIL:'support@example.test',STRIPE_SECRET_KEY:'sk_test_fixture_not_a_real_key',STRIPE_PRICE_ID:'price_fixture',STRIPE_WEBHOOK_SECRET:'whsec_fixture_not_real'});}
 const json=x=>Response.json(x);
 function mockStripe(){globalThis.fetch=async(url,init)=>{url=String(url);if(url.includes('/prices/'))return json({active:true,currency:'usd',unit_amount:1500,type:'recurring',recurring:{interval:'month',interval_count:1},livemode:false});if(url.endsWith('/checkout/sessions')){stripeCreates++;const body=new URLSearchParams(init.body);assert.equal(body.get('line_items[0][price]'),'price_fixture');assert.equal(body.get('mode'),'subscription');assert.equal(body.get('customer_email'),owner);assert.ok(!body.has('payment_method_types'));assert.equal(body.get('success_url').startsWith('https://sessions.test/'),true);checkoutId=body.get('client_reference_id');return json({id:'cs_test_fixture',url:'https://checkout.stripe.com/c/pay/cs_test_fixture'})}if(url.includes('/checkout/sessions/cs_test_fixture'))return json({id:'cs_test_fixture',client_reference_id:checkoutId,metadata:{checkout_id:checkoutId},livemode:false,status:'complete',subscription:subscriptionPaid?'sub_fixture':null});if(url.includes('/subscriptions/sub_fixture'))return json({id:'sub_fixture',customer:'cus_fixture',metadata:{checkout_id:checkoutId},status:'active',items:{data:[{price:{id:'price_fixture',unit_amount:1500},quantity:1,current_period_end:end}]},latest_invoice:{currency:'usd',status:'paid',amount_paid:1500}});throw new Error('Unexpected provider call '+url)};}

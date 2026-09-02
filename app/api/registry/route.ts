@@ -58,7 +58,7 @@ export async function POST(req:Request){
  if(new Set(v.rooms.map(r=>r.id)).size!==v.rooms.length)fail('Each room must have a unique ID');if(v.bookingEnabled&&(!v.rooms.length||!v.location||v.rules.length<20))fail('Add a room, confirmed map pin and booking rules before enabling requests');
  const future=(await db.prepare('SELECT content FROM studio_bookings WHERE studio_id=?').bind(studioId).all()).results.map((r:any)=>JSON.parse(r.content) as StudioBooking).filter((b:StudioBooking)=>['requested','confirmed'].includes(b.status));
  if(future.length&&JSON.stringify(v.rooms)!==JSON.stringify(studio.rooms))fail('Resolve existing requests and bookings before changing room schedules or rates. Contact details can still be edited.',409);
- Object.assign(studio,v,{updatedAt:now});
+ Object.assign(studio,v,{updatedAt:now});delete studio.publicLocation;
  }else if(p.type==='memberPlans'){
  own();const v=z.object({plans:z.array(z.object({id:id,name:text.min(2).max(80),fee:z.number().int().min(0).max(100000),termDays:z.number().int().min(1).max(366),discountPercent:z.number().int().min(0).max(50),priority:z.boolean(),benefits:text.min(10).max(600),active:z.boolean()})).max(5)}).parse(p);
  if(new Set(v.plans.map(x=>x.id)).size!==v.plans.length)fail('Each membership plan needs a unique ID');studio.memberPlans=v.plans;studio.updatedAt=now;

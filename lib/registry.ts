@@ -1,8 +1,9 @@
 import type {MemberPlan,StudioMember,Registration} from './discovery';
 import {type Room, type Booking, slotReason} from './domain';
 export type Source={title:string;url:string;checked:string;kind:'Official website'|'Official social profile'|'Public directory';note?:string};
+export type PublicLocation={lat:number;lng:number;precision:'building'|'street'|'venue';address:string;source:Source};
 export type StudioRoom={id:string;name:string;price:number;capacity:number;open:number;close:number;days:number[];buffer:number;minimum:number};
-export type Studio={id:string;name:string;area:string;address:string;category:string;services:string[];description:string;website:string;phone:string;email:string;sources:Source[];status:'unclaimed'|'claimed';bookingEnabled:boolean;rooms:StudioRoom[];equipment:string;rules:string;location:{lat:number;lng:number}|null;revision:number;memberPlans?:MemberPlan[];updatedAt?:string;verifiedAt?:string;notice?:string;hidden?:boolean};
+export type Studio={id:string;name:string;area:string;address:string;category:string;services:string[];description:string;website:string;phone:string;email:string;sources:Source[];status:'unclaimed'|'claimed';bookingEnabled:boolean;rooms:StudioRoom[];equipment:string;rules:string;location:{lat:number;lng:number}|null;publicLocation?:PublicLocation;revision:number;memberPlans?:MemberPlan[];updatedAt?:string;verifiedAt?:string;notice?:string;hidden?:boolean};
 export type Staff={id:string;studioId:string;name:string;title:string;bio:string;skills:string;role:'manager'|'staff';status:'invited'|'active';email?:string;public:boolean;joinedAt?:string};
 export type Claim={id:string;studioId:string;applicant:string;name:string;role:string;phone:string;evidence:string;status:'pending'|'approved'|'rejected';code:string;createdAt:string;note?:string;reviewedAt?:string;reviewedBy?:string};
 export type StudioBooking={id:string;studioId:string;roomId:string;roomName:string;customer:string;name:string;phone:string;date:string;start:number;duration:number;size:number;note:string;staffId:string;status:'requested'|'confirmed'|'completed'|'declined'|'cancelled';price:number;basePrice?:number;discount?:number;membershipId?:string;priority?:boolean;createdAt:string};
@@ -25,8 +26,27 @@ export const studioSeeds:Studio[]=[
  seed('loft-events-studios','Loft Events & Studios','Avenues','6th Street & Selous Avenue, Harare','Rehearsal studio',['Rehearsal'],'A creative space advertising music rehearsal facilities in the Avenues area. Entrance and services need operator confirmation.',[source('Loft rehearsal announcement','https://www.instagram.com/loft_events_and_studios_/reel/DcNjtOcMKaE/','Official social profile')],{website:'https://www.instagram.com/loft_events_and_studios_/'}),
  seed('znfpc-audio-visual','ZNFPC Audio Visual Unit','Southerton','Spilhaus Centre, 1 Swissway, Southerton, Harare','Production facility',['Audio production','Video production'],'An institutional audio-visual production facility at the ZNFPC headquarters. Music rehearsal access has not been established.',[source('ZNFPC Audio Visual Unit','https://www.znfpc.org.zw/audio-visual-unit/')],{website:'https://www.znfpc.org.zw/audio-visual-unit/',notice:'Institutional production facility; do not assume public rehearsal hire is available.'})
 ];
+// Public-source locations are discovery aids, never owner-confirmed entrance pins.
+// Bind each to the researched address so an address correction invalidates stale geometry.
+const publicPins:Record<string,Omit<PublicLocation,'address'>>={
+ 'onevibe-studiox':{lat:-17.829165,lng:31.045351,precision:'building',source:source('Dolphin House building coordinates','https://skyscraperpage.com/forum/showthread.php?p=10620319','Public directory','Building-level point, corroborated against a public business geolocation listing. Room 707 and its entrance are not verified.')},
+ 'soundlab-rehearsal':{lat:-17.829165,lng:31.045351,precision:'building',source:source('Dolphin House building coordinates','https://skyscraperpage.com/forum/showthread.php?p=10620319','Public directory','Shared building point, not the Room 714 entrance. Confirm access with the studio.')},
+ 'bridgenorth-studios':{lat:-17.7956655,lng:31.1331544,precision:'street',source:source('Miloco public location and map','https://milocostudios.com/studios/bridgenorth-studios/location-and-map/','Official website','The representative’s map link resolves to Bridgenorth Road, not a numbered property. This is a street-level approximation, not the studio entrance.')},
+ 'zimbabwe-college-of-music':{lat:-17.833014682,lng:31.037836921,precision:'venue',source:source('College of Music public Waze listing','https://www.waze.com/live-map/directions/college-of-music-harare?to=place.w.20317782.203439961.3805353','Public directory','Public campus point near the college’s listed Civic Centre address. The recording-room entrance and public hire access are unconfirmed.')}
+};
+for(const s of studioSeeds){if(publicPins[s.id])s.publicLocation={...publicPins[s.id],address:s.address};}
+export const kulchaAddressCorrection={id:'kulcha-houz-studio-b',previous:'47 Lawley Avenue, Harare',address:'47 Lawley Avenue, Belvedere, Harare',area:'Belvedere',source:source('Kulcha Houz official business profile','https://www.facebook.com/p/Kulcha-Houz-Studio-100068628488954/','Official social profile','The studio’s public profile lists the Belvedere address. Visitor entrance still needs confirmation.')};
+const kulcha=studioSeeds.find(s=>s.id===kulchaAddressCorrection.id)!;
+Object.assign(kulcha,{address:kulchaAddressCorrection.address,area:kulchaAddressCorrection.area});
+kulcha.sources=[kulchaAddressCorrection.source,...kulcha.sources];
+export function studioPin(s:Studio,includeApproximate=true){
+ if(s.location)return {...s.location,approximate:false,precision:'entrance' as const};
+ const p=s.publicLocation;
+ return includeApproximate&&p&&p.address===s.address?{...p,approximate:true}:null;
+}
+export function pinDescription(s:Studio){const p=studioPin(s);return !p?'Map search · no researched coordinates':p.approximate?`Approximate ${p.precision} location · entrance unconfirmed`:'Owner-confirmed entrance coordinates';}
 export const emptyRegistry:RegistryState={studios:studioSeeds,staff:[],claims:[],bookings:[],issues:[],managedIds:[],ownerIds:[],invitations:[],myStaff:[],operator:false,user:null};
-export const mapQuery=(s:Studio)=>s.location?`${s.location.lat},${s.location.lng}`:`${s.name}, ${s.address.split('·')[0].trim()}`;
+export const mapQuery=(s:Studio)=>{const p=studioPin(s);return p?`${p.lat},${p.lng}`:`${s.name}, ${s.address.split('·')[0].trim()}`;};
 export const mapUrl=(s:Studio)=>`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery(s))}`;
 export function asRoom(s:Studio,r:StudioRoom):Room{return {id:r.id,name:r.name,venue:s.name,area:s.area,description:s.description,category:s.category,price:r.price,capacity:r.capacity,equipment:[],backup:false,parking:false,accessible:false,instant:false,verified:true,active:s.bookingEnabled,image:'',minimum:r.minimum,deposit:0,buffer:r.buffer,cancellation:24,hours:Object.fromEntries(Array.from({length:7},(_,i)=>[String(i),r.days.includes(i)?[r.open,r.close]:null])),rules:s.rules,address:s.address,contact:s.phone,checkin:'Arrange with the studio',restricted:'',verification:'Owner-managed profile'};}
 export function registrySlotReason(s:Studio,r:StudioRoom,date:string,start:number,duration:number,bookings:StudioBooking[]){const occupied=bookings.filter(b=>b.studioId===s.id&&!['cancelled','declined'].includes(b.status)).map(b=>({...b,status:'confirmed'}) as unknown as Booking);return slotReason(asRoom(s,r),date,start,duration,occupied,[]);}

@@ -1,3 +1,18 @@
 import SessionsApp from '../sessions';
 import RegistryApp from '../registry';
-export default async function Page({params}:{params:Promise<{slug:string[]}>}){const {slug}=await params;const path='/'+slug.join('/');return ['studios','studio','map','mobile','manage','requests','account','registry-admin','planner','register','onboarding','subscriptions'].includes(slug[0])?<RegistryApp path={path}/>:<SessionsApp initialPath={path}/>;}
+import type {Metadata} from 'next';
+import {readPublicStudio} from '@/db/public-studio';
+type Props={params:Promise<{slug:string[]}>};
+export const dynamic='force-dynamic';
+export async function generateMetadata({params}:Props):Promise<Metadata>{
+ const {slug}=await params;if(slug[0]!=='studio'||slug.length!==2)return {};
+ const studio=await readPublicStudio(slug[1]);
+ const title=studio?studio.name+' | Sessions':'Studio unavailable | Sessions';
+ const description=studio?studio.description:'This studio profile is unavailable. Browse the Sessions Harare directory.';
+ return {title,description,openGraph:{title,description,images:[]},twitter:{card:'summary',title,description,images:[]},...(studio?{}:{robots:{index:false,follow:false}})};
+}
+export default async function Page({params}:Props){
+ const {slug}=await params;const path='/'+slug.join('/');
+ if(slug[0]==='studio'&&slug.length===2)return <RegistryApp path={path} initialStudio={await readPublicStudio(slug[1])}/>;
+ return ['studios','studio','map','mobile','manage','requests','account','registry-admin','planner','register','onboarding','subscriptions'].includes(slug[0])?<RegistryApp path={path}/>:<SessionsApp initialPath={path}/>;
+}

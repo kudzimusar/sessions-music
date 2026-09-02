@@ -2,9 +2,9 @@
 
 ## Current release
 
-All studio records remain source-backed and unclaimed until independent review. The real registry has no fabricated prices, capacities or entrance coordinates. Search by name, area, full published address, service or consenting staff; apply known-capacity and total-session budget filters. Near-me asks the browser for location only when clicked, calculates straight-line distances locally, and excludes unknown pins rather than inventing them. The twelve seed profiles currently have no owner-confirmed coordinates.
+All studio records remain source-backed and unclaimed until independent review. The real registry has no fabricated prices, capacities or entrance coordinates. Search by name, area, full published address, service or consenting staff; apply known-capacity and total-session budget filters. Near-me asks for device location only when clicked and calculates straight-line distances locally. Four seed profiles have sourced approximate building, campus or street points; eight have no researched coordinates. Approximate locations can be excluded. None of these public-source points is an owner-confirmed entrance. Address changes invalidate public geometry, and owner-confirmed coordinates take precedence.
 
-The guided planner is usable without an AI subscription. It checks published room prices, group capacity, opening hours, minimum duration, occupied time and reset buffers. It carries selected results to the studio booking form. A user must review terms and submit separately; the booking endpoint rechecks availability and calculates the final price.
+The guided planner requires no AI subscription, but it cannot produce bookable results until owners publish room prices, capacities and calendars. It checks group capacity, opening hours, minimum duration, occupied time and reset buffers. It carries selected results to the studio booking form. A user must review terms and submit separately; the booking endpoint rechecks availability and calculates the final price. It is explicitly not AI. The registry operator's Launch checklist reports all eight requirements, registry coverage and integration configuration without claiming configuration proves successful operation.
 
 ## Studio registration, login and memberships
 
@@ -46,7 +46,7 @@ Checkout remains disabled until **all** required settings are valid. Stripe's co
 | `BILLING_WEBHOOK_READY` | `true` only after provider callbacks can reach and validate against this deployment |
 | `BILLING_LIVE_APPROVED` | Additional `true` gate for live mode, after country, tax, refund and merchant terms review |
 
-This site is private. Its access gate may prevent provider webhooks or customer return navigation. **Do not set the webhook-ready gate based on a local test alone.** Resolve production callback reachability with an authorised deployment/access design before activation. Do not make the site public merely to bypass this gate.
+The latest access check reports this site is public. Public access alone does not prove provider callbacks work. **Do not set the webhook-ready gate based on a local test alone.** Verify production callback reachability with actual provider sandbox events before activation. If access later becomes private, recheck callback and return navigation behaviour. Do not change access merely to bypass a payment integration gate.
 
 ### Stripe
 

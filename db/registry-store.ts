@@ -1,8 +1,16 @@
 import {env} from 'cloudflare:workers';
 import {database} from './store';
-import {studioSeeds,type Studio,type Staff,type RegistryState,type StudioBooking,type Claim,type RegistryIssue} from '@/lib/registry';
+import {studioSeeds,kulchaAddressCorrection,type Studio,type Staff,type RegistryState,type StudioBooking,type Claim,type RegistryIssue} from '@/lib/registry';
 export function isRegistryOperator(email:string){return ((env as unknown as {SESSIONS_ADMIN_EMAILS?:string}).SESSIONS_ADMIN_EMAILS||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean).includes(email.toLowerCase());}
-export async function seedRegistry(){const db=database();await db.batch(studioSeeds.map(s=>db.prepare('INSERT OR IGNORE INTO studio_registry(id,content) VALUES(?,?)').bind(s.id,JSON.stringify(s))));}
+export async function seedRegistry(){
+ const db=database();await db.batch(studioSeeds.map(s=>db.prepare('INSERT OR IGNORE INTO studio_registry(id,content) VALUES(?,?)').bind(s.id,JSON.stringify(s))));
+ // Bounded, idempotent data enrichment, not a schema migration. Never replace owner
+ // data, existing pins, or a corrected address; a concurrent editor sees a revision conflict.
+ const patches=studioSeeds.filter(s=>s.publicLocation).map(s=>db.prepare("UPDATE studio_registry SET content=json_set(content,'$.publicLocation',json(?)),revision=revision+1 WHERE id=? AND owner IS NULL AND json_extract(content,'$.status')='unclaimed' AND json_extract(content,'$.address')=? AND json_extract(content,'$.location') IS NULL AND json_extract(content,'$.publicLocation') IS NULL").bind(JSON.stringify(s.publicLocation),s.id,s.address));
+ const c=kulchaAddressCorrection;
+ patches.push(db.prepare("UPDATE studio_registry SET content=json_set(content,'$.address',?,'$.area',?,'$.sources',json_insert(json_extract(content,'$.sources'),'$[#]',json(?))),revision=revision+1 WHERE id=? AND owner IS NULL AND revision=0 AND json_extract(content,'$.address')=?").bind(c.address,c.area,JSON.stringify(c.source),c.id,c.previous));
+ await db.batch(patches);
+}
 export async function readRegistry(user:{email:string;displayName:string}|null,studioId?:string):Promise<RegistryState>{
  await seedRegistry();const db=database();const email=user?.email.toLowerCase()||'';const operator=isRegistryOperator(email);
  const rows=(await db.prepare('SELECT * FROM studio_registry').all()).results;
