@@ -98,3 +98,9 @@ Source requirements: `docs/PRODUCT-BRIEF.txt`. Public competitive audit and desi
 The default homepage now opens the sourced Harare registry. The previous fictional booking experience is preserved at `/demo`. See `docs/REGISTRY-IMPLEMENTATION.md` for the claim workflow, source audit, permissions, mobile implementation, limitations and verification details. Real studios start unclaimed and non-bookable. Use `/registry-admin` as a configured registry operator, `/manage` as a verified studio owner/manager, and `/account` to track claims or accept staff invitations.
 
 Production runtime requires `SESSIONS_ADMIN_EMAILS` (comma-separated trusted reviewer emails); it is configured in Sites, not checked into source. Never auto-promote a first claimant. External participation requires a separate, intentional sharing decision; this update does not change audience. No invitations, payments or notifications are sent by these new flows.
+
+## Discovery, onboarding and subscriptions expansion
+
+See [product decisions](docs/EXPANSION-PLAN.md) and [integration and launch guide](docs/INTEGRATIONS.md) for near-me privacy, guided/AI planning, studio registration, term-based membership discounts and Stripe/PayPal/Paynow adapters. New routes: `/planner`, `/register`, `/onboarding/:studioId`, `/subscriptions`. AI and checkout remain explicitly disabled until secure configuration and merchant/callback checks are completed. No live charge or AI request has been made.
+
+Run `node --test tests/expansion.test.mjs tests/registry.test.mjs tests/booking-engine.test.mjs` and `npx tsc --noEmit --incremental false` before the lifecycle build. After the checkpoint build, `node --test tests/*.test.mjs` includes rendered Worker routes.

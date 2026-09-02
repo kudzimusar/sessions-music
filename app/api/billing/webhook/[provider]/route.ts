@@ -1,0 +1,2 @@
+import {processBillingWebhook} from '@/lib/billing-server';
+export async function POST(req:Request,{params}:{params:Promise<{provider:string}>}){const {provider}=await params;if(!['stripe','paypal','paynow'].includes(provider))return new Response('Unknown provider',{status:404});try{await processBillingWebhook(provider as 'stripe'|'paypal'|'paynow',req);return Response.json({received:true});}catch(e){return Response.json({error:'Webhook could not be verified or reconciled'},{status:e instanceof Error&&/signature|mode|Payload/.test(e.message)?400:503});}}

@@ -19,3 +19,11 @@ test('production API enforces identity and persists reservations in D1',async()=
 });
 
 test('production Worker renders dedicated phone view, map and real studio details',async()=>{for(const [path,pattern]of [['/mobile',/phone-mode/],['/map',/Map search for OneVibe/],['/studio/onevibe-studiox',/Where this profile comes from/],['/demo',/Sample venue/]]){const r=await runtime.dispatchFetch('https://sessions.test'+path);assert.equal(r.status,200);assert.match(await r.text(),pattern);}});
+
+test('production Worker exposes the planner, registration, capacity and visible payment states',async()=>{
+ for(const [path,pattern] of [['/planner',/Guided planner/],['/register',/My studio is missing/],['/subscriptions',/Price not set/],['/onboarding/onevibe-studiox',/Sign in to continue/],['/studio/onevibe-studiox',/Capacity not supplied/]]){const r=await runtime.dispatchFetch('https://sessions.test'+path);assert.equal(r.status,200);assert.match(await r.text(),pattern);}
+ const planner=await runtime.dispatchFetch('https://sessions.test/api/planner');assert.equal(planner.status,200);assert.equal((await planner.json()).aiReady,false);
+ const billing=await runtime.dispatchFetch('https://sessions.test/api/billing');assert.equal(billing.status,200);const value=await billing.json();assert.equal(value.amount,null);assert.ok(value.providers.every(p=>!p.ready));
+ const registration=await runtime.dispatchFetch('https://sessions.test/api/registry',{method:'POST',headers:{'Content-Type':'application/json','oai-authenticated-user-email':'registration-worker@example.test'},body:JSON.stringify({type:'registerStudio',name:'Worker registration fixture',area:'Harare',address:'Fixture business address in Harare',category:'Rehearsal studio',description:'A fixture business created only inside the isolated production Worker test.',website:'https://example.test/fixture',phone:'+263000000000',representative:'Fixture owner',evidence:'Independent business channel evidence for the Worker fixture application.',consent:true})});assert.equal(registration.status,200);assert.equal((await registration.json()).registration.status,'pending');
+ const anonymous=await(await runtime.dispatchFetch('https://sessions.test/api/registry')).json();assert.deepEqual(anonymous.registrations,[]);assert.deepEqual(anonymous.memberships,[]);assert.equal(anonymous.studios.length,12);
+});

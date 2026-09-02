@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX `one_pending_checkout_per_studio` ON `billing_checkouts` (`studio_id`) WHERE "billing_checkouts"."status" IN ('creating','pending');

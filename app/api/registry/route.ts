@@ -3,7 +3,9 @@ import {getChatGPTUser} from '@/app/chatgpt-auth';
 import {database} from '@/db/store';
 import {readRegistry,seedRegistry,isRegistryOperator} from '@/db/registry-store';
 import {type Studio,type Staff,type Claim,type StudioBooking,type RegistryIssue,registrySlotReason} from '@/lib/registry';
-import {timestamp} from '@/lib/domain';
+import {timestamp,localDate,addDays} from '@/lib/domain';
+import {registrationAction} from '@/db/registrations';
+import {memberForDate,sessionPrice,type StudioMember} from '@/lib/discovery';
 const response=(data:unknown,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store'}});
 class Fault extends Error{constructor(message:string,public status=400){super(message)}}
 function fail(message:string,status=400):never{throw new Fault(message,status)}
@@ -17,6 +19,7 @@ export async function POST(req:Request){
  if(Number(req.headers.get('content-length')||0)>40000)fail('Request too large',413);
  const rawText=await req.text();if(rawText.length>40000)fail('Request too large',413);let p:any;try{p=JSON.parse(rawText)}catch{fail('Invalid JSON')};
  z.object({type:text.min(1).max(40)}).parse(p);await seedRegistry();const db=database();const operator=isRegistryOperator(email);const now=new Date().toISOString();
+ const registration=await registrationAction(p,email,operator);if(registration)return registration;
  const audit=(studioId:string,event:string)=>db.prepare('INSERT INTO studio_audit(id,studio_id,actor,event,created_at) VALUES(?,?,?,?,?)').bind(crypto.randomUUID(),studioId,email,event,now);
  if(p.type==='addStudio'){
  if(!operator)fail('Registry operator access required',403);const v=z.object({name:text.min(3).max(120),area:text.min(2).max(80),address:text.min(5).max(300),description:text.min(30).max(2000),category:z.enum(['Rehearsal studio','Recording studio','Music institution','Production facility']),source:z.string().url().startsWith('https://').max(1000),sourceTitle:text.min(3).max(120)}).parse(p);
@@ -56,6 +59,26 @@ export async function POST(req:Request){
  const future=(await db.prepare('SELECT content FROM studio_bookings WHERE studio_id=?').bind(studioId).all()).results.map((r:any)=>JSON.parse(r.content) as StudioBooking).filter((b:StudioBooking)=>['requested','confirmed'].includes(b.status));
  if(future.length&&JSON.stringify(v.rooms)!==JSON.stringify(studio.rooms))fail('Resolve existing requests and bookings before changing room schedules or rates. Contact details can still be edited.',409);
  Object.assign(studio,v,{updatedAt:now});
+ }else if(p.type==='memberPlans'){
+ own();const v=z.object({plans:z.array(z.object({id:id,name:text.min(2).max(80),fee:z.number().int().min(0).max(100000),termDays:z.number().int().min(1).max(366),discountPercent:z.number().int().min(0).max(50),priority:z.boolean(),benefits:text.min(10).max(600),active:z.boolean()})).max(5)}).parse(p);
+ if(new Set(v.plans.map(x=>x.id)).size!==v.plans.length)fail('Each membership plan needs a unique ID');studio.memberPlans=v.plans;studio.updatedAt=now;
+ }else if(p.type==='joinMembership'){
+ const v=z.object({planId:id,name:text.min(2).max(120),consent:z.literal(true)}).parse(p);if(studio.hidden||!row.owner)fail('Memberships require a claimed studio',409);
+ const plan=studio.memberPlans?.find(x=>x.id===v.planId&&x.active);if(!plan)fail('This membership plan is not available',409);
+ const old=await db.prepare('SELECT content FROM studio_members WHERE studio_id=? AND customer=?').bind(studioId,email).first();const existing:StudioMember|undefined=old?JSON.parse(old.content):undefined;
+ if(existing&&(existing.status==='requested'||existing.status==='active'&&!!existing.expiresOn&&existing.expiresOn>=localDate()))fail('You already have an active or pending membership here',409);
+ const member:StudioMember={id:existing?.id||crypto.randomUUID(),studioId,customer:email,name:v.name,plan,status:'requested',createdAt:now};
+ statements.push(db.prepare('INSERT INTO studio_members(id,studio_id,customer,content) VALUES(?,?,?,?) ON CONFLICT(studio_id,customer) DO UPDATE SET content=excluded.content').bind(member.id,studioId,email,JSON.stringify(member)));result={ok:true,membership:member};
+ }else if(p.type==='reviewMembership'){
+ own();const v=z.object({id,decision:z.enum(['active','declined']),note:text.min(10).max(500),paymentConfirmed:z.boolean()}).parse(p);
+ const r=await db.prepare('SELECT content FROM studio_members WHERE id=? AND studio_id=?').bind(v.id,studioId).first();if(!r)fail('Membership not found',404);const member:StudioMember=JSON.parse(r.content);if(member.status!=='requested')fail('This request was already reviewed',409);
+ if(v.decision==='active'&&member.plan.fee>0&&!v.paymentConfirmed)fail('Confirm the agreed fee was collected outside Sessions before activating');
+ member.status=v.decision;member.note=v.note;if(v.decision==='active'){member.startsOn=localDate();member.expiresOn=addDays(member.startsOn,member.plan.termDays-1);}
+ statements.push(db.prepare('UPDATE studio_members SET content=? WHERE id=?').bind(JSON.stringify(member),v.id));result={ok:true,membership:member};
+ }else if(p.type==='cancelMembership'){
+ const v=z.object({id,consent:z.literal(true)}).parse(p);const r=await db.prepare('SELECT content FROM studio_members WHERE id=? AND studio_id=?').bind(v.id,studioId).first();if(!r)fail('Membership not found',404);const member:StudioMember=JSON.parse(r.content);if(!owner&&member.customer!==email)fail('Membership belongs to another account',403);
+ member.status='cancelled';member.note='Membership ended. Existing booking prices remain unchanged. Settle any externally paid fee directly with the studio.';
+ statements.push(db.prepare('UPDATE studio_members SET content=? WHERE id=?').bind(JSON.stringify(member),v.id));
  }else if(p.type==='inviteStaff'){
  own();const v=z.object({email:z.string().email().max(200),role:z.enum(['manager','staff']),title:text.min(2).max(100)}).parse(p);v.email=v.email.toLowerCase();
  const count=await db.prepare('SELECT count(*) n FROM studio_staff WHERE studio_id=?').bind(studioId).first();if(count.n>=50)fail('Team limit reached',429);
@@ -73,7 +96,9 @@ export async function POST(req:Request){
  if(studio.status!=='claimed'||!row.owner||!studio.bookingEnabled||studio.hidden)fail('This studio is not accepting Sessions booking requests',409);
  const room=studio.rooms.find(r=>r.id===v.roomId);if(!room)fail('Room not found',404);if(v.size>room.capacity)fail('Your group exceeds the room capacity');
  const all=(await db.prepare('SELECT content FROM studio_bookings WHERE studio_id=?').bind(studioId).all()).results.map((r:any)=>JSON.parse(r.content));if(all.filter((b:StudioBooking)=>b.customer===email&&b.status==='requested').length>=10)fail('Please wait for your current requests to be reviewed.',429);const reason=registrySlotReason(studio,room,v.date,v.start,v.duration,all);if(reason)fail(reason,409);
- const booking:StudioBooking={id:'RS-'+crypto.randomUUID(),studioId,roomId:room.id,roomName:room.name,customer:email,name:v.name,phone:v.phone,date:v.date,start:v.start,duration:v.duration,size:v.size,note:v.note,staffId:'',status:'requested',price:Math.round(room.price*v.duration/60),createdAt:now};
+ const members=(await db.prepare('SELECT content FROM studio_members WHERE studio_id=? AND customer=?').bind(studioId,email).all()).results.map((m:any)=>JSON.parse(m.content));
+ const calculated=sessionPrice(room.price,v.duration,memberForDate(members,studioId,v.date));
+ const booking:StudioBooking={id:'RS-'+crypto.randomUUID(),studioId,roomId:room.id,roomName:room.name,customer:email,name:v.name,phone:v.phone,date:v.date,start:v.start,duration:v.duration,size:v.size,note:v.note,staffId:'',status:'requested',...calculated,createdAt:now};
  statements.push(db.prepare('INSERT INTO studio_bookings(id,studio_id,customer,request_key,content) VALUES(?,?,?,?,?)').bind(booking.id,studioId,email,v.key,JSON.stringify(booking)));for(let m=v.start;m<v.start+v.duration+room.buffer;m+=30)statements.push(db.prepare('INSERT INTO studio_booking_slots(studio_id,room_id,date,minute,booking_id) VALUES(?,?,?,?,?)').bind(studioId,room.id,v.date,m,booking.id));result={ok:true,booking};
  }else if(p.type==='bookingStatus'){
  const v=z.object({id,status:z.enum(['confirmed','declined','cancelled','completed']),staffId:text.max(100).optional()}).parse(p);const b=await bookingRow();
