@@ -1,6 +1,6 @@
 # Sessions production roadmap
 
-Status date: 2 September 2026. This document is the execution authority for moving Sessions from a tested demo to a production marketplace. Work proceeds in order because identity, communication, payments and verified supply form one dependency chain.
+Status date: 2 September 2026. Phase R is the current execution authority for moving Sessions from a tested demo to an operating product. Work proceeds W1 → W2 → W3 → W3b → W4 → W5. Open commercial decisions remain configuration and policy data.
 
 ## Non-negotiable product contracts
 
@@ -10,8 +10,25 @@ Status date: 2 September 2026. This document is the execution authority for movi
 - Every mutating endpoint requires authenticated identity, server-side authorization, same-origin enforcement, bounded validation and negative tests.
 - Every external integration is feature-gated. Disabled integrations are absent from the user journey.
 - The demo remains available at `/demo` during migration, but must remain private until Phases 1–3 pass real sandbox integration tests.
-- D1/R2 remain the production system of record until the dedicated Sessions Supabase project has proven dual-write reconciliation.
+- D1/R2 remain the production system of record. Supabase is Auth and normalized identity/tenant authorization only.
 - `Wewed` is unrelated and must never receive Sessions data or schema changes.
+
+## Phase R roll-call
+
+| Workstream | Outcome | Status | Exit evidence |
+| --- | --- | --- | --- |
+| W1 | Real identity boundary and self-service studio claim/verification/onboarding | Code-complete and privately deployed; live OTP/OAuth blocked on SMS, Google, CAPTCHA and runtime credentials | `docs/PHASE-R-W1.md`, 90-test checkpoint, applied base Supabase migration |
+| W2 | Concierge direct-settlement ledger, proof, statements and invoices | Code-complete and certified for the next owner-only version | `docs/PHASE-R-W2.md`, server arithmetic, stale/idempotency/cross-tenant/export tests |
+| W3 | Effective-dated fee policy and add-on pricing engine | Not started | Future quotes change; existing snapshots remain byte-stable |
+| W3b | 12-session recurring series, membership attendance/settlement ledger and optional loyalty credit | Not started | All-or-nothing series and retention evidence |
+| W4 | Booking proof, inbox and consented reminder contracts | Not started | QR/ICS/offline reference, message authorization and idempotent delivery logs |
+| W5 | Trust, availability search, public persuasion and reviews | Not started | Data-backed badges, completed-booking reviews, mobile Lighthouse gate |
+| W5b | Complete phone-first studio operations console | In progress through W1/W2 | Owner can operate bookings and statements on a phone |
+| W6 | First-party analytics, backup/restore, error hooks and demo purge | Not started | Executed restore receipt and real-event funnel |
+
+## Earlier production phase map
+
+The numbered map below remains long-range context. Where it conflicts with Phase R ordering or frozen items, the Phase R roll-call above controls. Gateway activation, ZiG, AI live search and native shells remain frozen until explicitly reopened.
 
 ## Roll-call
 

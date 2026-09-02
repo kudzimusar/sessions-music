@@ -16,6 +16,14 @@ The guided planner requires no AI subscription, but it cannot produce bookable r
 - Paid loyalty membership fees are confirmed by the studio owner as **received outside Sessions**. This is not a gateway-verified receipt. No automatic debit, studio fund routing, payout or Connect account is created. Customer/owner termination requires confirmation; refunds are handled with the studio under its published terms.
 - Priority means a badge and earlier placement in the pending review queue. It never displaces accepted bookings, grants staff permissions or guarantees availability.
 
+## Concierge settlement · launch money flow
+
+Real registry bookings use direct studio settlement. After a studio accepts a request, Sessions creates a server-priced settlement record. The customer pays the studio by their agreed EcoCash, bank/ZIPIT, cash or other method; Sessions does not receive or hold the funds. A studio owner/accepted manager can confirm the payment directly, or the customer can upload private proof for studio acknowledgement. A customer upload remains `proof_submitted` and is never labelled paid on its own.
+
+The current effective snapshot is `founding-pilot-zero-v1`: 0% musician fee and 0% studio fee. This is stored visibly in every confirmed settlement rather than hidden as a global constant. Workstream 3 will select effective-dated policies and per-room overrides; it must not mutate these existing snapshots.
+
+The studio console provides live monthly statements and authenticated PDF/CSV downloads. A prior month can be closed once into an invoice record containing the exact settlement IDs and totals used at issue time. Statements are operational records, not bank statements or tax advice. Refunds, chargebacks, payouts, FX, automatic invoicing collection and gateway settlement remain inactive.
+
 ## Source control, Supabase and platform calendar
 
 ### GitHub
@@ -107,6 +115,6 @@ Endpoint: `/api/billing/webhook/paynow`. Initiation, callback and polling respon
 
 ## Schema and validation
 
-New D1 tables: `studio_registrations`, `studio_members`, `planner_usage`, `billing_checkouts`, `billing_accounts`, `billing_events`. Existing studio JSON supports optional `memberPlans`; booking JSON stores base price, discount, membership reference and priority snapshots. Append migrations; do not rewrite the three earlier deployed migrations. The two expression-index statements in new migration 0005 use corrected SQLite syntax because drizzle-kit emitted invalid quoted expressions. Schema definitions and snapshot retain the intended expressions.
+New D1 tables now include `studio_registrations`, `studio_members`, `planner_usage`, `billing_checkouts`, `billing_accounts`, `billing_events`, `studio_verification_requests`, `studio_settlements`, `settlement_events` and `studio_invoices`. Upload metadata carries studio/room/booking purpose boundaries. Existing studio JSON supports optional `memberPlans`; booking JSON stores base price, discount, membership reference and priority snapshots. Append migrations; never rewrite a deployed migration. The two expression-index statements in migration 0005 use corrected SQLite syntax because drizzle-kit emitted invalid quoted expressions. Schema definitions and snapshots retain the intended expressions.
 
 Meaningful tests exercise the actual route handlers with an isolated SQLite D1 adapter. Provider requests use test doubles and the Paynow documentation's public hash vector, never real credentials. These are not a substitute for sandbox merchant acceptance testing or a real smartphone trial.

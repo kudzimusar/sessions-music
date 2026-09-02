@@ -27,6 +27,8 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
     const membership=user.memberships.find(value=>value.organizationId===row.studio_id&&value.active);
     const owner=studio?.owner===user.id&&(user.method==='chatgpt_demo'||membership?.role==='owner');
     if(!owner&&!isRegistryUserOperator(user))return new Response('Not found',{status:404});
+   }else if(row.purpose==='settlement_proof'){
+    const booking=await db.prepare('SELECT customer FROM studio_bookings WHERE id=? AND studio_id=?').bind(row.booking_id,row.studio_id).first();if(!booking)return new Response('Not found',{status:404});const operator=isRegistryUserOperator(user);const studio=await db.prepare('SELECT owner FROM studio_registry WHERE id=?').bind(row.studio_id).first();const membership=user.memberships.find(value=>value.organizationId===row.studio_id&&value.active);const legacy=user.method==='chatgpt_demo';const contacts=[user.email?.toLowerCase(),user.phone].filter(Boolean);const staff=contacts.length?await db.prepare("SELECT role FROM studio_staff WHERE studio_id=? AND email IN (?,?) AND status='active'").bind(row.studio_id,contacts[0]||'',contacts[1]||'').first():null;const owner=studio?.owner===user.id&&(legacy||membership?.role==='owner');const manager=staff?.role==='manager'&&(legacy||membership?.role==='staff'||membership?.role==='owner');if(!operator&&booking.customer!==user.id&&!owner&&!manager)return new Response('Not found',{status:404});
    }else if(row.owner!==user.id)return new Response('Not found',{status:404});
   }
   const object=await (env as any).BUCKET.get(id);

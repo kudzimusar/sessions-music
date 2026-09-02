@@ -1,5 +1,16 @@
 # Sessions changelog
 
+## 2 September 2026 — Phase R Workstream 2 implementation
+
+- Added the real concierge settlement state machine without enabling any payment gateway or money custody.
+- Confirmed bookings now create a server-priced, integer-cent settlement with an immutable founding-pilot 0% fee snapshot.
+- Added private booking-scoped R2 payment proof, studio-only acknowledgement/decline, explicit dispute visibility and Operations-only record resolution.
+- Blocked completion without recorded settlement and blocked silent cancellation after a studio-confirmed payment.
+- Added monthly studio statements, authenticated PDF/CSV export and immutable prior-month commission invoice records.
+- Added D1 revision guards, idempotency events, arithmetic constraints and cross-tenant authorization tests.
+- Preserved the private `/demo` route; its simulated gateway remains separate from all real registry settlement screens.
+- Verified the checkpoint with a clean standalone typecheck, production build and 98 passing tests.
+
 ## 2 September 2026 — Phase R Workstream 1 implementation
 
 - Verified the dedicated `Sessions` Supabase project in Frankfurt, dry-ran the complete identity/RLS migration, then applied it as `20260902085743_phase_r_identity`; all identity tables remain empty and Auth remains disabled.

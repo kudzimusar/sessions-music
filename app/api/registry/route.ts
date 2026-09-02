@@ -2,13 +2,14 @@ import {z} from 'zod';
 import {getProductionUser} from '@/app/chatgpt-auth';
 import {database} from '@/db/store';
 import {readRegistry,seedRegistry,isRegistryUserOperator} from '@/db/registry-store';
-import {type Studio,type Staff,type Claim,type StudioBooking,type RegistryIssue,type VerificationRequest,registrySlotReason} from '@/lib/registry';
+import {type Studio,type Staff,type Claim,type StudioBooking,type StudioSettlement,type RegistryIssue,type VerificationRequest,registrySlotReason} from '@/lib/registry';
 import {timestamp,localDate,addDays} from '@/lib/domain';
 import {registrationAction} from '@/db/registrations';
 import {memberForDate,sessionPrice,type StudioMember} from '@/lib/discovery';
 import {syncPlatformCalendar} from '@/lib/google-calendar-server';
 import {provisionStudioMembership} from '@/lib/supabase-admin';
 import {normalizeZimbabwePhone} from '@/lib/identity-core';
+import {settlementPricing} from '@/lib/commerce';
 const response=(data:unknown,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store'}});
 class Fault extends Error{constructor(message:string,public status=400){super(message)}}
 function fail(message:string,status=400):never{throw new Fault(message,status)}
@@ -120,13 +121,26 @@ export async function POST(req:Request){
  statements.push(db.prepare('INSERT INTO studio_bookings(id,studio_id,customer,request_key,content) VALUES(?,?,?,?,?)').bind(booking.id,studioId,email,v.key,JSON.stringify(booking)));for(let m=v.start;m<v.start+v.duration+room.buffer;m+=30)statements.push(db.prepare('INSERT INTO studio_booking_slots(studio_id,room_id,date,minute,booking_id) VALUES(?,?,?,?,?)').bind(studioId,room.id,v.date,m,booking.id));result={ok:true,booking};
  }else if(p.type==='bookingStatus'){
  const v=z.object({id,status:z.enum(['confirmed','declined','cancelled','completed']),staffId:text.max(100).optional()}).parse(p);const b=await bookingRow();const previousStatus=b.status;
- if(v.status==='cancelled'){if(b.customer!==email&&!manager)fail('This booking belongs to another account',403);if(!['requested','confirmed'].includes(b.status))fail('This booking cannot be cancelled',409)}else{manage();if(v.status==='completed'){if(b.status!=='confirmed'||timestamp(b.date,b.start+b.duration)>Date.now())fail('Only a finished confirmed session can be completed',409)}else if(b.status!=='requested')fail('Only a pending request can be accepted or declined',409)}
+ const settlementRow=await db.prepare('SELECT revision,content FROM studio_settlements WHERE booking_id=? AND studio_id=?').bind(b.id,studioId).first();const settlement:StudioSettlement|undefined=settlementRow?{...JSON.parse(settlementRow.content),revision:settlementRow.revision}:undefined;
+ if(v.status==='cancelled'){if(b.customer!==email&&!manager)fail('This booking belongs to another account',403);if(!['requested','confirmed'].includes(b.status))fail('This booking cannot be cancelled',409);if(settlement&&['settled_off_platform','disputed'].includes(settlement.status))fail('Open a settlement dispute before cancelling a paid booking',409)}else{manage();if(v.status==='completed'){if(b.status!=='confirmed'||timestamp(b.date,b.start+b.duration)>Date.now())fail('Only a finished confirmed session can be completed',409);if(settlement?.status!=='settled_off_platform')fail('Record the direct studio payment before completing this booking',409)}else if(b.status!=='requested')fail('Only a pending request can be accepted or declined',409)}
  if(v.staffId){manage();const staff=await db.prepare("SELECT * FROM studio_staff WHERE id=? AND studio_id=? AND status='active'").bind(v.staffId,studioId).first();if(!staff)fail('Select an active member of this studio');b.staffId=v.staffId;}
  b.status=v.status;statements.push(db.prepare('UPDATE studio_bookings SET content=? WHERE id=?').bind(JSON.stringify(b),b.id));if(['cancelled','declined'].includes(v.status))statements.push(db.prepare('DELETE FROM studio_booking_slots WHERE booking_id=?').bind(b.id));
+ if(v.status==='confirmed'){
+  const pricing=settlementPricing(b.price);const value:StudioSettlement={id:'SET-'+crypto.randomUUID(),bookingId:b.id,studioId,customer:b.customer,status:'awaiting_payment',revision:0,pricing,createdAt:now,updatedAt:now};
+  statements.push(db.prepare('INSERT INTO studio_settlements(id,booking_id,studio_id,customer,status,room_subtotal_cents,addon_subtotal_cents,gross_cents,customer_fee_cents,studio_fee_cents,platform_fee_cents,customer_total_cents,deposit_due_cents,studio_net_cents,currency,created_at,updated_at,content) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(value.id,b.id,studioId,b.customer,value.status,pricing.roomSubtotal,pricing.addOnSubtotal,pricing.gross,pricing.customerFee,pricing.studioFee,pricing.platformFee,pricing.customerTotal,pricing.depositDue,pricing.studioNet,pricing.currency,now,now,JSON.stringify(value)));
+  statements.push(db.prepare('INSERT INTO settlement_events(id,settlement_id,studio_id,actor,event,idempotency_key,created_at,content) VALUES(?,?,?,?,?,?,?,?)').bind(crypto.randomUUID(),value.id,studioId,email,'created','booking-confirmed:'+b.id,now,JSON.stringify({bookingId:b.id,pricing})));
+  result={ok:true,booking:b,settlement:value};
+ }else if(v.status==='cancelled'&&settlement){
+  const settlementGuard=crypto.randomUUID();settlement.status='cancelled';settlement.updatedAt=now;
+  statements.push(db.prepare('INSERT INTO operation_guards(id,valid) VALUES(?,(SELECT CASE WHEN revision=? THEN 1 ELSE 0 END FROM studio_settlements WHERE id=?))').bind(settlementGuard,settlement.revision,settlement.id));
+  statements.push(db.prepare('UPDATE studio_settlements SET status=?,revision=revision+1,updated_at=?,content=? WHERE id=?').bind(settlement.status,now,JSON.stringify({...settlement,revision:settlement.revision+1}),settlement.id));
+  statements.push(db.prepare('INSERT INTO settlement_events(id,settlement_id,studio_id,actor,event,idempotency_key,created_at,content) VALUES(?,?,?,?,?,?,?,?)').bind(crypto.randomUUID(),settlement.id,studioId,email,'cancelled','booking-cancelled:'+b.id,now,JSON.stringify({bookingId:b.id})));
+  statements.push(db.prepare('DELETE FROM operation_guards WHERE id=?').bind(settlementGuard));
+ }
  if(v.status==='confirmed'||v.status==='completed'||v.status==='cancelled'&&previousStatus==='confirmed'){
   calendarBooking={...b};statements.push(db.prepare("INSERT INTO studio_calendar_events(booking_id,studio_id,event_id,status,updated_at,content) VALUES(?,?,?,?,?,?) ON CONFLICT(booking_id) DO UPDATE SET status=excluded.status,updated_at=excluded.updated_at,content=excluded.content").bind(b.id,studioId,'','awaiting_setup',now,JSON.stringify({bookingStatus:b.status,queued:true,lastError:''})));
  }
- result={ok:true,booking:b};
+ if(v.status!=='confirmed')result={ok:true,booking:b};
  }else if(p.type==='correctStudio'){
  if(!operator)fail('Registry operator access required',403);const v=z.object({name:text.min(3).max(120),area:text.min(2).max(80),address:text.min(5).max(300),notice:text.min(20).max(500),source:z.string().url().startsWith('https://').max(1000),sourceTitle:text.min(3).max(120)}).parse(p);
  const addressChanged=studio.address!==v.address;Object.assign(studio,{name:v.name,area:v.area,address:v.address,notice:v.notice,updatedAt:now});if(addressChanged){studio.location=null;studio.bookingEnabled=false;}studio.sources=[...studio.sources.slice(-19),{title:v.sourceTitle,url:v.source,checked:now.slice(0,10),kind:'Public directory',note:'Operator correction'}];

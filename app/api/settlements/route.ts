@@ -1,0 +1,65 @@
+import {z} from 'zod';
+import {getProductionUser,type SessionUser} from '@/app/chatgpt-auth';
+import {database} from '@/db/store';
+import {isRegistryUserOperator} from '@/db/registry-store';
+import type {SettlementMethod,StudioInvoice,StudioSettlement} from '@/lib/registry';
+
+const response=(data:unknown,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store'}});
+class Fault extends Error{constructor(message:string,public status=400){super(message)}}
+const fail=(message:string,status=400):never=>{throw new Fault(message,status)};
+const id=z.string().trim().min(1).max(120),month=z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/),key=z.string().uuid(),method=z.enum(['ecocash','bank_transfer','cash','other']);
+const harareMonth=(date=new Date())=>new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Harare',year:'numeric',month:'2-digit'}).format(date);
+
+async function access(user:SessionUser,studioId:string){
+ const db=database();const studio=await db.prepare('SELECT owner,content FROM studio_registry WHERE id=?').bind(studioId).first();if(!studio)fail('Studio not found',404);
+ if(isRegistryUserOperator(user))return {studio,role:'operations' as const};
+ const identity=user.memberships.find(value=>value.organizationId===studioId&&value.active);const legacy=user.method==='chatgpt_demo';
+ if(studio.owner===user.id&&(legacy||identity?.role==='owner'))return {studio,role:'owner' as const};
+ const contacts=[user.email?.toLowerCase(),user.phone].filter(Boolean);const staff=contacts.length?await db.prepare("SELECT role FROM studio_staff WHERE studio_id=? AND email IN (?,?) AND status='active'").bind(studioId,contacts[0]||'',contacts[1]||'').first():null;
+ if(staff?.role==='manager'&&(legacy||identity?.role==='staff'||identity?.role==='owner'))return {studio,role:'manager' as const};
+ return {studio,role:null};
+}
+
+export async function GET(request:Request){
+ try{
+  const session=await getProductionUser();if(!session)fail('Sign in to view settlements',401);const user=session as SessionUser;const url=new URL(request.url),studioId=url.searchParams.get('studio')||'',period=url.searchParams.get('month')||harareMonth();month.parse(period);const db=database();
+  let rows:any[]=[];let invoices:any[]=[];
+  if(studioId){id.parse(studioId);const allowed=await access(user,studioId);if(!allowed.role)fail('Studio settlement access required',403);rows=(await db.prepare("SELECT revision,content FROM studio_settlements WHERE studio_id=? AND (settled_month=? OR (settled_month IS NULL AND substr(created_at,1,7)=?)) ORDER BY created_at DESC LIMIT 1000").bind(studioId,period,period).all()).results;invoices=(await db.prepare('SELECT content FROM studio_invoices WHERE studio_id=? ORDER BY period DESC LIMIT 120').bind(studioId).all()).results;
+  }else if(isRegistryUserOperator(user)){rows=(await db.prepare('SELECT revision,content FROM studio_settlements ORDER BY updated_at DESC LIMIT 2000').all()).results;invoices=(await db.prepare('SELECT content FROM studio_invoices ORDER BY period DESC LIMIT 1000').all()).results;
+  }else rows=(await db.prepare('SELECT revision,content FROM studio_settlements WHERE customer=? ORDER BY updated_at DESC LIMIT 1000').bind(user.id).all()).results;
+  const settlements:StudioSettlement[]=rows.map(row=>({...JSON.parse(row.content),revision:row.revision}));const settled=settlements.filter(value=>value.status==='settled_off_platform'&&value.settledMonth===period);
+  return response({period,currentMonth:harareMonth(),settlements,invoices:invoices.map(row=>JSON.parse(row.content)),totals:{count:settled.length,gross:settled.reduce((sum,value)=>sum+value.pricing.gross,0),platformFee:settled.reduce((sum,value)=>sum+value.pricing.platformFee,0),studioNet:settled.reduce((sum,value)=>sum+value.pricing.studioNet,0)}});
+ }catch(error){if(error instanceof Fault)return response({error:error.message},error.status);if(error instanceof z.ZodError)return response({error:'Invalid settlement query'},400);console.error('Settlement load failed',error instanceof Error?error.message:'Unknown error');return response({error:'Settlements are temporarily unavailable'},503)}
+}
+
+export async function POST(request:Request){
+ try{
+  const origin=request.headers.get('Origin');if(origin&&origin!==new URL(request.url).origin)fail('Cross-origin request rejected',403);const session=await getProductionUser();if(!session)fail('Sign in to update a settlement',401);const user=session as SessionUser;if(Number(request.headers.get('content-length')||0)>16000)fail('Request too large',413);const source=await request.text();if(source.length>16000)fail('Request too large',413);let raw:any;try{raw=JSON.parse(source)}catch{fail('Invalid JSON')};const type=z.enum(['submitProof','confirmDirect','declineProof','openSettlementDispute','resolveSettlementDispute','issueInvoice']).parse(raw.type);const studioId=id.parse(raw.studioId);const allowed=await access(user,studioId);const db=database(),now=new Date().toISOString();
+  if(type==='issueInvoice'){
+   if(!['owner','operations'].includes(allowed.role||''))fail('Only the studio owner or Operations can issue a monthly invoice',403);const value=z.object({period:month,key}).parse(raw);if(value.period>=harareMonth())fail('Close and issue invoices only after the month has ended',409);const existing=await db.prepare('SELECT content FROM studio_invoices WHERE studio_id=? AND period=?').bind(studioId,value.period).first();if(existing)return response({ok:true,invoice:JSON.parse(existing.content)});
+   const rows:StudioSettlement[]=(await db.prepare("SELECT content FROM studio_settlements WHERE studio_id=? AND settled_month=? AND status='settled_off_platform' ORDER BY settled_at").bind(studioId,value.period).all()).results.map((row:any)=>JSON.parse(row.content) as StudioSettlement);const invoice:StudioInvoice={id:'INV-'+crypto.randomUUID(),studioId,period:value.period,status:'issued',currency:'USD',gross:rows.reduce((sum:number,row:StudioSettlement)=>sum+row.pricing.gross,0),platformFee:rows.reduce((sum:number,row:StudioSettlement)=>sum+row.pricing.platformFee,0),studioNet:rows.reduce((sum:number,row:StudioSettlement)=>sum+row.pricing.studioNet,0),settlementIds:rows.map((row:StudioSettlement)=>row.id),issuedAt:now,issuedBy:user.id};
+   await db.batch([db.prepare('INSERT INTO studio_invoices(id,studio_id,period,status,gross_cents,platform_fee_cents,studio_net_cents,issued_at,content) VALUES(?,?,?,?,?,?,?,?,?)').bind(invoice.id,studioId,invoice.period,invoice.status,invoice.gross,invoice.platformFee,invoice.studioNet,now,JSON.stringify(invoice)),db.prepare('INSERT INTO studio_audit(id,studio_id,actor,event,created_at) VALUES(?,?,?,?,?)').bind(crypto.randomUUID(),studioId,user.id,'issue settlement invoice',now)]);return response({ok:true,invoice});
+  }
+  const value=z.object({settlementId:id,revision:z.number().int().min(0),key}).parse(raw);const duplicate=await db.prepare('SELECT settlement_id FROM settlement_events WHERE actor=? AND idempotency_key=?').bind(user.id,value.key).first();if(duplicate){const current=await db.prepare('SELECT revision,content FROM studio_settlements WHERE id=?').bind(duplicate.settlement_id).first();return response({ok:true,settlement:{...JSON.parse(current.content),revision:current.revision},duplicate:true});}
+  const row=await db.prepare('SELECT revision,content FROM studio_settlements WHERE id=? AND studio_id=?').bind(value.settlementId,studioId).first();if(!row)fail('Settlement not found',404);if(row.revision!==value.revision)fail('This settlement changed. Refresh and try again.',409);const settlement:StudioSettlement={...JSON.parse(row.content),revision:row.revision};const isCustomer=settlement.customer===user.id,isStudioManager=allowed.role==='owner'||allowed.role==='manager';
+  let event:string;
+  if(type==='submitProof'){
+   if(!isCustomer)fail('This settlement belongs to another customer',403);if(!['awaiting_payment','payment_declined'].includes(settlement.status))fail('Payment proof cannot be added in this state',409);const proof=z.object({proofMediaId:z.string().uuid(),method,note:z.string().trim().max(500).default('')}).parse(raw);const media=await db.prepare("SELECT id FROM uploads WHERE id=? AND owner=? AND studio_id=? AND booking_id=? AND purpose='settlement_proof'").bind(proof.proofMediaId,user.id,studioId,settlement.bookingId).first();if(!media)fail('That payment proof does not belong to this booking',403);Object.assign(settlement,{status:'proof_submitted',proofMediaId:proof.proofMediaId,proofMethod:proof.method,proofSubmittedAt:now,proofNote:proof.note,updatedAt:now});delete settlement.declineReason;event='proof_submitted';
+  }else if(type==='confirmDirect'){
+   if(!isStudioManager)fail('Studio manager access required',403);if(!['awaiting_payment','proof_submitted','payment_declined'].includes(settlement.status))fail('This settlement cannot be confirmed in its current state',409);const confirmation=z.object({method}).parse(raw);const settledMethod:SettlementMethod=settlement.status==='proof_submitted'&&settlement.proofMethod?settlement.proofMethod:confirmation.method;Object.assign(settlement,{status:'settled_off_platform',settledAt:now,settledMonth:harareMonth(),settledMethod,settledBy:user.id,updatedAt:now});event='settled_off_platform';
+  }else if(type==='declineProof'){
+   if(!isStudioManager)fail('Studio manager access required',403);if(settlement.status!=='proof_submitted')fail('Only submitted proof can be declined',409);const decline=z.object({reason:z.string().trim().min(15).max(500)}).parse(raw);Object.assign(settlement,{status:'payment_declined',declineReason:decline.reason,updatedAt:now});event='proof_declined';
+  }else if(type==='openSettlementDispute'){
+   if(!isCustomer&&!isStudioManager)fail('This settlement belongs to another account',403);if(['cancelled','disputed'].includes(settlement.status))fail('A dispute cannot be opened in this state',409);const dispute=z.object({reason:z.string().trim().min(20).max(1000)}).parse(raw);Object.assign(settlement,{previousStatus:settlement.status,status:'disputed',disputeReason:dispute.reason,disputedAt:now,updatedAt:now});event='dispute_opened';
+  }else{
+   if(!isRegistryUserOperator(user))fail('Operations access required',403);if(settlement.status!=='disputed')fail('Only an open dispute can be resolved',409);const resolution=z.object({note:z.string().trim().min(20).max(1000)}).parse(raw);const previous=(settlement as StudioSettlement&{previousStatus?:StudioSettlement['status']}).previousStatus;if(!previous||previous==='disputed')fail('The prior settlement state is unavailable',409);Object.assign(settlement,{status:previous,resolutionNote:resolution.note,updatedAt:now});event='dispute_resolved';
+  }
+  const nextRevision=settlement.revision+1;const guard=crypto.randomUUID();const serialized=JSON.stringify({...settlement,revision:nextRevision});await db.batch([
+   db.prepare('INSERT INTO operation_guards(id,valid) VALUES(?,(SELECT CASE WHEN revision=? THEN 1 ELSE 0 END FROM studio_settlements WHERE id=?))').bind(guard,value.revision,settlement.id),
+   db.prepare('UPDATE studio_settlements SET status=?,revision=?,settled_month=?,settled_at=?,updated_at=?,content=? WHERE id=?').bind(settlement.status,nextRevision,settlement.settledMonth||null,settlement.settledAt||null,now,serialized,settlement.id),
+   db.prepare('INSERT INTO settlement_events(id,settlement_id,studio_id,actor,event,idempotency_key,created_at,content) VALUES(?,?,?,?,?,?,?,?)').bind(crypto.randomUUID(),settlement.id,studioId,user.id,event,value.key,now,JSON.stringify({bookingId:settlement.bookingId,status:settlement.status,method:settlement.settledMethod||settlement.proofMethod||null,note:settlement.declineReason||settlement.disputeReason||settlement.resolutionNote||null})),
+   db.prepare('INSERT INTO studio_audit(id,studio_id,actor,event,created_at) VALUES(?,?,?,?,?)').bind(crypto.randomUUID(),studioId,user.id,'settlement '+event,now),
+   db.prepare('DELETE FROM operation_guards WHERE id=?').bind(guard)
+  ]);return response({ok:true,settlement:{...settlement,revision:nextRevision}});
+ }catch(error){if(error instanceof Fault)return response({error:error.message},error.status);if(error instanceof z.ZodError)return response({error:error.issues.map(issue=>`${issue.path.join('.')}: ${issue.message}`).join('; ')},400);if(error instanceof Error&&/UNIQUE|CHECK|constraint/i.test(error.message))return response({error:'This settlement changed or the action was already recorded. Refresh and try again.'},409);console.error('Settlement update failed',error instanceof Error?error.message:'Unknown error');return response({error:'Unable to update this settlement'},503)}
+}
