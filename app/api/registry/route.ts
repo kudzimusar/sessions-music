@@ -6,6 +6,7 @@ import {type Studio,type Staff,type Claim,type StudioBooking,type RegistryIssue,
 import {timestamp,localDate,addDays} from '@/lib/domain';
 import {registrationAction} from '@/db/registrations';
 import {memberForDate,sessionPrice,type StudioMember} from '@/lib/discovery';
+import {syncPlatformCalendar} from '@/lib/google-calendar-server';
 const response=(data:unknown,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store'}});
 class Fault extends Error{constructor(message:string,public status=400){super(message)}}
 function fail(message:string,status=400):never{throw new Fault(message,status)}
@@ -37,7 +38,7 @@ export async function POST(req:Request){
  }
  const studioId=id.parse(p.studioId);const row=await db.prepare('SELECT * FROM studio_registry WHERE id=?').bind(studioId).first();if(!row)fail('Studio not found',404);const studio:Studio={...JSON.parse(row.content),revision:row.revision};
  const owner=row.owner===email;const membership=await db.prepare("SELECT * FROM studio_staff WHERE studio_id=? AND email=? AND status='active'").bind(studioId,email).first();const manager=owner||membership?.role==='manager';
- const statements:any[]=[];let result:unknown={ok:true};
+ const statements:any[]=[];let result:Record<string,unknown>={ok:true};let calendarBooking:StudioBooking|undefined;
  const own=()=>{if(!owner)fail('Only the verified studio owner can do this',403)};const manage=()=>{if(!manager)fail('Studio manager access required',403)};
  const bookingRow=async()=>{const r=await db.prepare('SELECT content FROM studio_bookings WHERE id=? AND studio_id=?').bind(id.parse(p.id),studioId).first();if(!r)fail('Booking not found',404);return JSON.parse(r.content) as StudioBooking};
  if(p.type==='claim'){
@@ -101,10 +102,14 @@ export async function POST(req:Request){
  const booking:StudioBooking={id:'RS-'+crypto.randomUUID(),studioId,roomId:room.id,roomName:room.name,customer:email,name:v.name,phone:v.phone,date:v.date,start:v.start,duration:v.duration,size:v.size,note:v.note,staffId:'',status:'requested',...calculated,createdAt:now};
  statements.push(db.prepare('INSERT INTO studio_bookings(id,studio_id,customer,request_key,content) VALUES(?,?,?,?,?)').bind(booking.id,studioId,email,v.key,JSON.stringify(booking)));for(let m=v.start;m<v.start+v.duration+room.buffer;m+=30)statements.push(db.prepare('INSERT INTO studio_booking_slots(studio_id,room_id,date,minute,booking_id) VALUES(?,?,?,?,?)').bind(studioId,room.id,v.date,m,booking.id));result={ok:true,booking};
  }else if(p.type==='bookingStatus'){
- const v=z.object({id,status:z.enum(['confirmed','declined','cancelled','completed']),staffId:text.max(100).optional()}).parse(p);const b=await bookingRow();
+ const v=z.object({id,status:z.enum(['confirmed','declined','cancelled','completed']),staffId:text.max(100).optional()}).parse(p);const b=await bookingRow();const previousStatus=b.status;
  if(v.status==='cancelled'){if(b.customer!==email&&!manager)fail('This booking belongs to another account',403);if(!['requested','confirmed'].includes(b.status))fail('This booking cannot be cancelled',409)}else{manage();if(v.status==='completed'){if(b.status!=='confirmed'||timestamp(b.date,b.start+b.duration)>Date.now())fail('Only a finished confirmed session can be completed',409)}else if(b.status!=='requested')fail('Only a pending request can be accepted or declined',409)}
  if(v.staffId){manage();const staff=await db.prepare("SELECT * FROM studio_staff WHERE id=? AND studio_id=? AND status='active'").bind(v.staffId,studioId).first();if(!staff)fail('Select an active member of this studio');b.staffId=v.staffId;}
- b.status=v.status;statements.push(db.prepare('UPDATE studio_bookings SET content=? WHERE id=?').bind(JSON.stringify(b),b.id));if(['cancelled','declined'].includes(v.status))statements.push(db.prepare('DELETE FROM studio_booking_slots WHERE booking_id=?').bind(b.id));result={ok:true,booking:b};
+ b.status=v.status;statements.push(db.prepare('UPDATE studio_bookings SET content=? WHERE id=?').bind(JSON.stringify(b),b.id));if(['cancelled','declined'].includes(v.status))statements.push(db.prepare('DELETE FROM studio_booking_slots WHERE booking_id=?').bind(b.id));
+ if(v.status==='confirmed'||v.status==='completed'||v.status==='cancelled'&&previousStatus==='confirmed'){
+  calendarBooking={...b};statements.push(db.prepare("INSERT INTO studio_calendar_events(booking_id,studio_id,event_id,status,updated_at,content) VALUES(?,?,?,?,?,?) ON CONFLICT(booking_id) DO UPDATE SET status=excluded.status,updated_at=excluded.updated_at,content=excluded.content").bind(b.id,studioId,'','awaiting_setup',now,JSON.stringify({bookingStatus:b.status,queued:true,lastError:''})));
+ }
+ result={ok:true,booking:b};
  }else if(p.type==='correctStudio'){
  if(!operator)fail('Registry operator access required',403);const v=z.object({name:text.min(3).max(120),area:text.min(2).max(80),address:text.min(5).max(300),notice:text.min(20).max(500),source:z.string().url().startsWith('https://').max(1000),sourceTitle:text.min(3).max(120)}).parse(p);
  const addressChanged=studio.address!==v.address;Object.assign(studio,{name:v.name,area:v.area,address:v.address,notice:v.notice,updatedAt:now});if(addressChanged){studio.location=null;studio.bookingEnabled=false;}studio.sources=[...studio.sources.slice(-19),{title:v.sourceTitle,url:v.source,checked:now.slice(0,10),kind:'Public directory',note:'Operator correction'}];
@@ -113,6 +118,7 @@ export async function POST(req:Request){
  }else fail('Unknown action');
  const guard=crypto.randomUUID();const check=db.prepare('INSERT INTO operation_guards(id,valid) VALUES(?,(SELECT CASE WHEN revision=? THEN 1 ELSE 0 END FROM studio_registry WHERE id=?))').bind(guard,row.revision,studioId);
  await db.batch([check,...statements,db.prepare('UPDATE studio_registry SET content=?,revision=revision+1 WHERE id=?').bind(JSON.stringify(studio),studioId),audit(studioId,p.type),db.prepare('DELETE FROM operation_guards WHERE id=?').bind(guard)]);
+ if(calendarBooking){try{result.calendar=await syncPlatformCalendar(studio,calendarBooking)}catch(error){console.error('Calendar sync could not be recorded',error instanceof Error?error.message:'Unknown error');result.calendar={status:'failed'}}}
  return response(result);
  }catch(e){if(e instanceof Fault)return response({error:e.message},e.status);if(e instanceof z.ZodError)return response({error:e.issues.map(i=>`${i.path.join('.')}: ${i.message}`).join('; ')},400);if(e instanceof Error&&/UNIQUE|CHECK|constraint/i.test(e.message))return response({error:'This record changed or already exists. Refresh and try again.'},409);console.error('Registry operation failed',e instanceof Error?e.message:'Unknown error');return response({error:'Unable to save this change. Please retry.'},503)}
 }

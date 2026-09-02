@@ -43,6 +43,13 @@
       "when": 1788170441815,
       "tag": "0005_strange_doomsday",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1788246963285,
+      "tag": "0006_mushy_deathbird",
+      "breakpoints": true
     }
   ]
 }

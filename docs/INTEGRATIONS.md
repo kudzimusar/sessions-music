@@ -16,6 +16,34 @@ The guided planner requires no AI subscription, but it cannot produce bookable r
 - Paid loyalty membership fees are confirmed by the studio owner as **received outside Sessions**. This is not a gateway-verified receipt. No automatic debit, studio fund routing, payout or Connect account is created. Customer/owner termination requires confirmation; refunds are handled with the studio under its published terms.
 - Priority means a badge and earlier placement in the pending review queue. It never displaces accepted bookings, grants staff permissions or guarantees availability.
 
+## Source control, Supabase and platform calendar
+
+### GitHub
+
+The workspace is still backed by the private Sites Git remote. A GitHub Actions workflow is ready at `.github/workflows/ci.yml`; it runs the Node 22 verified build and complete test suite for pushes and pull requests to `main`. Create the approved private `kudzimusar/sessions-music` repository, then add it as a second remote and push `main`. Do not replace the Sites remote until both build paths have been verified, and never commit runtime secrets. The repository-wide lint command currently includes pre-existing violations and is intentionally not presented as a passing CI gate.
+
+### Supabase
+
+Do not point Sessions at the linked `Wewed` database. That is an unrelated production project, and its current public-schema audit reports 39 tables with RLS disabled. The user selected a different Supabase organization, so project creation is intentionally paused until that organization is connected. The planned project is `Sessions Music` in `eu-central-1` (Frankfurt).
+
+Keep D1/R2 as the live system of record during the first migration stage. In the new Supabase project, add normalized Postgres tables, explicit least-privilege grants and RLS policies, test the policies, run both Supabase security and performance advisors, then dual-write and reconcile before changing reads. Never expose a secret/service-role key to the browser. See `supabase/README.md` for the staged handoff.
+
+### Google Calendar · platform model
+
+Confirmed, cancelled and completed registry bookings now queue an idempotent calendar sync. The Sessions booking is committed first, so a Google outage cannot roll it back. Failed writes are visible to owners/managers and can be retried. Calendar events use `Africa/Harare`, are private, send no invitations, and contain only the studio, room, time, group size and booking reference. Customer email, phone and notes are excluded.
+
+Use a dedicated Google calendar named `Sessions Music Bookings`, not a personal or family calendar. Create a Google Cloud service account, enable the Calendar API, share the dedicated calendar with that service account using permission to change events, then add these values to secure Sites runtime configuration:
+
+| Variable | Purpose |
+| --- | --- |
+| `GOOGLE_CALENDAR_ENABLED` | Set to `true` only after the dedicated calendar is shared and a test event succeeds |
+| `GOOGLE_CALENDAR_ID` | ID of the dedicated platform calendar |
+| `GOOGLE_CALENDAR_NAME` | Public admin label, normally `Sessions Music Bookings` |
+| `GOOGLE_SERVICE_ACCOUNT_EMAIL` | Service account that may edit only the dedicated calendar |
+| `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` | Secret PKCS#8 private key; never commit or expose to the client |
+
+The authenticated ChatGPT Google Calendar connector is useful for operator checks but is not a production credential for the website. A service account keeps the integration server-to-server and scoped to one platform calendar.
+
 ## AI configuration
 
 Use secure Sites runtime configuration, not source files or browser fields:
