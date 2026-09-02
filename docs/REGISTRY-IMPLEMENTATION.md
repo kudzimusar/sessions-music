@@ -6,10 +6,11 @@ Implemented 31 August 2026. The real studio registry is the default home page; t
 
 1. Public-source studio profile, initially unclaimed, without invented availability or prices.
 2. Authenticated representative submits a private claim with a business role, contact, evidence description and explicit authority declaration.
-3. Configured registry operator independently checks the existing public business channel and records an approval or rejection. The claimant cannot approve their own claim, and a claim never changes access by itself. There is no automated email/SMS challenge or real-world verification service.
-4. Successful owner completes address, confirmed map coordinates, services, equipment/accessibility notes, booking terms and rooms. Each room has a rate, capacity, public weekdays/hours, minimum duration and reset buffer.
-5. Owner enables booking requests. Customers request a room and see the server-calculated studio price. Requests hold room inventory until accepted, declined or cancelled. No online payment is collected. Payments and refunds, if any, are arranged directly under studio terms.
-6. Owner invites team members by exact sign-in email. No invitation is sent externally. The person signs in at `/account`, accepts membership and chooses whether their name, title, biography and skills are public. Emails remain private. Public staff are searchable with their studio.
+3. Configured registry operator independently checks ownership authority and records an approval or rejection. Claim approval creates only a `claimed` workspace; it never creates a verified badge or booking access.
+4. Owner submits separate business/operating evidence, optionally including a private R2 image. A different Operations reviewer moves the studio to `verified` only after independent business and premises checks.
+5. Successful owner completes address, confirmed map coordinates, services, equipment/accessibility notes, booking terms and rooms. Each room has a rate, capacity, public weekdays/hours, minimum duration, reset buffer and up to five owner-supplied R2 photos.
+6. A verified owner enables booking requests, moving the studio to `bookable`. Customers see a server-calculated studio price; requests hold room inventory until accepted, declined or cancelled. No online payment is collected.
+7. Owner invites team members by exact verified Zimbabwe phone number or email. No invitation is sent externally. The person signs in at `/account`, accepts membership and controls their public name, title, biography and skills. Invite contacts remain private.
 7. Accepted managers can manage bookings; ordinary staff can manage only their personal profile. The owner alone edits studio settings and memberships. Revocation removes access and public staff visibility immediately.
 
 ## Routes
@@ -22,7 +23,7 @@ Implemented 31 August 2026. The real studio registry is the default home page; t
 | `/studio/:id` | Sourced profile, contacts, team, map, claim and booking request |
 | `/manage`, `/manage/:id` | Studio-specific booking calendar, profile, rooms and team |
 | `/requests` | Customer booking requests and cancellation |
-| `/account` | Claims, exact-email team invitations, self-managed staff profiles |
+| `/account` | Claims, phone/email-bound team invitations, self-managed staff profiles and device controls |
 | `/registry-admin` | Ownership review, registry additions/corrections, removal reports, invitation drafts |
 | `/demo` | Original isolated rehearsal booking and payment simulation |
 
@@ -57,7 +58,7 @@ No outreach has been sent. Registry operations can copy a personalised claim-inv
 
 D1 tables: `studio_registry`, `studio_claim_requests`, `studio_staff`, `studio_bookings`, `studio_booking_slots`, `studio_issues`, `studio_audit`. They are distinct from the account-isolated demo tables. Migration 0002 is additive; migrations 0000 and 0001 are untouched.
 
-Identity comes from Sites-forwarded ChatGPT headers, never request JSON. Registry operators are a server-side `SESSIONS_ADMIN_EMAILS` allowlist, configured as a secret runtime variable. A studio claimant or demo admin cannot change it. Owner comes from approved database ownership; managers require accepted database memberships. Claim and issue queues are scoped to the current applicant/reporter or operator; customer/booking/contact data is scoped to customer or authorised studio managers. Public availability returns only occupancy intervals, not customer identity or notes.
+Private preview identity comes from Sites-forwarded ChatGPT headers. Production identity comes from a verified Supabase bearer token plus the RLS identity context; neither trusts request JSON or user metadata for roles. Registry operators are a server role (with the legacy allowlist retained only for private preview). Owner access requires approved D1 ownership and an active matching Supabase organization membership; managers require an accepted D1 invitation and the matching active membership. Claim and issue queues are scoped to the current applicant/reporter or operator; customer/booking/contact data is scoped to customer or authorised studio managers. Public availability returns only occupancy intervals, not customer identity or notes.
 
 Each studio mutation uses a D1 atomic batch with an optimistic revision guard and immutable audit event. Unique studio/room/date/half-hour slot keys protect reservations across all accounts and include the room reset buffer. Booking request keys make retries idempotent. Pending invitation and claimant quotas limit accidental queue flooding; full production abuse controls and notification delivery remain future work.
 
@@ -66,7 +67,7 @@ Changing the sourced address via operations clears the owner pin and disables re
 ## Verification
 
 - TypeScript check.
-- Registry tests execute the actual API handler against a SQLite-backed D1 adapter: claim escalation, independent reviewer, blocked self-review, contact/evidence privacy, scope checks, email-bound staff consent, manager activation/revocation, server prices, idempotency, concurrent booking exclusion, reset buffers, cancellation, private suggestions and audit events.
+- Registry tests execute the actual API handler against a SQLite-backed D1 adapter: claim escalation, independent ownership and verification reviewers, blocked self-review, private evidence/media, scope checks, phone/email-bound staff consent, manager activation/revocation, server prices, idempotency, concurrent booking exclusion, reset buffers, cancellation, private suggestions and audit events.
 - Original demo booking-engine tests retained.
 - Built Worker tests exercise SSR for real directory, phone view, map, studio detail and preserved demo; apply all D1 migrations and verify the registry/API in Miniflare.
 - One bounded browser pass confirmed the dedicated phone layout and name filtering. The preview registry API was unavailable, so authenticated interactive flows were verified with API/Worker tests rather than claimed as browser-tested. A real physical iOS/Android device pass and live external map resolution were not performed.

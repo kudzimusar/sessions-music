@@ -2,9 +2,9 @@
 
 ## Current decision
 
-Use Supabase Auth for public phone OTP, email OTP, Google and Apple identity. Do not build a home-grown token or OTP service inside the Sites starter. D1/R2 remain the product-data source of truth during this phase; Supabase initially owns identity and normalized authorization records only.
+Use Supabase Auth for public phone OTP first and Google OAuth second. Do not build a home-grown token or OTP service inside the Sites starter. D1/R2 remain the product-data source of truth; Supabase owns identity and normalized tenant authorization only.
 
-The only connected Supabase organization/project is `Wewed`. It is unrelated and must not be changed. The intended project is `Sessions Music` in `eu-central-1` (Frankfurt), under a dedicated organization selected by the owner.
+The dedicated project is `Sessions` (`meswozsllmmiqjwljvnb`) in `eu-central-1` (Frankfurt), organization `ybquartnpsqiyfbqgkgg`. On 2 September 2026 it was healthy and empty: no public tables, users, migrations or branches. Only this project was visible through the connector. `Wewed` was not accessed and is not a Sessions dependency.
 
 ## Completed groundwork
 
@@ -17,27 +17,34 @@ The only connected Supabase organization/project is `Wewed`. It is unrelated and
 - [x] Identity provider contract added without creating a fake provider.
 - [x] Runtime configuration inventory added without secrets.
 - [x] Sites access restored to owner-only custom access with zero external visitors.
+- [x] Dedicated Sessions Supabase project verified without touching another organization.
+- [x] Additive identity/RLS migration written and executed inside a rollback-only live transaction.
+- [x] Production bearer-token adapter validates the Supabase Auth user, RLS identity context, token expiry, app-level device revocation, roles and active organization memberships.
+- [x] Real phone OTP, optional Turnstile, Google OAuth, device/session controls and deletion-request UI implemented behind disabled runtime gates.
+- [x] Claim approval separated from studio verification; only `bookable` studios can receive requests.
+- [x] Phone- or email-bound staff invitations, private verification images and up to five R2 room photos implemented with tenant checks.
 
 ## Integration gate
 
-- [ ] Connect the dedicated Supabase organization.
-- [ ] Confirm the project cost, then create `Sessions Music` in Frankfurt.
+- [x] Connect and verify the dedicated Supabase organization/project.
+- [x] Confirm the existing Sessions project is the Free/Nano Frankfurt project selected by the owner.
+- [x] Apply the reviewed identity migration to the live project after the final local gate (`20260902085743_phase_r_identity`).
+- [ ] Add the project publishable and secret keys to the Sites runtime; never commit them.
 - [ ] Choose and configure an SMS provider supported by Supabase Auth; phone OTP cannot send without it.
-- [ ] Configure custom SMTP or a Send Email Auth Hook; Supabase's default email sender is not suitable for public users.
 - [ ] Configure Google OAuth client and redirect origins.
-- [ ] Configure Apple App ID / Services ID, Team ID and signing key.
 - [ ] Configure CAPTCHA/bot protection and provider rate limits.
+- [ ] Create a second Operations reviewer account before any studio can be verified.
 
 ## Implementation after connection
 
-1. Create a development branch and normalized `profiles`, `organizations`, `organization_memberships`, `verified_contacts`, `device_sessions`, `account_merge_requests` and deletion-audit tables.
-2. Keep exposed-table grants explicit, enable RLS, use ownership predicates rather than `TO authenticated` alone, and keep authorization claims out of user-editable metadata.
-3. Add SSR/client adapters using the project's publishable key only. The secret/service-role key remains server-only.
-4. Replace endpoint identity reads with verified Supabase tokens and central authorization. Keep ChatGPT dispatch identity behind the private demo flag only.
-5. Add OTP, OAuth, session/device, revoke-all, deletion and recovery UI.
-6. Test real tokens for missing identity, wrong role, cross-tenant access, revoked session and stale membership.
-7. Run Supabase security/performance advisors, D1/Worker tests, typecheck, production build and mobile-width QA.
+1. Review and approve the advisor follow-up `supabase/migrations/202609020002_phase_r_identity_hardening.sql`; it enables RLS with no client policy on the private audit table and adds five foreign-key indexes.
+2. Re-run Supabase security and performance advisors after that follow-up.
+3. Configure SMS, Google OAuth, CAPTCHA and exact production redirect origins.
+4. Add Sites runtime secrets and keep `SUPABASE_AUTH_ENABLED=false` until real OTP/OAuth tests pass.
+5. Test real tokens for missing identity, wrong role, cross-tenant access, revoked session and stale membership.
+6. Run the full D1/R2 tests, typecheck, production build and physical-phone QA.
+7. Switch `SESSIONS_IDENTITY_MODE=supabase`, then enable only the provider that passed its live test. Keep `/demo` owner-only.
 
 ## Current Supabase changes
 
-None. No SQL, project, branch, auth setting or user data has been written to `Wewed`.
+Migration `20260902085743_phase_r_identity` is applied to `meswozsllmmiqjwljvnb`; all eight public identity tables have RLS and contain zero rows. No Auth provider or runtime gate was enabled. The advisor reports the intentionally callable device RPCs as `SECURITY DEFINER` warnings and asks for an explicit decision before enabling RLS on the non-exposed private audit table. No Sessions SQL or data was sent to `Wewed`.

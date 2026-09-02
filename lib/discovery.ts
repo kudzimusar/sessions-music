@@ -28,7 +28,7 @@ export function planSessions(studios:Studio[],bookings:StudioBooking[],members:S
  for(let offset=0;offset<=input.flexDays;offset++){
  const date=addDays(input.date,offset);if(date<localDate())continue;
  for(const studio of studios){
- if(studio.hidden||studio.status!=='claimed'||!studio.bookingEnabled)continue;
+	 if(studio.hidden||studio.status!=='bookable'||!studio.bookingEnabled)continue;
  if(input.area&&!`${studio.area} ${studio.address}`.toLowerCase().includes(input.area.toLowerCase()))continue;
  if(input.service&&!studio.services.some(s=>s.toLowerCase().includes(input.service.toLowerCase())))continue;
  for(const room of studio.rooms){

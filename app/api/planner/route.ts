@@ -1,6 +1,6 @@
 import {env} from 'cloudflare:workers';
 import {z} from 'zod';
-import {getChatGPTUser} from '@/app/chatgpt-auth';
+import {getProductionUser} from '@/app/chatgpt-auth';
 import {database} from '@/db/store';
 import {readRegistry} from '@/db/registry-store';
 import {planSessions,type PlannerInput} from '@/lib/discovery';
@@ -12,14 +12,14 @@ export async function GET(){return reply({aiReady:!!(config().OPENAI_API_KEY&&co
 export async function POST(req:Request){
  try{
  if(req.headers.get('origin')&&req.headers.get('origin')!==new URL(req.url).origin)return reply({error:'Cross-origin request rejected'},403);
- const user=await getChatGPTUser();if(!user)return reply({error:'Sign in to use the session planner'},401);
+ const user=await getProductionUser();if(!user)return reply({error:'Sign in to use the session planner'},401);
  const raw=await req.text();if(raw.length>6000)return reply({error:'Request too large'},413);
  const p=z.object({mode:z.enum(['guided','ai']),prompt:z.string().trim().max(1500).optional(),consent:z.boolean().optional(),input:inputSchema}).parse(JSON.parse(raw));
  let input:PlannerInput=p.input;let mode:'guided'|'ai'='guided';
  if(p.mode==='ai'){
  const c=config();if(!c.OPENAI_API_KEY||!c.OPENAI_MODEL)return reply({error:'AI is not connected. Use guided planning below.'},503);
  if(!p.consent||!p.prompt)return reply({error:'Enter a request and consent to sending it to OpenAI.'},400);
- const actor=user.email.toLowerCase(),day=localDate(),db=database();
+ const actor=user.id,day=localDate(),db=database();
  await db.prepare('INSERT INTO planner_usage(actor,day,count) VALUES(?,?,1) ON CONFLICT(actor,day) DO UPDATE SET count=count+1').bind(actor,day).run();
  const usage=await db.prepare('SELECT count FROM planner_usage WHERE actor=? AND day=?').bind(actor,day).first();if(usage.count>10)return reply({error:'Daily AI limit reached. Guided planning is still available.'},429);
  const nullable=(type:string)=>({type:[type,'null']});
@@ -33,7 +33,7 @@ export async function POST(req:Request){
  }
  if(input.date<localDate()||input.date>addDays(localDate(),365)||new Date(input.date+'T12:00:00Z').toISOString().slice(0,10)!==input.date)return reply({error:'Choose a valid date within the next year.'},400);
  const state=await readRegistry(user);const all=(await database().prepare('SELECT content FROM studio_bookings').all()).results.map((r:any)=>JSON.parse(r.content));
- const options=planSessions(state.studios,all,(state.memberships||[]).filter(m=>m.customer===user.email.toLowerCase()),input);
+ const options=planSessions(state.studios,all,(state.memberships||[]).filter(m=>m.customer===user.id),input);
  return reply({mode,input,options,checkedAt:new Date().toISOString(),unknownPriceCount:state.studios.filter(s=>!s.hidden&&!s.rooms.length).length,notice:'Suggestions do not reserve a room. Prices and availability are checked again when you submit. All times CAT; prices USD. Unknown rates are excluded from budget matches.'});
  }catch(e){if(e instanceof z.ZodError)return reply({error:'Check the date, time, group size, duration and budget. AI cannot override valid booking constraints.'},400);return reply({error:'Planner unavailable. No booking was created. Please retry or use the directory.'},503);}
 }

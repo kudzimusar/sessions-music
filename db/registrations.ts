@@ -2,6 +2,7 @@ import {z} from 'zod';
 import {database} from './store';
 import type {Registration} from '@/lib/discovery';
 import type {Studio} from '@/lib/registry';
+import {provisionStudioMembership} from '@/lib/supabase-admin';
 const str=z.string().trim();
 export async function registrationAction(p:any,email:string,operator:boolean):Promise<Response|null>{
  const db=database(),now=new Date().toISOString();
@@ -24,8 +25,8 @@ export async function registrationAction(p:any,email:string,operator:boolean):Pr
  statements.push(db.prepare("INSERT INTO operation_guards(id,valid) VALUES(?,(SELECT CASE WHEN status='pending' THEN 1 ELSE 0 END FROM studio_registrations WHERE id=?))").bind(guard,v.id));
  if(v.decision==='approved'){
  const duplicate=await db.prepare("SELECT id FROM studio_registry WHERE lower(trim(json_extract(content,'$.name')))=lower(?)").bind(record.name).first();if(duplicate)return error('A studio with this name now exists. Reject this registration and direct the applicant to its claim page.',409);
- const studio:Studio={id:'studio-'+record.id,name:record.name,area:record.area,address:record.address,category:record.category,description:record.description,website:record.website,phone:record.phone,email:'',services:[record.category==='Rehearsal studio'?'Rehearsal':'Recording'],status:'claimed',bookingEnabled:false,rooms:[],equipment:'',rules:'',location:null,revision:0,verifiedAt:now,sources:[{title:'Business website reviewed during registration',url:record.website,kind:'Official website',checked:now.slice(0,10)}]};
- record.studioId=studio.id;statements.push(db.prepare('INSERT INTO studio_registry(id,owner,content) VALUES(?,?,?)').bind(studio.id,record.applicant,JSON.stringify(studio)));
+ const studio:Studio={id:'studio-'+record.id,name:record.name,area:record.area,address:record.address,category:record.category,description:record.description,website:record.website,phone:record.phone,email:'',services:[record.category==='Rehearsal studio'?'Rehearsal':'Recording'],status:'claimed',bookingEnabled:false,rooms:[],equipment:'',rules:'',location:null,revision:0,sources:[{title:'Business website reviewed during registration',url:record.website,kind:'Official website',checked:now.slice(0,10)}]};
+ await provisionStudioMembership({studioId:studio.id,studioName:studio.name,userId:record.applicant,role:'owner',grantedBy:email});record.studioId=studio.id;statements.push(db.prepare('INSERT INTO studio_registry(id,owner,content) VALUES(?,?,?)').bind(studio.id,record.applicant,JSON.stringify(studio)));
  }
  record.status=v.decision;record.note=v.note;
  statements.push(db.prepare('UPDATE studio_registrations SET status=?,content=? WHERE id=?').bind(record.status,JSON.stringify(record),record.id),db.prepare('INSERT INTO studio_audit(id,studio_id,actor,event,created_at) VALUES(?,?,?,?,?)').bind(crypto.randomUUID(),record.studioId||record.id,email,'reviewRegistration:'+v.decision,now),db.prepare('DELETE FROM operation_guards WHERE id=?').bind(guard));

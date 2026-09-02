@@ -1,10 +1,24 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { env } from "cloudflare:workers";
+import { authenticateSupabase } from "@/lib/supabase-identity";
+import type {IdentityMethod,OrganizationMembership,PlatformRole} from '@/lib/identity-core';
 
 export type ChatGPTUser = {
   displayName: string;
   email: string;
   fullName: string | null;
+};
+
+export type SessionUser={
+  id:string;
+  displayName:string;
+  email:string|null;
+  phone:string|null;
+  roles:PlatformRole[];
+  memberships:OrganizationMembership[];
+  method:IdentityMethod;
+  sessionId:string;
 };
 
 const USER_EMAIL_HEADER = "oai-authenticated-user-email";
@@ -33,6 +47,29 @@ export async function getChatGPTUser(): Promise<ChatGPTUser | null> {
     email,
     fullName,
   };
+}
+
+export async function getProductionUser():Promise<SessionUser|null>{
+  const requestHeaders=await headers();
+  const values=env as unknown as {SESSIONS_IDENTITY_MODE?:string};
+  if(values.SESSIONS_IDENTITY_MODE==='supabase'){
+    const principal=await authenticateSupabase(requestHeaders);
+    return principal?{
+      id:principal.userId,
+      displayName:principal.displayName,
+      email:principal.verifiedEmail,
+      phone:principal.verifiedPhone,
+      roles:principal.roles,
+      memberships:principal.memberships,
+      method:principal.method,
+      sessionId:principal.sessionId,
+    }:null;
+  }
+  const demo=await getChatGPTUser();
+  return demo?{
+    id:demo.email.toLowerCase(),displayName:demo.displayName,email:demo.email.toLowerCase(),phone:null,
+    roles:['musician'],memberships:[],method:'chatgpt_demo',sessionId:'chatgpt-dispatch',
+  }:null;
 }
 
 export async function requireChatGPTUser(

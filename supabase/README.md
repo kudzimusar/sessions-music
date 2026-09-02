@@ -1,23 +1,18 @@
-# Sessions Supabase migration handoff
+# Sessions Supabase identity handoff
 
-Status: blocked until the user-selected Supabase organization is connected. Do not reuse the linked `Wewed` project.
+Target: dedicated project `Sessions` (`meswozsllmmiqjwljvnb`), organization `ybquartnpsqiyfbqgkgg`, `eu-central-1` (Frankfurt). D1 and R2 remain the product system of record. Supabase owns Auth and normalized identity/tenant authorization only.
 
-## Target
+`migrations/202609020001_phase_r_identity.sql` adds profiles, server-granted platform roles, studio organizations/memberships, verified contacts, app-level device sessions, merge/deletion requests and a private identity audit. Every exposed table has RLS plus explicit grants. Roles are not read from user-editable metadata.
 
-- Project: `Sessions Music`
-- Region: `eu-central-1` (Frankfurt)
-- Initial role: staged Postgres/Auth/Realtime foundation for mobile clients
-- Current production source of truth: Cloudflare D1 and R2
+The migration passed a rollback-only transaction and was then applied as `20260902085743_phase_r_identity` on 2 September 2026. The identity tables remain empty and Auth providers remain disabled. The advisor follow-up in `202609020002_phase_r_identity_hardening.sql` is intentionally not applied until the owner approves RLS-with-no-client-policies for the private audit table.
 
-## Safe migration sequence
+## Apply sequence
 
-1. Create the isolated project only after Supabase reports its organization-specific cost and the user confirms it.
-2. Model accounts, studios, staff memberships, rooms, bookings, loyalty memberships, calendar sync records and audit events with explicit primary/foreign keys.
-3. Put internal tables and security-definer helpers in non-exposed schemas. Grant only the operations each API role needs.
-4. Enable and test RLS on every exposed table. Use `(select auth.uid())`, index every owner/member/foreign-key column referenced by policies, and keep the service role server-only.
-5. Run migrations in a development branch, generate TypeScript types, then run Supabase security and performance advisors.
-6. Import immutable IDs and source metadata first. Reconcile counts and hashes before enabling dual writes.
-7. Dual-write D1 and Supabase with idempotency keys and an audit trail. Keep reads on D1 until mismatch monitoring is clean.
-8. Move mobile reads to Supabase behind a feature flag. Retain a rollback window before any D1 retirement decision.
+1. Confirm every operation targets `meswozsllmmiqjwljvnb`; never select or access Wewed.
+2. Review and approve the hardening migration, then apply it and re-run both advisors.
+4. Configure an SMS provider, Google OAuth, CAPTCHA and exact redirect origins.
+5. Put `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` and the server-only `SUPABASE_SECRET_KEY` in secure Sites runtime configuration.
+6. Keep all auth provider flags off while testing. Exercise real OTP/OAuth, revocation and cross-tenant rejection.
+7. Switch `SESSIONS_IDENTITY_MODE=supabase`, enable only the tested provider, and keep `/demo` owner-only.
 
-No SQL migration is included yet because it cannot be tested against the intended project or its auth configuration. Once the organization is connected, create and verify the schema through the Supabase migration workflow rather than applying unreviewed SQL to another project.
+Never expose the secret key to browser code or move rooms, bookings, pricing, settlement or media ownership into Supabase during Workstream 1.

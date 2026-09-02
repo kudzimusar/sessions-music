@@ -1,5 +1,5 @@
 import {z} from 'zod';
-import {getChatGPTUser} from '@/app/chatgpt-auth';
+import {getProductionUser} from '@/app/chatgpt-auth';
 import {database} from '@/db/store';
 import {readRegistry} from '@/db/registry-store';
 import {platformCalendarConfiguration,syncPlatformCalendar} from '@/lib/google-calendar-server';
@@ -7,7 +7,7 @@ import {platformCalendarConfiguration,syncPlatformCalendar} from '@/lib/google-c
 const response=(data:unknown,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store'}});
 
 async function managed(studioId:string){
- const user=await getChatGPTUser();if(!user)throw Object.assign(new Error('Sign in with ChatGPT to continue'),{status:401});
+ const user=await getProductionUser();if(!user)throw Object.assign(new Error('Sign in to Sessions to continue'),{status:401});
  const state=await readRegistry(user);if(!state.managedIds.includes(studioId))throw Object.assign(new Error('Studio manager access required'),{status:403});
  const studio=state.studios.find(value=>value.id===studioId);if(!studio)throw Object.assign(new Error('Studio not found'),{status:404});
  return {state,studio};

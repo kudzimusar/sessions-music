@@ -9,7 +9,7 @@ The guided planner requires no AI subscription, but it cannot produce bookable r
 ## Studio registration, login and memberships
 
 - `/register`: search first, then submit a missing business for independent review. `/registry-admin` includes the private registration queue. A reviewer cannot approve their own registration or ownership claim. Approval creates a claimed listing with bookings off.
-- Login uses the existing trusted ChatGPT identity, never a client-selected owner or role. `/onboarding/:studioId` and `/manage/:studioId` belong to the verified owner. Accepted managers retain booking permissions only.
+- Private preview mode uses trusted ChatGPT identity. Production mode validates Supabase bearer tokens and active organization membership, never a client-selected owner or role. `/onboarding/:studioId` and `/manage/:studioId` belong to the approved owner; accepted managers retain booking permissions only.
 - Owners supply room capacity, contact/address, entrance coordinates, rates, hours and rules before opening bookings. The checklist links to profile, team, membership and subscription setup.
 - Owners publish up to five membership plans with a fee in cents, term length, discount (0–50%), priority-review benefit and terms. Membership requests and names stay private to their customer and studio owner.
 - Active terms snapshot the accepted plan. Benefits apply when the **session date** is within the inclusive term, not just when the request is made. Changing or withdrawing a plan does not rewrite an accepted term or an existing booking receipt.
@@ -24,9 +24,11 @@ The complete source is mirrored at `https://github.com/kudzimusar/sessions-music
 
 ### Supabase
 
-Do not point Sessions at the linked `Wewed` database. That is an unrelated production project, and its current public-schema audit reports 39 tables with RLS disabled. The user selected a different Supabase organization, so project creation is intentionally paused until that organization is connected. The planned project is `Sessions Music` in `eu-central-1` (Frankfurt).
+The dedicated project is `Sessions` (`meswozsllmmiqjwljvnb`) in `eu-central-1` (Frankfurt). It was verified healthy and empty on 2 September 2026. Only that project was visible through the connector. Do not access or attach `Wewed`; it is unrelated.
 
-Keep D1/R2 as the live system of record during the first migration stage. In the new Supabase project, add normalized Postgres tables, explicit least-privilege grants and RLS policies, test the policies, run both Supabase security and performance advisors, then dual-write and reconcile before changing reads. Never expose a secret/service-role key to the browser. See `supabase/README.md` for the staged handoff.
+D1/R2 remain the product system of record. Supabase owns Auth plus normalized identity/tenant authorization only. Migration `20260902085743_phase_r_identity` is applied and all eight exposed tables have RLS with zero rows. Auth providers remain disabled. The advisor follow-up for the non-exposed private audit table and five administrative foreign-key indexes is recorded in `supabase/migrations/202609020002_phase_r_identity_hardening.sql` and awaits explicit approval before application.
+
+The browser receives only the project URL and publishable key. The secret key is server-only and is used to provision a matching Supabase organization membership when Operations approves an owner or a staff member accepts an invitation. Production identity stays hidden until SMS, CAPTCHA and Google OAuth credentials are installed and real login tests pass.
 
 ### Google Calendar · platform model
 

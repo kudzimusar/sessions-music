@@ -18,7 +18,7 @@ Status date: 2 September 2026. This document is the execution authority for movi
 | Phase | Outcome | Status | Exit evidence |
 | --- | --- | --- | --- |
 | 0 | Governance, owner-only demo boundary and repeatable gates | Complete | Roadmap, env inventory, 79 passing tests, clean typecheck and build |
-| 1 | Real phone/email/OAuth identity and tenant authorization | Blocked on dedicated Supabase organization/project and messaging/OAuth credentials | OTP abuse tests, session revocation, deletion and cross-tenant proofs |
+| 1 | Real phone/Google identity, tenant authorization and self-serve studio onboarding | Code-complete checkpoint; blocked on SMS, Google OAuth, CAPTCHA and runtime secrets for live integration | OTP abuse tests, session revocation, claim/verification, deletion request and cross-tenant proofs |
 | 2 | Notifications, booking chat and push | Not started | Consent, webhook, retry, message and deep-link tests |
 | 3 | Paynow/Stripe booking payments, refunds, payouts and FX | Not started | Provider sandbox E2E and reconciliation evidence |
 | 4 | Verified bookable supply, taxonomy, map and availability search | Not started | Verification state-machine and inventory/search consistency tests |
@@ -30,7 +30,7 @@ Status date: 2 September 2026. This document is the execution authority for movi
 
 ### Phase 1 — identity and authorization
 
-Phone OTP is primary, normalized to E.164 with Zimbabwe `+263` support. Email OTP is secondary. Google and Apple are linked identities. Sessions uses short-lived access tokens, rotating refresh sessions, revocation, device management, account deletion and a reviewed account-linking path. Product roles are `musician`, `provider_owner`, `provider_staff` and `operations_admin`; studio access comes from active organization membership, not a client-selected role.
+Phone OTP is primary, normalized to E.164 with Zimbabwe `+263` support. Google is the second provider. Sessions uses short-lived access tokens, rotating refresh sessions, app-level device revocation, device management, deletion requests and a reviewed account-linking path. Product roles are `musician`, `provider_owner`, `provider_staff` and `operations_admin`; studio access comes from active organization membership, never a client-selected role. Claiming grants a workspace only; separate Operations verification is required before a studio can become `bookable`.
 
 ### Phase 2 — communications
 
