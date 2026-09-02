@@ -1,4 +1,12 @@
 /** Replace these ports with server-side adapters when launching live services. */
+import type {IdentityPrincipal} from './identity-core';
+
+export interface IdentityProvider {
+ authenticate(request:Request):Promise<IdentityPrincipal|null>;
+ revokeSession(userId:string,sessionId:string):Promise<void>;
+ revokeAllSessions(userId:string):Promise<void>;
+ deleteAccount(userId:string):Promise<void>;
+}
 export interface PaymentGateway {charge(input:{amount:number;currency:'USD'|'ZiG';approvalRequired:boolean;simulateFailure?:boolean}):Promise<{state:'paid'|'authorized';providerReference:string}>}
 export const demoPayments:PaymentGateway={async charge(input){if(input.simulateFailure)throw new Error('Demo payment declined. No slot was reserved and no money was charged. Please try again.');return {state:input.approvalRequired?'authorized':'paid',providerReference:`DEMO-${crypto.randomUUID()}`}}};
 export interface SearchInterpreter {interpret(text:string):Promise<{filters:Record<string,unknown>;mode:'rules'|'ai'}>}

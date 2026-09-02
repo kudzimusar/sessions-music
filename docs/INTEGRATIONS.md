@@ -20,7 +20,7 @@ The guided planner requires no AI subscription, but it cannot produce bookable r
 
 ### GitHub
 
-The workspace is still backed by the private Sites Git remote. A GitHub Actions workflow is ready at `.github/workflows/ci.yml`; it runs the Node 22 verified build and complete test suite for pushes and pull requests to `main`. Create the approved private `kudzimusar/sessions-music` repository, then add it as a second remote and push `main`. Do not replace the Sites remote until both build paths have been verified, and never commit runtime secrets. The repository-wide lint command currently includes pre-existing violations and is intentionally not presented as a passing CI gate.
+The complete source is mirrored at `https://github.com/kudzimusar/sessions-music` and the Sites Git remote remains available. GitHub Actions runs the Node 22 verified build and complete test suite for pushes and pull requests to `main`. The GitHub repository is public, so no credential, private customer record or runtime value may be committed. The repository-wide lint command currently includes pre-existing violations and is intentionally not presented as a passing CI gate.
 
 ### Supabase
 
@@ -74,7 +74,7 @@ Checkout remains disabled until **all** required settings are valid. Stripe's co
 | `BILLING_WEBHOOK_READY` | `true` only after provider callbacks can reach and validate against this deployment |
 | `BILLING_LIVE_APPROVED` | Additional `true` gate for live mode, after country, tax, refund and merchant terms review |
 
-The latest access check reports this site is public. Public access alone does not prove provider callbacks work. **Do not set the webhook-ready gate based on a local test alone.** Verify production callback reachability with actual provider sandbox events before activation. If access later becomes private, recheck callback and return navigation behaviour. Do not change access merely to bypass a payment integration gate.
+The site uses owner-only custom access while Sessions remains a demo. Private access does not prove provider callbacks work. **Do not set the webhook-ready gate based on a local test alone.** Verify production callback reachability with actual provider sandbox events after the product has an approved public identity boundary. Access must not be widened merely to bypass a payment integration gate.
 
 ### Stripe
 
