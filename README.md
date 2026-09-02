@@ -92,3 +92,9 @@ Before launch: real provider onboarding and moderation; supported public email/p
 Future musician/equipment/recording marketplaces are deliberately not built. Extend the same identity, availability, payment and trust contracts only after rehearsal-marketplace demand is proven.
 
 Source requirements: `docs/PRODUCT-BRIEF.txt`. Public competitive audit and design interpretation: `docs/UX-AUDIT.md`.
+
+## Real studio registry (August 2026 update)
+
+The default homepage now opens the sourced Harare registry. The previous fictional booking experience is preserved at `/demo`. See `docs/REGISTRY-IMPLEMENTATION.md` for the claim workflow, source audit, permissions, mobile implementation, limitations and verification details. Real studios start unclaimed and non-bookable. Use `/registry-admin` as a configured registry operator, `/manage` as a verified studio owner/manager, and `/account` to track claims or accept staff invitations.
+
+Production runtime requires `SESSIONS_ADMIN_EMAILS` (comma-separated trusted reviewer emails); it is configured in Sites, not checked into source. Never auto-promote a first claimant. External participation requires a separate, intentional sharing decision; this update does not change audience. No invitations, payments or notifications are sent by these new flows.

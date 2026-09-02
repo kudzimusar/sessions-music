@@ -1,2 +1,2 @@
-import SessionsApp from './sessions';
-export default function Page(){return <SessionsApp/>}
+import RegistryApp from './registry';
+export default function Page(){return <RegistryApp/>}

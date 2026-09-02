@@ -1,2 +1,3 @@
 import SessionsApp from '../sessions';
-export default async function Page({params}:{params:Promise<{slug:string[]}>}){const {slug}=await params;return <SessionsApp initialPath={'/'+slug.join('/')}/>}
+import RegistryApp from '../registry';
+export default async function Page({params}:{params:Promise<{slug:string[]}>}){const {slug}=await params;const path='/'+slug.join('/');return ['studios','studio','map','mobile','manage','requests','account','registry-admin'].includes(slug[0])?<RegistryApp path={path}/>:<SessionsApp initialPath={path}/>;}
