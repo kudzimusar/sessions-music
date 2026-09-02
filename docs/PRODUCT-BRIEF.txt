@@ -1,0 +1,1423 @@
+Build SESSIONS as a polished, mobile-first music-infrastructure marketplace for Zimbabwe.
+
+BEFORE YOU WRITE CODE:
+First inspect every relevant file, document, presentation, stakeholder framework, business plan, roadmap, cost document, prototype, note and existing source-code file available within this Sessions project. Treat the existing Sessions project material as the source of truth.
+
+Do not reinvent the business from the prompt alone.
+
+Sessions is NOT:
+- a generic appointment-booking application
+- a salon/tutor/consultant booking system
+- a musician social network
+- a general classifieds marketplace
+- a streaming platform
+- a generic events application
+
+The first product we are proving is specifically a MUSIC REHEARSAL INFRASTRUCTURE MARKETPLACE.
+
+==================================================
+1. WHAT SESSIONS IS
+==================================================
+
+Sessions exists to make fragmented music infrastructure searchable, comparable, time-aware, bookable, payable and trusted.
+
+The initial use case is extremely simple:
+
+“I need somewhere to rehearse.”
+
+Sessions should answer:
+
+“Here are the rooms that actually fit your band, equipment requirements, budget, location and time. Pick one, reserve the slot and pay.”
+
+A musician, band, choir, worship team, producer or other music professional should be able to:
+
+Search → Compare → Select a time slot → Pay → Receive confirmation → Rebook.
+
+On the supply side, a rehearsal-space provider should be able to:
+
+List space → Define equipment → Set price → Expose available hours → Receive bookings → Earn money.
+
+Providers are not limited to conventional commercial music studios.
+
+Sessions should also make it possible for:
+
+- churches
+- schools
+- universities
+- arts centres
+- companies
+- recording studios with rehearsal rooms
+- approved private facilities
+
+to expose music-ready rooms during hours when those rooms would otherwise be unused.
+
+This idle-capacity model is one of the key differentiators of Sessions.
+
+==================================================
+2. THE CORE TRANSACTION
+==================================================
+
+The fundamental marketplace loop is:
+
+Provider exposes a valid rehearsal slot
+→ musician searches for a suitable room
+→ musician selects a time
+→ musician books
+→ payment succeeds
+→ inventory is locked
+→ provider earns revenue
+→ Sessions retains its configured platform fee
+→ the transaction creates booking and trust history.
+
+Sessions is not merely showing phone numbers.
+
+THE TRANSACTION WORKFLOW IS THE PRODUCT.
+
+A directory can tell someone that a rehearsal room exists.
+
+Sessions must tell them:
+
+- whether the room is actually available
+- when it is available
+- how much it costs
+- what equipment is included
+- how many musicians it supports
+- whether it has backup power
+- where it is
+- parking/access information
+- its rules
+- its cancellation terms
+- its provider reliability
+- whether it can be booked immediately
+- how to pay
+- whether it can be booked again next week
+
+==================================================
+3. BUSINESS MODEL
+==================================================
+
+Build the software so monetisation is configurable rather than hard-coded.
+
+Primary revenue:
+
+Booking commission / service fee on completed rehearsal bookings.
+
+The project currently uses approximately 10% as an illustrative planning assumption only. Do NOT permanently hard-code 10% as the business model.
+
+Future revenue streams should be architecturally possible:
+
+Provider Pro:
+- analytics
+- multiple rooms
+- staff roles
+- calendar integrations
+- promoted inventory
+- advanced provider tools
+
+Musician Pro:
+- enhanced discovery
+- verification
+- professional portfolio
+- AI job matching
+- analytics
+
+Promoted listings:
+- paid visibility
+- must be clearly labelled
+
+Future transaction commissions:
+- session musicians
+- recording studios
+- equipment rental
+- performance venues
+
+IMPORTANT:
+Providers independently set their prices.
+
+Sessions may eventually provide market intelligence or optional AI pricing advice, but Sessions must not control, coordinate or impose market prices.
+
+==================================================
+4. WHO USES SESSIONS
+==================================================
+
+PRIMARY DEMAND USERS
+
+- Bands
+- Band leaders
+- Solo artists
+- Choirs
+- Church/worship teams
+- Producers
+- Working musicians
+
+PRIMARY SUPPLY USERS
+
+- Commercial rehearsal studios
+- Recording studios with rehearsal/live rooms
+- Churches
+- Schools
+- Universities
+- Arts centres
+- Companies/institutions
+- Approved private rehearsal facilities
+
+INTERNAL USER
+
+- Sessions administrator / marketplace operations team
+
+FUTURE USERS
+
+- Session musicians
+- Drummers
+- Bassists
+- Guitarists
+- Keyboardists
+- Vocalists
+- Producers
+- Engineers
+- Equipment owners/rental businesses
+- Recording studios
+- Performance venues
+
+==================================================
+5. RESEARCH EXISTING PRODUCTS BEFORE DESIGNING
+==================================================
+
+Before implementing the frontend, research current publicly accessible versions of successful products.
+
+Study:
+
+PIRATE / Pirate Studios
+For:
+- rehearsal-studio booking
+- music-specific room presentation
+- date/time selection
+- studio categories
+
+Peerspace
+For:
+- hourly space marketplaces
+- beautiful space listings
+- verified hosts
+- photography
+- hourly pricing
+- instant booking
+- marketplace trust
+
+Tagvenue
+For:
+- rich filtering
+- capacity filters
+- amenities
+- venue comparison
+- verified reviews
+- discovery UX
+
+AllBooked or similar music-studio scheduling systems
+For:
+- time-slot visualisation
+- availability
+- room schedules
+
+Airbnb
+For:
+- photography hierarchy
+- saved/favourite listings
+- trust
+- marketplace detail-page structure
+
+Calendly and similar scheduling products
+For:
+- frictionless time-slot selection
+- confirmation
+
+Use browser/search/scraping capabilities to study PUBLIC design patterns and screenshots.
+
+Create a short internal competitive UX audit before coding.
+
+DO NOT clone another company.
+
+Do not copy:
+- logos
+- exact visual identity
+- proprietary graphics
+- copyrighted illustrations
+- exact layouts
+
+Instead:
+
+Study → understand → combine → improve → adapt for Zimbabwean musicians.
+
+==================================================
+6. VISUAL DESIGN
+==================================================
+
+Sessions should feel:
+
+Premium
+Modern
+Calm
+Creative
+Trustworthy
+Fast
+Professional
+
+Do NOT make it look like a stereotypical nightclub or DJ application.
+
+Avoid:
+- excessive neon purple
+- pink/purple gradients everywhere
+- glowing waveforms
+- visual clutter
+- generic AI graphics
+- dark nightclub UI as the default
+
+The photography of rehearsal rooms, musicians and equipment should create most of the visual energy.
+
+DEFAULT THEME:
+Light.
+
+CORE COLOUR PALETTE
+
+White:
+#FFFFFF
+
+Near-white canvas:
+#F7F9FC
+
+Sessions deep blue:
+#1F4E79
+
+Ink / near-black:
+#101828
+
+Secondary slate:
+#667085
+
+Soft blue-grey:
+#EEF3F8
+
+Interactive electric blue:
+#2F80ED
+
+Use green primarily for:
+- available
+- confirmed
+- payment successful
+
+Use red/orange only for meaningful warning/error/cancellation states.
+
+Typography:
+Use a highly readable modern sans-serif such as:
+- Geist
+- Inter
+- Manrope
+
+Use:
+- generous whitespace
+- strong typography
+- clear visual hierarchy
+- high-quality photography
+- restrained shadows
+- rounded cards
+- accessible contrast
+- large mobile touch targets
+
+Mobile-first is mandatory.
+
+==================================================
+7. BRAND DIRECTION
+==================================================
+
+Primary brand:
+
+SESSIONS
+
+Zimbabwe is the launch market, but avoid permanently limiting the brand to “Sessions ZW” in places where doing so would make later expansion awkward.
+
+Useful brand language:
+
+“Find your next session.”
+
+“Rehearse. Book. Pay.”
+
+“Music space, when you need it.”
+
+“Turn idle music space into bookable time.”
+
+The UI should explain the product within seconds.
+
+==================================================
+8. CUSTOMER APP — MVP
+==================================================
+
+AUTHENTICATION
+
+Allow:
+- sign up
+- sign in
+- phone-friendly authentication
+- email authentication
+
+Simple onboarding.
+
+Possible first role question:
+
+“What are you here to do?”
+
+[ Find a rehearsal space ]
+[ List a rehearsal space ]
+
+CUSTOMER HOME / DISCOVER
+
+The most prominent interaction should be:
+
+FIND A REHEARSAL SPACE.
+
+Search should support:
+
+- city
+- neighbourhood
+- date
+- start time
+- flexible time
+- duration
+- band/group size
+- budget
+- equipment
+
+Duration presets:
+
+30 minutes
+60 minutes
+90 minutes
+120 minutes
+
+Architecture should support longer bookings.
+
+==================================================
+9. AI SEARCH
+==================================================
+
+Sessions AI is not a decorative chatbot.
+
+It should help coordinate real marketplace constraints.
+
+Example search:
+
+“Four-piece gospel band, Saturday afternoon near Borrowdale, drums and PA, under US$25.”
+
+AI should translate this into structured filters such as:
+
+Location: Borrowdale
+Date: Saturday
+Time: afternoon
+Capacity: 4+
+Equipment: drums + PA
+Maximum price: US$25
+
+Show users what the AI understood.
+
+AI recommendations must remain editable.
+
+==================================================
+10. SEARCH FILTERS
+==================================================
+
+Support filters for:
+
+- location
+- neighbourhood
+- date
+- start time
+- flexible time
+- duration
+- price
+- capacity
+- drums
+- PA
+- vocal microphones
+- bass amp
+- guitar amps
+- keyboard
+- piano
+- music stands
+- acoustic treatment where known
+- backup power
+- parking
+- access conditions
+- instant booking
+- provider approval
+- verified provider
+- ratings
+- cancellation flexibility
+
+Where practical provide:
+
+LIST VIEW
+and
+MAP VIEW.
+
+==================================================
+11. SEARCH RESULT CARDS
+==================================================
+
+Each result should immediately communicate:
+
+- strong room photograph
+- room name
+- venue/provider
+- neighbourhood
+- hourly price
+- rating
+- verified badge
+- capacity
+- key equipment
+- backup power
+- next suitable available time
+- instant booking status
+- favourite icon
+
+Do not force users to open every listing just to understand whether it might work.
+
+==================================================
+12. SPACE DETAIL PAGE
+==================================================
+
+This is one of the most important screens.
+
+Show:
+
+Photography gallery
+
+Room name
+
+Venue name
+
+Location
+
+Map
+
+Price
+
+Capacity
+
+Verified provider
+
+Ratings
+
+Completed booking/reliability signals
+
+Detailed equipment inventory
+
+Examples:
+
+DRUM KIT
+Included
+
+BASS AMP
+Included
+
+GUITAR AMP
+2 available
+
+PA
+Included
+
+KEYBOARD
+Not included
+
+MICROPHONES
+3
+
+Also show:
+
+- backup power
+- parking
+- transport/access notes
+- house rules
+- security/check-in
+- opening hours
+- cancellation policy
+- damage/deposit rules
+- minimum booking duration
+- provider response reliability
+- availability calendar
+
+There should be an obvious sticky action:
+
+BOOK SESSION
+
+or
+
+CHOOSE A SLOT.
+
+==================================================
+13. SLOT SELECTION
+==================================================
+
+This must feel like managing real TIME INVENTORY, not selecting a generic appointment.
+
+Show:
+
+- selected date
+- duration
+- available start times
+- unavailable times
+- existing booked periods
+- provider buffer periods if applicable
+
+Prevent:
+- overlaps
+- double booking
+- invalid duration
+- booking during blocked institutional time
+
+Providers may configure:
+- minimum duration
+- opening hours
+- public hours
+- cleanup/reset buffers
+- blackout periods
+
+==================================================
+14. CHECKOUT
+==================================================
+
+Checkout must clearly show:
+
+Room
+
+Date
+
+Start time
+
+End time
+
+Duration
+
+Equipment/package
+
+Provider subtotal
+
+Deposit
+
+Platform/service fee
+
+Total
+
+Cancellation terms
+
+Currency
+
+Zimbabwe requirements:
+
+USD should work from the beginning.
+
+The architecture must be ZiG-ready.
+
+Payment integration should use an abstraction so a Zimbabwe-relevant processor/payment aggregator can be selected or changed later.
+
+Do not tightly couple the frontend to one payment company.
+
+If production payment credentials are not yet available, create a realistic mocked payment flow for the sprint demo.
+
+==================================================
+15. BOOKING CONFIRMATION
+==================================================
+
+Confirmation should show:
+
+BOOKING CONFIRMED
+
+Booking reference
+
+Room
+
+Date
+
+Time
+
+Duration
+
+Address
+
+Check-in details
+
+Receipt
+
+Cancellation policy
+
+Add to calendar
+
+Share
+
+WhatsApp/share pathway
+
+Rebook
+
+==================================================
+16. BOOKINGS
+==================================================
+
+Customer booking area:
+
+Upcoming
+
+Past
+
+Cancelled
+
+Allow users to:
+
+- open booking
+- rebook
+- cancel according to policy
+- download/view receipt
+- review completed booking
+- favourite the room
+
+Only completed bookings should create reviews.
+
+==================================================
+17. RECURRING REHEARSALS
+==================================================
+
+Recurring usage is strategically important.
+
+Include flows such as:
+
+BOOK AGAIN
+
+SAME TIME NEXT WEEK
+
+REPEAT WEEKLY
+
+Only allow recurrence when each requested slot is valid.
+
+==================================================
+18. PROVIDER SIDE
+==================================================
+
+Providers need a proper portal/dashboard.
+
+PROVIDER ONBOARDING
+
+Capture:
+
+Organisation/provider identity
+
+Venue name
+
+Venue category
+
+Address
+
+Area
+
+Contact
+
+Verification state
+
+Payout information placeholder
+
+Photos
+
+VENUE TYPES
+
+Studio
+Church
+School
+University
+Arts centre
+Institution
+Private approved facility
+
+==================================================
+19. PROVIDER ROOMS
+==================================================
+
+One provider may operate multiple rooms.
+
+Each room needs:
+
+- name
+- description
+- capacity
+- photos
+- equipment
+- included equipment
+- restricted equipment
+- power backup
+- parking/access
+- base price
+- minimum duration
+- deposit
+- booking approval type
+
+==================================================
+20. PROVIDER CALENDAR
+==================================================
+
+This should be excellent.
+
+Providers must manage:
+
+Weekly hours
+
+Public booking hours
+
+Internal bookings
+
+Manual blocks
+
+Blackout dates
+
+One-off closures
+
+Existing reservations
+
+Buffers
+
+Booking requests
+
+Confirmed Sessions bookings
+
+Institutional use is important.
+
+For example:
+
+A church may use a room Tuesday evening, Thursday evening and Sunday.
+
+Sessions should allow it to expose only:
+
+Monday 4–8 PM
+Wednesday 3–7 PM
+Saturday 10 AM–4 PM
+
+The institution keeps full control.
+
+==================================================
+21. PROVIDER PRICING
+==================================================
+
+Provider chooses its own price.
+
+Architecture should eventually support:
+
+Base rate
+
+Off-peak rate
+
+Promotional window
+
+Recurring customer discount
+
+Room-only package
+
+Equipment-inclusive package
+
+Any future AI price recommendation must be:
+
+OPTIONAL
+ADVISORY
+EXPLAINABLE
+
+Never replace provider price sovereignty.
+
+==================================================
+22. PROVIDER DASHBOARD
+==================================================
+
+Useful metrics:
+
+Revenue through Sessions
+
+Bookings
+
+Booked hours
+
+Available hours
+
+Utilisation
+
+Upcoming sessions
+
+Repeat customers
+
+Cancellation rate
+
+Payout status
+
+Best-performing room
+
+Equipment demand later
+
+Do not show fake growth where no data exists.
+
+Use excellent empty states.
+
+==================================================
+23. ADMIN / MARKETPLACE OPERATIONS
+==================================================
+
+Create an admin architecture/interface for:
+
+- provider verification
+- room verification
+- listing moderation
+- user management
+- booking lookup
+- payment status
+- refund status
+- cancellations
+- disputes
+- incidents
+- review moderation
+- provider suspension
+- invalid inventory
+- platform-fee configuration
+- marketplace analytics
+
+==================================================
+24. TRUST SYSTEM
+==================================================
+
+Trust is central.
+
+Include:
+
+Verified provider
+
+Completed-booking reviews
+
+Room quality
+
+Provider reliability
+
+Cancellation information
+
+Transparent rules
+
+Booking receipt
+
+Booking reference
+
+Dispute/report pathway
+
+Do not imply that verification guarantees personal safety.
+
+==================================================
+25. FUTURE MUSICIAN MARKETPLACE
+==================================================
+
+DO NOT let this distract from the rehearsal MVP.
+
+However, architect Sessions so a second marketplace can later exist.
+
+Session musicians could create profiles containing:
+
+Instrument
+
+Genres
+
+Experience
+
+Professional credits
+
+Location
+
+Travel radius
+
+Availability
+
+Indicative rate
+
+Portfolio
+
+Audio/video clips
+
+Completed jobs
+
+Reviews
+
+Reliability
+
+Future example:
+
+“Find a gospel/sungura bassist available Saturday in Harare for under US$40.”
+
+This should reuse the same:
+
+identity
+availability
+matching
+payments
+reviews
+trust
+
+infrastructure already built for rooms.
+
+==================================================
+26. FUTURE BUSINESS EXPANSION
+==================================================
+
+If rehearsal-marketplace liquidity succeeds, Sessions can later expand into:
+
+Session musicians
+
+Recording studios
+
+Producers
+
+Engineers
+
+Equipment rental
+
+Performance venues
+
+Other directly adjacent music infrastructure
+
+Geographic expansion:
+
+Harare first
+
+Then Bulawayo
+
+Then other Zimbabwean demand clusters
+
+Then potentially larger African music markets including South Africa and Nigeria.
+
+Do NOT build all of this at once.
+
+==================================================
+27. TECHNICAL DIRECTION
+==================================================
+
+Inspect the repository first.
+
+Do not unnecessarily replace an existing stack.
+
+If there is no established technical architecture, a sensible default is:
+
+Next.js / React
+
+TypeScript
+
+Tailwind CSS
+
+Accessible reusable UI components such as shadcn/ui
+
+PWA/mobile-first behaviour
+
+Supabase or equivalent later for:
+- authentication
+- PostgreSQL
+- storage
+
+Use service abstractions for:
+
+Payments
+
+Maps
+
+WhatsApp
+
+Email
+
+AI
+
+Storage
+
+Do not tightly couple the core application to a single external vendor.
+
+==================================================
+28. FIRST SPRINT / DEMO BUILD
+==================================================
+
+The first version must be demoable quickly even if the production database and live payment rails are not connected yet.
+
+Use structured seeded/sample Harare data if needed.
+
+The frontend must NOT be throwaway code.
+
+Build the domain layer so seeded data can later be replaced with database queries cleanly.
+
+Never present fictional demo providers as verified real businesses.
+
+Clearly label demo/sample inventory where necessary.
+
+Create approximately 8–12 sample Harare spaces showing:
+
+Different areas
+
+Different prices
+
+Different capacities
+
+Different equipment
+
+Different availability
+
+Different backup-power status
+
+Different provider types
+
+Different cancellation policies
+
+Some instant booking
+
+Some approval-required
+
+==================================================
+29. SUGGESTED DATA MODEL
+==================================================
+
+Plan for entities such as:
+
+users
+
+user_profiles
+
+provider_organisations
+
+provider_members
+
+venues
+
+rooms
+
+equipment
+
+room_equipment
+
+room_photos
+
+availability_rules
+
+availability_exceptions
+
+blackout_dates
+
+manual_blocks
+
+bookings
+
+booking_items
+
+payments
+
+payouts
+
+refunds
+
+reviews
+
+favourites
+
+notifications
+
+verification_records
+
+incidents
+
+disputes
+
+platform_fee_rules
+
+Future:
+
+musician_profiles
+
+musician_skills
+
+musician_portfolio
+
+musician_availability
+
+musician_jobs
+
+Use explicit BOOKING STATES.
+
+Use explicit PAYMENT STATES.
+
+Availability must be derived from actual inventory and booking state, not merely visual mockups.
+
+==================================================
+30. ZIMBABWE-SPECIFIC PRODUCT REQUIREMENTS
+==================================================
+
+The product should be:
+
+Mobile first
+
+Low-data conscious
+
+Fast on mid-range Android devices
+
+Image optimized
+
+Lazy loaded where appropriate
+
+Simple to navigate
+
+WhatsApp-friendly
+
+USD-ready
+
+ZiG-ready
+
+Explicit about backup power
+
+Explicit about transport/parking/access
+
+Easy enough for providers to receive concierge-assisted onboarding
+
+==================================================
+31. NAVIGATION
+==================================================
+
+CUSTOMER MOBILE NAVIGATION
+
+Discover
+Bookings
+Saved
+Profile
+
+PROVIDER
+
+Dashboard
+Calendar
+Rooms
+Bookings
+Payouts
+Settings
+
+==================================================
+32. CRITICAL END-TO-END FLOWS
+==================================================
+
+CUSTOMER
+
+Discover
+→ Search/filter
+→ Space
+→ Slot
+→ Checkout
+→ Confirmation
+→ Booking
+→ Rebook
+→ Review
+
+PROVIDER
+
+Create room
+→ Add equipment
+→ Define price/rules
+→ Configure calendar
+→ Receive booking
+→ Manage session
+→ Receive payout/revenue record
+
+ADMIN
+
+Verify room/provider
+→ inspect booking
+→ inspect payment
+→ manage cancellation/dispute
+
+These flows matter more than building dozens of disconnected pages.
+
+==================================================
+33. WHAT MAKES SESSIONS UNIQUE
+==================================================
+
+The frontend must make these differentiators obvious:
+
+1. MUSIC-SPECIFIC BOOKING
+
+We book music infrastructure, not generic appointments.
+
+2. REAL SLOT INVENTORY
+
+Actual bookable time.
+
+3. EQUIPMENT-AWARE SEARCH
+
+A drummer and a gospel band do not simply need “a room.”
+
+4. BAND/GROUP CAPACITY
+
+Designed around groups.
+
+5. IDLE INSTITUTIONAL CAPACITY
+
+Churches, schools and other institutions can monetise unused music-ready space.
+
+6. ZIMBABWE-SPECIFIC PRACTICALITY
+
+Local payment readiness.
+
+Backup-power information.
+
+Transport/access.
+
+Mobile-first experience.
+
+WhatsApp integration strategy.
+
+7. RECURRING REHEARSALS
+
+The same users may book every week.
+
+8. TRUST DATA
+
+Verification.
+
+Reviews.
+
+Reliability.
+
+Booking history.
+
+9. AI WITH A REAL PURPOSE
+
+AI helps match:
+
+time
+location
+price
+equipment
+capacity
+availability
+
+rather than merely being a chatbot.
+
+10. MUSIC-INDUSTRY EXPANSION
+
+Rooms first.
+
+Later:
+people
+recording
+equipment
+venues.
+
+==================================================
+34. NON-GOALS
+==================================================
+
+Do not build Sessions into:
+
+A tutoring marketplace
+
+Salon bookings
+
+Medical appointments
+
+Consulting bookings
+
+Generic services
+
+Social-media feed
+
+Spotify competitor
+
+Ticketing super-app
+
+General classifieds
+
+Generic AI assistant
+
+Protect the core wedge.
+
+==================================================
+35. DEVELOPMENT PROCESS
+==================================================
+
+Follow this sequence:
+
+1. Read Sessions project material.
+2. Produce a short “What Sessions is / is not” interpretation.
+3. Research competitor UX.
+4. Audit existing code.
+5. Define information architecture.
+6. Define user flows.
+7. Define design system.
+8. Build customer flow.
+9. Build provider flow.
+10. Build admin basics.
+11. Connect seeded/backend data.
+12. Test booking logic.
+13. Test responsiveness.
+14. Test accessibility.
+15. Test performance.
+16. Document assumptions and integrations.
+
+Maintain a README explaining:
+
+Architecture
+
+Data model
+
+Mocked services
+
+Environment variables
+
+Payment abstraction
+
+AI abstraction
+
+Database migration path
+
+Next development steps.
+
+==================================================
+36. ACCEPTANCE CRITERIA
+==================================================
+
+The sprint succeeds if:
+
+A new person understands Sessions within seconds.
+
+A musician can search by real music requirements.
+
+Search results show meaningful options.
+
+A user can select a valid real-looking time slot.
+
+The booking flow works from discovery to confirmation.
+
+The provider can see how unused space becomes revenue.
+
+Provider pricing remains provider-controlled.
+
+The app feels excellent on mobile.
+
+The design looks recognisably like one Sessions brand.
+
+Demo data is clearly separated from verified data.
+
+There is a clean path toward database, payments, WhatsApp and AI.
+
+The app does not drift into a generic booking marketplace.
+
+==================================================
+37. NORTH-STAR PRODUCT RULE
+==================================================
+
+Whenever considering a new feature, ask:
+
+“Does this improve the discovery, evaluation, booking, payment, trust or monetisation of music infrastructure, and does it strengthen repeat Sessions transactions?”
+
+If the answer is no, it probably does not belong in the current product.
+
+Build the first version around one promise:
+
+“I need somewhere to rehearse.”
+
+Sessions should make finding, booking and paying for that room dramatically easier than calling studios, posting in groups or coordinating manually through WhatsApp.
+
+Prove that first.
+
+Then expand.
