@@ -1,0 +1,4 @@
+import {env} from 'cloudflare:workers';
+import {getChatGPTUser} from '@/app/chatgpt-auth';
+import {database} from '@/db/store';
+export async function GET(_request:Request,{params}:{params:Promise<{id:string}>}){try{const user=await getChatGPTUser();if(!user)return new Response('Sign in required',{status:401});const{id}=await params;const row=await database().prepare('SELECT type FROM uploads WHERE id=? AND owner=?').bind(id,user.email).first();if(!row)return new Response('Not found',{status:404});const object=await(env as any).BUCKET.get(id);if(!object)return new Response('Not found',{status:404});return new Response(object.body,{headers:{'Content-Type':row.type,'X-Content-Type-Options':'nosniff','Cache-Control':'private, max-age=3600'}})}catch{return new Response('Media unavailable',{status:503})}}
