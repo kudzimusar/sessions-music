@@ -13,6 +13,7 @@ import {settlementPricing} from '@/lib/commerce';
 import {resolveFeePolicy} from '@/lib/commerce-server';
 import {quoteRoomBooking} from '@/lib/booking-quote';
 import {readLoyaltyCreditSetting,type BookingSeries,type MembershipLedgerEntry} from '@/lib/retention';
+import {createInAppNotification,createVoucher,studioInboxRecipient} from '@/lib/booking-communications';
 const response=(data:unknown,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store'}});
 class Fault extends Error{constructor(message:string,public status=400){super(message)}}
 function fail(message:string,status=400):never{throw new Fault(message,status)}
@@ -138,16 +139,25 @@ export async function POST(req:Request){
  if(v.staffId){manage();const staff=await db.prepare("SELECT * FROM studio_staff WHERE id=? AND studio_id=? AND status='active'").bind(v.staffId,studioId).first();if(!staff)fail('Select an active member of this studio');b.staffId=v.staffId;}
  b.status=v.status;statements.push(db.prepare('UPDATE studio_bookings SET content=? WHERE id=?').bind(JSON.stringify(b),b.id));if(['cancelled','declined'].includes(v.status))statements.push(db.prepare('DELETE FROM studio_booking_slots WHERE booking_id=?').bind(b.id));
  if(v.status==='confirmed'){
-  const pricing=b.pricing||settlementPricing(b.price);const value:StudioSettlement={id:'SET-'+crypto.randomUUID(),bookingId:b.id,studioId,customer:b.customer,status:'awaiting_payment',revision:0,pricing,createdAt:now,updatedAt:now};
-  statements.push(db.prepare('INSERT INTO studio_settlements(id,booking_id,studio_id,customer,status,room_subtotal_cents,addon_subtotal_cents,gross_cents,customer_fee_cents,studio_fee_cents,platform_fee_cents,customer_total_cents,deposit_due_cents,studio_net_cents,currency,created_at,updated_at,content) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(value.id,b.id,studioId,b.customer,value.status,pricing.roomSubtotal,pricing.addOnSubtotal,pricing.gross,pricing.customerFee,pricing.studioFee,pricing.platformFee,pricing.customerTotal,pricing.depositDue,pricing.studioNet,pricing.currency,now,now,JSON.stringify(value)));
-  statements.push(db.prepare('INSERT INTO settlement_events(id,settlement_id,studio_id,actor,event,idempotency_key,created_at,content) VALUES(?,?,?,?,?,?,?,?)').bind(crypto.randomUUID(),value.id,studioId,email,'created','booking-confirmed:'+b.id,now,JSON.stringify({bookingId:b.id,pricing})));
-  result={ok:true,booking:b,settlement:value};
+   const pricing=b.pricing||settlementPricing(b.price);const value:StudioSettlement={id:'SET-'+crypto.randomUUID(),bookingId:b.id,studioId,customer:b.customer,status:'awaiting_payment',revision:0,pricing,createdAt:now,updatedAt:now};
+   const voucher=createVoucher(studio,b,now);
+   statements.push(db.prepare('INSERT INTO studio_settlements(id,booking_id,studio_id,customer,status,room_subtotal_cents,addon_subtotal_cents,gross_cents,customer_fee_cents,studio_fee_cents,platform_fee_cents,customer_total_cents,deposit_due_cents,studio_net_cents,currency,created_at,updated_at,content) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(value.id,b.id,studioId,b.customer,value.status,pricing.roomSubtotal,pricing.addOnSubtotal,pricing.gross,pricing.customerFee,pricing.studioFee,pricing.platformFee,pricing.customerTotal,pricing.depositDue,pricing.studioNet,pricing.currency,now,now,JSON.stringify(value)));
+   statements.push(db.prepare('INSERT INTO booking_vouchers(id,booking_id,studio_id,token,status,created_at,content) VALUES(?,?,?,?,?,?,?)').bind(voucher.id,b.id,studioId,voucher.token,voucher.status,now,JSON.stringify(voucher)));
+   statements.push(db.prepare('INSERT INTO settlement_events(id,settlement_id,studio_id,actor,event,idempotency_key,created_at,content) VALUES(?,?,?,?,?,?,?,?)').bind(crypto.randomUUID(),value.id,studioId,email,'created','booking-confirmed:'+b.id,now,JSON.stringify({bookingId:b.id,pricing})));
+   result={ok:true,booking:b,settlement:value};
  }else if(v.status==='cancelled'&&settlement){
   const settlementGuard=crypto.randomUUID();settlement.status='cancelled';settlement.updatedAt=now;
   statements.push(db.prepare('INSERT INTO operation_guards(id,valid) VALUES(?,(SELECT CASE WHEN revision=? THEN 1 ELSE 0 END FROM studio_settlements WHERE id=?))').bind(settlementGuard,settlement.revision,settlement.id));
   statements.push(db.prepare('UPDATE studio_settlements SET status=?,revision=revision+1,updated_at=?,content=? WHERE id=?').bind(settlement.status,now,JSON.stringify({...settlement,revision:settlement.revision+1}),settlement.id));
   statements.push(db.prepare('INSERT INTO settlement_events(id,settlement_id,studio_id,actor,event,idempotency_key,created_at,content) VALUES(?,?,?,?,?,?,?,?)').bind(crypto.randomUUID(),settlement.id,studioId,email,'cancelled','booking-cancelled:'+b.id,now,JSON.stringify({bookingId:b.id})));
   statements.push(db.prepare('DELETE FROM operation_guards WHERE id=?').bind(settlementGuard));
+ }
+ if(['confirmed','declined','cancelled'].includes(v.status)){
+  const kind=v.status==='confirmed'?'booking_confirmed':v.status==='declined'?'booking_declined':'booking_cancelled';const content=v.status==='confirmed'?`${studio.name} accepted ${b.roomName} on ${b.date}. A booking voucher is now available.`:v.status==='declined'?`${studio.name} declined the booking request for ${b.date}.`:`The Sessions booking for ${studio.name} on ${b.date} was cancelled.`;
+  for(const recipient of [b.customer,studioInboxRecipient(studioId)]){const notification=createInAppNotification({booking:b,recipient,kind,content,now});statements.push(db.prepare('INSERT INTO booking_notifications(id,booking_id,studio_id,recipient,channel,kind,status,idempotency_key,created_at,attempts,content) VALUES(?,?,?,?,?,?,?,?,?,?,?)').bind(notification.id,b.id,studioId,recipient,notification.channel,notification.kind,notification.status,`booking-status:${kind}:${b.id}`,now,0,JSON.stringify(notification)));}
+ }
+ if(v.status==='cancelled'){
+  const voucherRow=await db.prepare('SELECT content FROM booking_vouchers WHERE booking_id=? AND status=\'active\'').bind(b.id).first();if(voucherRow){const voucher=JSON.parse(voucherRow.content);voucher.status='revoked';voucher.revokedAt=now;statements.push(db.prepare('UPDATE booking_vouchers SET status=?,revoked_at=?,content=? WHERE booking_id=? AND status=\'active\'').bind('revoked',now,JSON.stringify(voucher),b.id));}
  }
  if(['declined','cancelled'].includes(v.status)&&b.loyaltyCreditCents){const ledger:MembershipLedgerEntry={id:'ML-'+crypto.randomUUID(),studioId,customer:b.customer,bookingId:b.id,kind:'loyalty_reversal',amount:b.loyaltyCreditCents,occurredAt:now,note:'Credit reservation released because the booking did not proceed.'};statements.push(db.prepare('INSERT INTO membership_ledger(id,studio_id,customer,booking_id,kind,amount_cents,idempotency_key,occurred_at,content) VALUES(?,?,?,?,?,?,?,?,?)').bind(ledger.id,studioId,b.customer,b.id,ledger.kind,ledger.amount,'loyalty-reversal:'+b.id,now,JSON.stringify(ledger)),db.prepare('INSERT INTO studio_loyalty_balances(studio_id,customer,balance_cents,updated_at) VALUES(?,?,?,?) ON CONFLICT(studio_id,customer) DO UPDATE SET balance_cents=balance_cents+excluded.balance_cents,updated_at=excluded.updated_at').bind(studioId,b.customer,b.loyaltyCreditCents,now));}
  if(v.status==='completed'){

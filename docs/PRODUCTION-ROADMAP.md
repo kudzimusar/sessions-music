@@ -21,7 +21,7 @@ Status date: 2 September 2026. Phase R is the current execution authority for mo
 | W2 | Concierge direct-settlement ledger, proof, statements and invoices | Code-complete and certified for the next owner-only version | `docs/PHASE-R-W2.md`, server arithmetic, stale/idempotency/cross-tenant/export tests |
 | W3 | Effective-dated fee policy and add-on pricing engine | Code-complete and privately deployed | 102-test checkpoint; future quotes change while existing snapshots remain byte-stable |
 | W3b | 12-session recurring series, membership attendance/settlement ledger and optional loyalty credit | Code-complete and privately deployed | 106-test checkpoint; atomic series, offline membership evidence and default-off studio-specific credit |
-| W4 | Booking proof, inbox and consented reminder contracts | Not started | QR/ICS/offline reference, message authorization and idempotent delivery logs |
+| W4 | Booking proof, inbox and consented reminder contracts | Code-complete; private deployment pending | `docs/PHASE-R-W4.md`, QR/ICS/offline reference, message authorization and idempotent delivery logs; live scheduler activation remains gated |
 | W5 | Trust, availability search, public persuasion and reviews | Not started | Data-backed badges, completed-booking reviews, mobile Lighthouse gate |
 | W5b | Complete phone-first studio operations console | In progress through W1/W2 | Owner can operate bookings and statements on a phone |
 | W6 | First-party analytics, backup/restore, error hooks and demo purge | Not started | Executed restore receipt and real-event funnel |

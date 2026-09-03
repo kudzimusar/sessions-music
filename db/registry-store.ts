@@ -1,7 +1,9 @@
 import {env} from 'cloudflare:workers';
 import {database} from './store';
-import {studioSeeds,kulchaAddressCorrection,type Studio,type Staff,type RegistryState,type StudioBooking,type StudioSettlement,type StudioInvoice,type Claim,type RegistryIssue,type RegistryUser,type VerificationRequest} from '@/lib/registry';
+import {studioSeeds,kulchaAddressCorrection,type Studio,type Staff,type RegistryState,type StudioBooking,type StudioSettlement,type StudioInvoice,type Claim,type RegistryIssue,type RegistryUser,type VerificationRequest,type BookingVoucher,type BookingMessage,type BookingMessageThread,type BookingNotification,type NotificationPreference} from '@/lib/registry';
 import {readLoyaltyCreditSetting,type MembershipLedgerEntry,type BookingSeries} from '@/lib/retention';
+import {studioInboxRecipient} from '@/lib/booking-communications';
+import {emailConfiguration} from '@/lib/notification-delivery';
 export function isRegistryOperator(email:string){return ((env as unknown as {SESSIONS_ADMIN_EMAILS?:string}).SESSIONS_ADMIN_EMAILS||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean).includes(email.toLowerCase());}
 export function isRegistryUserOperator(user:{email?:string|null;roles?:readonly string[]}|null){return !!user&&(user.roles?.includes('operations_admin')||isRegistryOperator(user.email||''));}
 export async function seedRegistry(){
@@ -39,7 +41,17 @@ export async function readRegistry(user:(Partial<RegistryUser>&{email?:string|nu
  const membershipLedger:MembershipLedgerEntry[]=actor?(await db.prepare(membershipLedgerSql).bind(...(operator?[]:[actor,actor,contacts[0]||'',contacts[1]||''])).all()).results.map((r:any)=>JSON.parse(r.content)):[];
  const bookingSeriesSql=operator?'SELECT content FROM booking_series ORDER BY created_at DESC LIMIT 1000':"SELECT content FROM booking_series WHERE customer=? OR studio_id IN (SELECT id FROM studio_registry WHERE owner=?) OR studio_id IN (SELECT studio_id FROM studio_staff WHERE email IN (?,?) AND status='active' AND role='manager') ORDER BY created_at DESC LIMIT 500";
  const bookingSeries:BookingSeries[]=actor?(await db.prepare(bookingSeriesSql).bind(...(operator?[]:[actor,actor,contacts[0]||'',contacts[1]||''])).all()).results.map((r:any)=>JSON.parse(r.content)):[];
+ const visibleBookingIds=new Set(bookings.map(value=>value.id));
+ const vouchers:BookingVoucher[]=actor?(await db.prepare(operator?'SELECT content FROM booking_vouchers ORDER BY created_at DESC LIMIT 2000':'SELECT content FROM booking_vouchers ORDER BY created_at DESC LIMIT 2000').all()).results.map((r:any)=>JSON.parse(r.content) as BookingVoucher).filter((value:BookingVoucher)=>visibleBookingIds.has(value.bookingId)):[];
+ const recipientKeys=actor?[actor,...managedIds.map(studioInboxRecipient)]:[];
+ const messages:BookingMessage[]=actor?(await db.prepare('SELECT content FROM booking_messages ORDER BY created_at DESC LIMIT 2000').all()).results.map((r:any)=>JSON.parse(r.content) as BookingMessage).filter((value:BookingMessage)=>visibleBookingIds.has(value.bookingId)):[];
+ const readRows=actor?(await db.prepare('SELECT booking_id,recipient,last_read_at FROM booking_message_reads ORDER BY last_read_at DESC LIMIT 3000').all()).results.filter((row:any)=>visibleBookingIds.has(row.booking_id)&&recipientKeys.includes(row.recipient)):[];
+ const readAt=new Map(readRows.map((row:any)=>[`${row.booking_id}:${row.recipient}`,row.last_read_at]));
+ const messageThreads:BookingMessageThread[]=bookings.map(booking=>{const thread=messages.filter(value=>value.bookingId===booking.id),unread=thread.filter(value=>recipientKeys.includes(value.recipient)&&value.createdAt>(readAt.get(`${value.bookingId}:${value.recipient}`)||'')).length,last=thread[0];return {bookingId:booking.id,unreadCount:unread,lastMessageAt:last?.createdAt,lastPreview:last?.body};}).filter(value=>value.lastMessageAt||value.unreadCount);
+ const notifications:BookingNotification[]=actor?(await db.prepare('SELECT content FROM booking_notifications ORDER BY created_at DESC LIMIT 2000').all()).results.map((r:any)=>JSON.parse(r.content) as BookingNotification).filter((value:BookingNotification)=>visibleBookingIds.has(value.bookingId)&&recipientKeys.includes(value.recipient)):[];
+ const preferenceRow=actor?await db.prepare('SELECT revision,content FROM booking_notification_preferences WHERE recipient=?').bind(actor).first():null;
+ const notificationPreference:NotificationPreference|undefined=preferenceRow?{...JSON.parse(preferenceRow.content),revision:preferenceRow.revision}:undefined;
  const loyaltyCreditSetting=await readLoyaltyCreditSetting();
  const normalizedUser=user?{id:actor,displayName:user.displayName,email:user.email||null,phone:user.phone||null,roles:user.roles||[],method:user.method,sessionId:user.sessionId}:null;
- return {memberships,membershipLedger,loyaltyCreditSetting,bookingSeries,registrations,verifications,settlements,invoices,studios,staff,managedIds,ownerIds,bookings,claims,issues,operator,user:normalizedUser,invitations:personalStaff.filter((s:Staff)=>s.status==='invited'),myStaff:personalStaff.filter((s:Staff)=>s.status==='active'),occupancy} as RegistryState;
+ return {memberships,membershipLedger,loyaltyCreditSetting,bookingSeries,registrations,verifications,settlements,invoices,vouchers,bookingMessages:messages,messageThreads,notifications,notificationPreference,emailRemindersConfigured:emailConfiguration().ready,studios,staff,managedIds,ownerIds,bookings,claims,issues,operator,user:normalizedUser,invitations:personalStaff.filter((s:Staff)=>s.status==='invited'),myStaff:personalStaff.filter((s:Staff)=>s.status==='active'),occupancy} as RegistryState;
 }

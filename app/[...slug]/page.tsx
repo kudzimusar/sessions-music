@@ -23,5 +23,5 @@ export default async function Page({params}:Props){
   if(!allowed.includes(user.email.toLowerCase()))notFound();
  }
  if(slug[0]==='studio'&&slug.length===2)return <RegistryApp path={path} initialStudio={await readPublicStudio(slug[1])}/>;
- return ['studios','studio','map','mobile','manage','requests','account','registry-admin','planner','register','onboarding','subscriptions'].includes(slug[0])?<RegistryApp path={path}/>:<SessionsApp initialPath={path}/>;
+ return ['studios','studio','map','mobile','manage','requests','inbox','notifications','account','registry-admin','planner','register','onboarding','subscriptions'].includes(slug[0])?<RegistryApp path={path}/>:<SessionsApp initialPath={path}/>;
 }
