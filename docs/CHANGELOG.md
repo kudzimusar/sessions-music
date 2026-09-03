@@ -6,7 +6,7 @@
 - Added private booking inboxes, booking-authorized R2 image attachments, read state, in-app updates and audited user-triggered WhatsApp deep links. Sessions does not auto-send WhatsApp messages.
 - Added minimal device-only offline booking references, explicitly marked as non-authoritative and cleared at sign-out.
 - Added consented, feature-gated email reminder contracts plus an idempotent 24-hour / 2-hour Worker reminder handler. No email relay or schedule trigger is enabled in production.
-- Added D1 communication and notification migration plus security, stale/idempotency, tenant-boundary, cancellation/revocation and reminder tests. Certified with 112 passing tests, a clean standalone typecheck and production build; `/demo` remains unchanged.
+- Added D1 communication and notification migration plus security, stale/idempotency, tenant-boundary, cancellation/revocation and reminder tests. Certified with 112 passing tests, a clean standalone typecheck and production build; privately deployed without enabling email, a reminder scheduler or public visitor access. `/demo` remains unchanged.
 
 ## 3 September 2026 — Phase R Workstream 3b implementation
 

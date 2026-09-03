@@ -25,7 +25,7 @@ The Worker has the scheduled-event handler and the processor has deterministic t
 
 - `tests/booking-communications.test.mjs` covers missing identity, wrong participant, Operations thread denial, cross-origin rejection, duplicate message/preference actions, private calendar/offline data, unconfigured email, idempotent reminders and voucher revocation.
 - Existing settlement tests cover a replacement proof after a declined proof; the notification idempotency key preserves both distinct state changes.
-- The complete suite has 112 passing tests, the standalone typecheck is clean and the production build succeeds.
+- The complete suite has 112 passing tests, the standalone typecheck is clean and the production build succeeds. The owner-only Sites version was deployed on 3 September 2026; `/demo` remains private and unchanged.
 
 ## Mobile QA checklist
 
