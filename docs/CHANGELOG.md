@@ -6,6 +6,7 @@
 - Added a membership ledger for owner-recorded off-platform fees and completed-session attendance, keeping membership money outside Sessions custody.
 - Added a default-off Operations loyalty-credit policy, studio-specific earned balances, atomic redemption reservations and cancellation/decline reversals.
 - Added phone-first weekly cadence and earned-credit controls plus a studio membership activity ledger.
+- Certified with 106 passing tests, a clean standalone typecheck and production build; privately deployed without enabling a payment gateway or public visitor access.
 
 ## 3 September 2026 — Phase R Workstream 3 implementation
 

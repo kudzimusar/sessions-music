@@ -23,7 +23,7 @@ Membership fees and loyalty credit are not a payment rail. The studio records di
 ## Certification
 
 - `tests/retention.test.mjs` covers missing identity, wrong role, hostile origin, stale settings, duplicate actions, cross-customer cancellation, atomic weekly-series rollback, off-platform membership settlement, attendance, credit earning, redemption and reversal.
-- Full certification and private deployment are recorded with the release checkpoint after the workstream's final build.
+- 106 tests pass, the standalone typecheck and production build are clean, and the workstream is privately deployed on 3 September 2026. `/demo` remains private and unchanged.
 
 ## Mobile QA checklist
 
