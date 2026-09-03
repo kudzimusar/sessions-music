@@ -1,5 +1,12 @@
 # Sessions changelog
 
+## 3 September 2026 — Phase R Workstream 3b implementation
+
+- Added server-authoritative weekly booking series from two to twelve sessions, with all-or-nothing D1 inventory commits and idempotent retries.
+- Added a membership ledger for owner-recorded off-platform fees and completed-session attendance, keeping membership money outside Sessions custody.
+- Added a default-off Operations loyalty-credit policy, studio-specific earned balances, atomic redemption reservations and cancellation/decline reversals.
+- Added phone-first weekly cadence and earned-credit controls plus a studio membership activity ledger.
+
 ## 3 September 2026 — Phase R Workstream 3 implementation
 
 - Replaced the hard-coded commercial assumption with effective-dated, server-controlled fee policies for musician-paid, studio-paid and split fees.

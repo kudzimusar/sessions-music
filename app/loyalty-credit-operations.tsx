@@ -1,0 +1,13 @@
+'use client';
+import {useCallback,useEffect,useState} from 'react';
+import {Button} from '@/components/ui/button';
+import {CheckField,Field,Empty} from './registry-ui';
+import {sessionFetch} from '@/lib/supabase-browser';
+
+type Setting={id:string;enabled:boolean;creditCents:number;revision:number;updatedAt:string};
+export default function LoyaltyCreditOperations(){
+ const[setting,setSetting]=useState<Setting|null>(null),[enabled,setEnabled]=useState(false),[amount,setAmount]=useState('0'),[error,setError]=useState(''),[saving,setSaving]=useState(false);
+ const load=useCallback(async()=>{try{const response=await sessionFetch('/api/loyalty-credit',{cache:'no-store'}),body=await response.json();if(!response.ok)throw new Error(body.error);setSetting(body.setting);setEnabled(body.setting.enabled);setAmount((body.setting.creditCents/100).toFixed(2));setError('')}catch(value){setError(value instanceof Error?value.message:'Unable to load loyalty settings')}},[]);useEffect(()=>{void load()},[load]);
+ if(error&&!setting)return <Empty title="Loyalty settings are unavailable">{error}</Empty>;
+ return <section className="r-panel r-form"><h2>Platform loyalty credit</h2><p>Keep this off until the business has decided the earning amount and the studio-funded redemption policy. When enabled, a completed Sessions booking earns a credit usable only at that same studio. Sessions never holds the money.</p>{error&&<p className="r-error" role="alert">{error}</p>}<form className="r-form" onSubmit={async event=>{event.preventDefault();if(!setting)return;setSaving(true);try{const response=await sessionFetch('/api/loyalty-credit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:crypto.randomUUID(),enabled,creditCents:Math.round(Number(amount)*100),revision:setting.revision})}),body=await response.json();if(!response.ok)throw new Error(body.error);setSetting(body.setting);setEnabled(body.setting.enabled);setAmount((body.setting.creditCents/100).toFixed(2));setError('')}catch(value){setError(value instanceof Error?value.message:'Unable to save loyalty settings')}finally{setSaving(false)}}}><CheckField checked={enabled} onChange={setEnabled}>Enable platform-earned loyalty credit</CheckField><Field label="Credit earned per completed booking · USD"><input type="number" min="0" max="1000" step="0.01" value={amount} onChange={event=>setAmount(event.target.value)} required/></Field><p className="r-small">Current state: {setting?.enabled?'enabled':'off'} · existing earned balances are always studio-specific and can only be applied to individual booking requests.</p><Button disabled={saving||!setting||(enabled&&Number(amount)<=0)}>{saving?'Saving…':'Save loyalty settings'}</Button></form></section>;
+}
