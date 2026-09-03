@@ -13,6 +13,14 @@ export type FeePolicySnapshot={
  source:'founding_pilot'|'configured_policy';
 };
 
+export type AddOnLine={
+ id:string;
+ name:string;
+ price:number;
+ quantity:number;
+ commissionable:boolean;
+};
+
 export type SettlementPricingSnapshot={
  currency:'USD';
  roomSubtotal:number;
@@ -42,9 +50,10 @@ export const foundingPilotPolicy:FeePolicySnapshot={
  source:'founding_pilot'
 };
 
-export function settlementPricing(roomSubtotal:number,addOnSubtotal=0,depositDue=0,policy=foundingPilotPolicy):SettlementPricingSnapshot{
+export function settlementPricing(roomSubtotal:number,addOnSubtotal=0,depositDue=0,policy=foundingPilotPolicy,commissionableAddOnSubtotal=addOnSubtotal):SettlementPricingSnapshot{
  for(const [name,value] of Object.entries({roomSubtotal,addOnSubtotal,depositDue,customerBps:policy.musicianBps,studioBps:policy.studioBps}))if(!Number.isSafeInteger(value)||value<0)throw new Error(`${name} must be non-negative integer cents`);
- const basis=policy.basis==='room_plus_addons'?roomSubtotal+addOnSubtotal:roomSubtotal;
+ if(!Number.isSafeInteger(commissionableAddOnSubtotal)||commissionableAddOnSubtotal<0||commissionableAddOnSubtotal>addOnSubtotal)throw new Error('commissionableAddOnSubtotal must be a valid integer subset');
+ const basis=policy.basis==='room_plus_addons'?roomSubtotal+commissionableAddOnSubtotal:roomSubtotal;
  const customerFee=Math.round(basis*policy.musicianBps/10000);
  const studioFee=Math.round(basis*policy.studioBps/10000);
  const gross=roomSubtotal+addOnSubtotal;

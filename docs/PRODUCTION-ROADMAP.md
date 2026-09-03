@@ -19,7 +19,7 @@ Status date: 2 September 2026. Phase R is the current execution authority for mo
 | --- | --- | --- | --- |
 | W1 | Real identity boundary and self-service studio claim/verification/onboarding | Code-complete and privately deployed; live OTP/OAuth blocked on SMS, Google, CAPTCHA and runtime credentials | `docs/PHASE-R-W1.md`, 90-test checkpoint, applied base Supabase migration |
 | W2 | Concierge direct-settlement ledger, proof, statements and invoices | Code-complete and certified for the next owner-only version | `docs/PHASE-R-W2.md`, server arithmetic, stale/idempotency/cross-tenant/export tests |
-| W3 | Effective-dated fee policy and add-on pricing engine | Not started | Future quotes change; existing snapshots remain byte-stable |
+| W3 | Effective-dated fee policy and add-on pricing engine | Code-complete and privately deployed | 102-test checkpoint; future quotes change while existing snapshots remain byte-stable |
 | W3b | 12-session recurring series, membership attendance/settlement ledger and optional loyalty credit | Not started | All-or-nothing series and retention evidence |
 | W4 | Booking proof, inbox and consented reminder contracts | Not started | QR/ICS/offline reference, message authorization and idempotent delivery logs |
 | W5 | Trust, availability search, public persuasion and reviews | Not started | Data-backed badges, completed-booking reviews, mobile Lighthouse gate |

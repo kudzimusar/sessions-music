@@ -1,5 +1,13 @@
 # Sessions changelog
 
+## 3 September 2026 — Phase R Workstream 3 implementation
+
+- Replaced the hard-coded commercial assumption with effective-dated, server-controlled fee policies for musician-paid, studio-paid and split fees.
+- Added room-level policy overrides, commissionable add-on catalogues, deposits, itemized quote UI and immutable policy snapshots stored with each booking.
+- Preserved the 0% founding-studio pilot fallback and the W2 concierge settlement model; no payment gateway or money custody was activated.
+- Added Operations policy controls, add-on/deposit management for studio owners, and negative tests for identity, role, hostile origin, idempotency, overlap and unavailable/duplicate add-ons.
+- Certified with 102 passing tests, a clean standalone typecheck and production build; privately deployed without changing `/demo` or Supabase product data.
+
 ## 2 September 2026 — Phase R Workstream 2 implementation
 
 - Added the real concierge settlement state machine without enabling any payment gateway or money custody.
