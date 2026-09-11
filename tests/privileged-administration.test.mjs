@@ -43,3 +43,16 @@ test('platform role mutation is gated by current privileged session',async()=>{
  assert.match(privileged,/privileged_session\.replaced/);
  assert.match(privileged,/ChatGPT preview identity/);
 });
+
+test('super administration UI exposes the real elevation gate instead of pretending MFA',async()=>{
+ const workspace=await read('app/corporate-workspace.tsx');
+ assert.match(workspace,/\/api\/corporate\/privileged/);
+ assert.match(workspace,/Authentication assurance:/);
+ assert.match(workspace,/Privileged window:/);
+ assert.match(workspace,/Activate a 15-minute privileged window/);
+ assert.match(workspace,/Complete multi-factor authentication with the production identity provider/);
+ assert.match(workspace,/Sessions does not simulate MFA/);
+ assert.match(workspace,/fieldset disabled=\{busy\|\|!privilegedReady\}/);
+ assert.match(workspace,/Role controls are locked until privileged administration is active/);
+ assert.match(workspace,/End privileged session/);
+});
