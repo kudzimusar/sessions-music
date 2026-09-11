@@ -3,6 +3,7 @@ import RegistryApp from '../registry';
 import CorporateWorkspace from '../corporate-workspace';
 import CorporateOffice from '../corporate-office';
 import CorporateOrganization from '../corporate-organization';
+import CorporateAccessReviews from '../corporate-access-reviews';
 import AccessBoundary from '../access-boundary';
 import type {Metadata} from 'next';
 import {readPublicStudio} from '@/db/public-studio';
@@ -39,6 +40,7 @@ export default async function Page({params}:Props){
   if(slug.length===1)return corporateSurface(<AccessBoundary surface="corporate" returnTo="/corporate"><CorporateWorkspace/></AccessBoundary>);
   if(slug.length!==2)notFound();
   if(slug[1]==='organization')return corporateSurface(<AccessBoundary surface="corporate" returnTo="/corporate/organization" requiredPermissions={['organization:read']}><CorporateOrganization/></AccessBoundary>);
+  if(slug[1]==='access')return corporateSurface(<AccessBoundary surface="corporate" returnTo="/corporate/access" requiredPermissions={['platform:roles.manage']}><CorporateAccessReviews/></AccessBoundary>);
   if(slug[1]==='trust')return corporateSurface(<AccessBoundary surface="corporate" returnTo="/corporate/trust" requiredPermissions={['claims:review','verification:review']}><CorporateOffice office="trust"/></AccessBoundary>);
   if(slug[1]==='finance')return corporateSurface(<AccessBoundary surface="corporate" returnTo="/corporate/finance" requiredPermissions={['settlements:review']}><CorporateOffice office="finance"/></AccessBoundary>);
   if(slug[1]==='support')return corporateSurface(<AccessBoundary surface="corporate" returnTo="/corporate/support" requiredPermissions={['support:read']}><CorporateOffice office="support"/></AccessBoundary>);
