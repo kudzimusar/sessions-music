@@ -49,6 +49,22 @@ export async function getChatGPTUser(): Promise<ChatGPTUser | null> {
   };
 }
 
+function configuredPreviewRoles(email:string):PlatformRole[]{
+  const values=env as unknown as Record<string,string|undefined>;
+  const address=email.toLowerCase();
+  const listed=(name:string)=>((values[name]||'').split(',').map(value=>value.trim().toLowerCase()).filter(Boolean)).includes(address);
+  const roles:PlatformRole[]=['musician'];
+  // Backwards compatibility: the old SESSIONS_ADMIN_EMAILS list was the only privileged preview list.
+  // Treat those explicitly configured accounts as super admins rather than granting authority to every signed-in user.
+  if(listed('SESSIONS_SUPER_ADMIN_EMAILS')||listed('SESSIONS_ADMIN_EMAILS'))roles.push('super_admin');
+  if(listed('SESSIONS_CORPORATE_ADMIN_EMAILS'))roles.push('corporate_admin');
+  if(listed('SESSIONS_OPERATIONS_EMAILS'))roles.push('operations_admin');
+  if(listed('SESSIONS_FINANCE_EMAILS'))roles.push('finance_admin');
+  if(listed('SESSIONS_TRUST_SAFETY_EMAILS'))roles.push('trust_safety');
+  if(listed('SESSIONS_SUPPORT_EMAILS'))roles.push('support_agent');
+  return [...new Set(roles)];
+}
+
 export async function getProductionUser():Promise<SessionUser|null>{
   const requestHeaders=await headers();
   const values=env as unknown as {SESSIONS_IDENTITY_MODE?:string};
@@ -65,10 +81,10 @@ export async function getProductionUser():Promise<SessionUser|null>{
       sessionId:principal.sessionId,
     }:null;
   }
-  const demo=await getChatGPTUser();
-  return demo?{
-    id:demo.email.toLowerCase(),displayName:demo.displayName,email:demo.email.toLowerCase(),phone:null,
-    roles:['musician'],memberships:[],method:'chatgpt_demo',sessionId:'chatgpt-dispatch',
+  const preview=await getChatGPTUser();
+  return preview?{
+    id:preview.email.toLowerCase(),displayName:preview.displayName,email:preview.email.toLowerCase(),phone:null,
+    roles:configuredPreviewRoles(preview.email),memberships:[],method:'chatgpt_demo',sessionId:'chatgpt-dispatch',
   }:null;
 }
 
