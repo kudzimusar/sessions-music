@@ -18,7 +18,7 @@ test('interprets a music-specific rehearsal request into editable marketplace co
  assert.equal(parsed.date,'2026-09-12');
  assert.equal(parsed.time,'840');
  assert.equal(parsed.budget,25);
- assert.equal(parsed.category,'Choirs & worship');
+ assert.equal(parsed.category,'Full band');
  assert.equal(parsed.backup,true);
  assert.equal(parsed.parking,true);
  assert.deepEqual(parsed.equipment,['Drum kit','PA system']);
