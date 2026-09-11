@@ -49,6 +49,15 @@ export async function getChatGPTUser(): Promise<ChatGPTUser | null> {
   };
 }
 
+function withInheritedRoles(input:readonly PlatformRole[]):PlatformRole[]{
+ const roles=new Set<PlatformRole>(input);
+ // Corporate and super administrators are higher-level operational authorities.
+ // This keeps legacy endpoints that require operations_admin compatible without
+ // granting Operations to finance, support or trust/safety roles.
+ if(roles.has('corporate_admin')||roles.has('super_admin'))roles.add('operations_admin');
+ return [...roles];
+}
+
 function configuredPreviewRoles(email:string):PlatformRole[]{
   const values=env as unknown as Record<string,string|undefined>;
   const address=email.toLowerCase();
@@ -62,7 +71,7 @@ function configuredPreviewRoles(email:string):PlatformRole[]{
   if(listed('SESSIONS_FINANCE_EMAILS'))roles.push('finance_admin');
   if(listed('SESSIONS_TRUST_SAFETY_EMAILS'))roles.push('trust_safety');
   if(listed('SESSIONS_SUPPORT_EMAILS'))roles.push('support_agent');
-  return [...new Set(roles)];
+  return withInheritedRoles(roles);
 }
 
 export async function getProductionUser():Promise<SessionUser|null>{
@@ -75,7 +84,7 @@ export async function getProductionUser():Promise<SessionUser|null>{
       displayName:principal.displayName,
       email:principal.verifiedEmail,
       phone:principal.verifiedPhone,
-      roles:principal.roles,
+      roles:withInheritedRoles(principal.roles),
       memberships:principal.memberships,
       method:principal.method,
       sessionId:principal.sessionId,
