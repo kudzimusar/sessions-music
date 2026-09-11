@@ -12,12 +12,15 @@ test('visual layers load in the intended additive order', async () => {
   const expansion = layout.indexOf("import './expansion.css';");
   const polish = layout.indexOf("import './polish.css';");
   const v2 = layout.indexOf("import './sessions-v2.css';");
+  const brand = layout.indexOf("import './brand-v1.css';");
 
   assert.ok(globals >= 0, 'global application styles must remain loaded');
   assert.ok(registry > globals, 'registry styles must remain after global styles');
   assert.ok(expansion > registry, 'expansion styles must remain after registry styles');
   assert.ok(polish > expansion, 'shared polish must remain additive');
   assert.ok(v2 > polish, 'the rebuilt customer surface must load after shared polish');
+  assert.ok(brand > v2, 'the approved production brand layer must be the final design-system override');
+  assert.match(layout, /themeColor:'#4169E1'/);
 });
 
 test('production routes converge on one registry/account/authority domain', async () => {
@@ -41,12 +44,16 @@ test('production routes converge on one registry/account/authority domain', asyn
   assert.match(corporate, /\/api\/corporate\/roles/);
 });
 
-test('visual polish keeps the Sessions palette and semantic success colour', async () => {
-  const css = (await read('app/polish.css')) + '\n' + (await read('app/sessions-v2.css'));
-  for (const token of ['#f7f9fc', '#ffffff', '#101828', '#667085', '#1f4e79', '#2f80ed', '#eef3f8']) {
-    assert.match(css.toLowerCase(), new RegExp(token.replace('#', '#')));
+test('approved production brand is Black, Royal Blue and White with semantic status colours', async () => {
+  const css = await read('app/brand-v1.css');
+  for (const token of ['--sessions-black: #000000', '--sessions-royal: #4169e1', '--sessions-white: #ffffff']) {
+    assert.match(css.toLowerCase(), new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
   assert.match(css, /--sessions-success:\s*#247a57/i);
+  assert.match(css, /--sessions-warning:\s*#a15c00/i);
+  assert.match(css, /--sessions-danger:\s*#b42318/i);
+  assert.match(css, /--primary:\s*var\(--sessions-royal\)/i);
+  assert.match(css, /--foreground:\s*var\(--sessions-black\)/i);
 });
 
 test('phone navigation and booking action are safe-area aware with usable targets', async () => {
@@ -59,6 +66,14 @@ test('phone navigation and booking action are safe-area aware with usable target
   assert.match(css, /\.mobile-book-button\s*\{[^}]*position:\s*fixed/s);
 });
 
+test('corporate brand layer keeps critical workflows mobile-usable', async () => {
+  const css = await read('app/brand-v1.css');
+  assert.match(css, /\[data-sessions-surface='corporate'\]/);
+  assert.match(css, /@media\s*\(max-width:\s*720px\)/);
+  assert.match(css, /--sessions-touch-target:\s*44px/);
+  assert.match(css, /min-height:\s*var\(--sessions-touch-target\)/);
+});
+
 test('rebuilt customer surface exposes marketplace-critical controls', async () => {
   const source = await read('app/sessions-v2.tsx');
   assert.match(source, /Provider approval only/);
@@ -69,7 +84,7 @@ test('rebuilt customer surface exposes marketplace-critical controls', async () 
 });
 
 test('visual polish preserves keyboard focus and reduced-motion support', async () => {
-  const css = (await read('app/polish.css')) + '\n' + (await read('app/sessions-v2.css'));
+  const css = (await read('app/polish.css')) + '\n' + (await read('app/sessions-v2.css')) + '\n' + (await read('app/brand-v1.css'));
   assert.match(css, /:focus-visible/);
   assert.match(css, /outline:\s*3px solid/);
   assert.match(css, /@media\s*\(prefers-reduced-motion:\s*reduce\)/);
