@@ -1,5 +1,6 @@
 import SessionsApp from '../sessions-v2';
 import RegistryApp from '../registry';
+import AccessBoundary from '../access-boundary';
 import type {Metadata} from 'next';
 import {readPublicStudio} from '@/db/public-studio';
 import {env} from 'cloudflare:workers';
@@ -16,12 +17,20 @@ export async function generateMetadata({params}:Props):Promise<Metadata>{
 }
 export default async function Page({params}:Props){
  const {slug}=await params;const path='/'+slug.join('/');
- const demoSurface=['demo','bookings','saved','provider','admin','profile','space','booking'].includes(slug[0]);
- if(demoSurface&&(env as unknown as {SESSIONS_IDENTITY_MODE?:string}).SESSIONS_IDENTITY_MODE==='supabase'){
+ // Legacy marketplace URLs now resolve into the same production registry/account domain.
+ if(path==='/provider')redirect('/manage');
+ if(path==='/admin')redirect('/registry-admin');
+ if(path==='/bookings')redirect('/requests');
+ if(path==='/profile')redirect('/account');
+
+ // The sample booking sandbox remains deliberately separate and owner-only once production identity is enabled.
+ const sandboxSurface=['demo','saved','space','booking'].includes(slug[0]);
+ if(sandboxSurface&&(env as unknown as {SESSIONS_IDENTITY_MODE?:string}).SESSIONS_IDENTITY_MODE==='supabase'){
   const user=await getChatGPTUser();if(!user)redirect(chatGPTSignInPath(path));
   const allowed=((env as unknown as {SESSIONS_DEMO_OWNER_EMAILS?:string}).SESSIONS_DEMO_OWNER_EMAILS||'').split(',').map(value=>value.trim().toLowerCase()).filter(Boolean);
   if(!allowed.includes(user.email.toLowerCase()))notFound();
  }
  if(slug[0]==='studio'&&slug.length===2)return <RegistryApp path={path} initialStudio={await readPublicStudio(slug[1])}/>;
- return ['studios','studio','map','mobile','manage','requests','inbox','notifications','account','registry-admin','planner','register','onboarding','subscriptions'].includes(slug[0])?<RegistryApp path={path}/>:<SessionsApp initialPath={path}/>;
+ if(slug[0]==='registry-admin')return <AccessBoundary surface="corporate"><RegistryApp path={path}/></AccessBoundary>;
+ return ['studios','studio','map','mobile','manage','requests','inbox','notifications','account','planner','register','onboarding','subscriptions'].includes(slug[0])?<RegistryApp path={path}/>:<SessionsApp initialPath={path}/>;
 }
