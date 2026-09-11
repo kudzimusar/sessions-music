@@ -17,7 +17,7 @@ async function access(user:SessionUser,studioId:string){
  const identity=user.memberships.find(value=>value.organizationId===studioId&&value.active);const legacy=user.method==='chatgpt_demo';
  if(studio.owner===user.id&&(legacy||identity?.role==='owner'))return {studio,role:'owner' as const};
  const contacts=[user.email?.toLowerCase(),user.phone].filter(Boolean);const staff=contacts.length?await db.prepare("SELECT role FROM studio_staff WHERE studio_id=? AND email IN (?,?) AND status='active'").bind(studioId,contacts[0]||'',contacts[1]||'').first():null;
- if(staff?.role==='manager'&&(legacy||identity?.role==='staff'||identity?.role==='owner'))return {studio,role:'manager' as const};
+ if(staff?.role==='manager'&&(legacy||identity?.role==='manager'||identity?.role==='staff'||identity?.role==='owner'))return {studio,role:'manager' as const};
  return {studio,role:null};
 }
 
