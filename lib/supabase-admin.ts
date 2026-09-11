@@ -1,7 +1,8 @@
 import {env} from 'cloudflare:workers';
-import type {PlatformRole} from './identity-core';
+import {platformRoles,type PlatformRole} from './identity-core';
 
 type RuntimeEnv={SESSIONS_IDENTITY_MODE?:string;SUPABASE_URL?:string;SUPABASE_SECRET_KEY?:string};
+export type PlatformRoleAssignmentSnapshot={userId:string;role:PlatformRole;grantedBy:string|null;grantedAt:string|null};
 
 function config(){
  const values=env as unknown as RuntimeEnv;
@@ -35,4 +36,14 @@ export async function setPlatformRole(input:{userId:string;role:PlatformRole;ena
   return;
  }
  await request(`/rest/v1/platform_role_assignments?${filter}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({revoked_at:new Date().toISOString()})});
+}
+
+export async function listActivePlatformRoleAssignments():Promise<PlatformRoleAssignmentSnapshot[]>{
+ if(!config())throw new Error('Production identity role provisioning is not configured.');
+ const rows=await request<Array<{user_id?:unknown;role?:unknown;granted_by?:unknown;granted_at?:unknown}>>('/rest/v1/platform_role_assignments?revoked_at=is.null&select=user_id,role,granted_by,granted_at&order=role.asc,user_id.asc',{method:'GET'});
+ const allowed=new Set<string>(platformRoles);
+ return rows.flatMap(row=>{
+  if(typeof row.user_id!=='string'||typeof row.role!=='string'||!allowed.has(row.role))return [];
+  return [{userId:row.user_id,role:row.role as PlatformRole,grantedBy:typeof row.granted_by==='string'?row.granted_by:null,grantedAt:typeof row.granted_at==='string'?row.granted_at:null}];
+ });
 }
