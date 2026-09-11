@@ -15,6 +15,7 @@ type Overview={
 
 type Office={permission:string;title:string;copy:string;icon:typeof ShieldCheck;href:string};
 const offices:Office[]=[
+ {permission:'organization:read',title:'Organization & people',copy:'Departments, positions, reporting lines, leadership and acting responsibility inside Sessions.',icon:Users,href:'/corporate/organization'},
  {permission:'claims:review',title:'Trust & safety',copy:'Ownership claims, studio verification and marketplace integrity.',icon:ShieldCheck,href:'/corporate/trust'},
  {permission:'settlements:review',title:'Finance',copy:'Settlement exceptions, invoices, fee governance and reconciliation.',icon:ReceiptText,href:'/corporate/finance'},
  {permission:'support:read',title:'Customer support',copy:'Customer-facing issues and operational service health without private message access.',icon:Headphones,href:'/corporate/support'},
@@ -26,13 +27,13 @@ export default function CorporateWorkspace(){
  const[data,setData]=useState<Overview|null>(null),[error,setError]=useState(''),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
  const load=async()=>{setLoading(true);setError('');try{const response=await sessionFetch('/api/corporate/overview',{cache:'no-store'});const value=await response.json() as Overview;if(!response.ok)throw new Error(value.error||'Corporate overview unavailable');setData(value)}catch(e){setError(e instanceof Error?e.message:'Corporate overview unavailable')}finally{setLoading(false)}};
  useEffect(()=>{void load()},[]);
- if(loading)return <section className="r-width r-inner"><div className="r-loading">Loading corporate authority…</div></section>;
- if(error)return <section className="r-width r-inner"><div className="r-panel"><h1>Corporate console unavailable</h1><p>{error}</p><Button onClick={()=>void load()}><RefreshCw size={16}/>Retry</Button></div></section>;
+ if(loading)return <section data-sessions-surface="corporate" className="r-width r-inner"><div className="r-loading">Loading corporate authority…</div></section>;
+ if(error)return <section data-sessions-surface="corporate" className="r-width r-inner"><div className="r-panel"><h1>Corporate console unavailable</h1><p>{error}</p><Button onClick={()=>void load()}><RefreshCw size={16}/>Retry</Button></div></section>;
  const permissions=new Set(data?.permissions||[]),roles=data?.roles||[];
  const canOpenOperations=permissions.has('claims:review')&&permissions.has('settlements:review')&&permissions.has('support:read')&&permissions.has('providers:oversight');
- return <section className="r-width r-inner">
-  <div className="r-workspace-heading"><div><div className="r-eyebrow"><Landmark size={16}/>SESSIONS CORPORATE</div><h1>Platform control centre.</h1><p className="r-intro">One authority plane for the marketplace. Each office sees only the responsibilities assigned to its account.</p></div><div className="r-panel"><strong>Signed-in authority</strong><p>{roles.map(role=>role.replaceAll('_',' ')).join(' · ')||'No corporate role'}</p></div></div>
-  <div className="r-trust-row"><span><ShieldCheck/>Deny by default</span><span><Users/>Tenant-scoped providers</span><span><CheckCircle2/>Server-enforced roles</span></div>
+ return <section data-sessions-surface="corporate" className="r-width r-inner">
+  <div className="r-workspace-heading"><div><div className="r-eyebrow"><Landmark size={16}/>SESSIONS CORPORATE</div><h1>Platform control centre.</h1><p className="r-intro">One authority plane for the marketplace and the company operating it. Each office sees only the responsibilities assigned to its account.</p></div><div className="r-panel"><strong>Signed-in authority</strong><p>{roles.map(role=>role.replaceAll('_',' ')).join(' · ')||'No corporate role'}</p></div></div>
+  <div className="r-trust-row"><span><ShieldCheck/>Deny by default</span><span><Users/>Named staff identities</span><span><CheckCircle2/>Org chart ≠ RBAC</span></div>
   {data?.marketplace&&<div className="r-metrics"><div><span>Marketplace studios</span><strong>{data.marketplace.studios}</strong><Building2/></div><div><span>Bookable studios</span><strong>{data.marketplace.bookable}</strong><CheckCircle2/></div><div><span>Pending claims</span><strong>{data.marketplace.pendingClaims}</strong><ShieldCheck/></div><div><span>Verification queue</span><strong>{data.marketplace.pendingVerifications}</strong><ShieldCheck/></div></div>}
   <h2>Corporate offices</h2><div className="r-studio-grid">{offices.map(({permission,title,copy,icon:Icon,href})=>{const allowed=permissions.has(permission);return <article className="r-panel" key={permission}><Icon size={25}/><span className={'r-badge '+(allowed?'claimed':'')}>{allowed?'Assigned':'Not assigned'}</span><h3>{title}</h3><p>{copy}</p>{allowed?<a className="r-primary" href={href}>Open {title}</a>:<p className="r-small">This account cannot open this office.</p>}</article>})}</div>
   {canOpenOperations&&<section className="r-panel"><div className="r-eyebrow"><Landmark size={16}/>CROSS-MARKETPLACE OPERATIONS</div><h2>General Operations console</h2><p>This account has the combined Trust, Finance, Support and Provider Operations authority required for cross-marketplace incident handling.</p><a className="r-primary" href="/registry-admin">Open Operations console</a></section>}
