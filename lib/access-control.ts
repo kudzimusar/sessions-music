@@ -3,6 +3,8 @@ import type {OrganizationMembership,PlatformRole} from './identity-core';
 export const platformPermissions=[
  'platform:overview',
  'platform:roles.manage',
+ 'organization:read',
+ 'organization:manage',
  'registry:read',
  'registry:write',
  'claims:review',
@@ -24,11 +26,11 @@ const rolePermissions:Record<PlatformRole,readonly PlatformPermission[]>={
  provider_owner:[],
  provider_manager:[],
  provider_staff:[],
- support_agent:['platform:overview','registry:read','support:read','support:manage'],
- trust_safety:['platform:overview','registry:read','registry:write','claims:review','verification:review','providers:oversight'],
- finance_admin:['platform:overview','registry:read','settlements:review','fees:manage','loyalty:manage'],
- operations_admin:['platform:overview','registry:read','registry:write','claims:review','verification:review','providers:oversight','settlements:review','support:read','support:manage'],
- corporate_admin:['platform:overview','registry:read','registry:write','claims:review','verification:review','providers:oversight','settlements:review','fees:manage','loyalty:manage','support:read','support:manage'],
+ support_agent:['platform:overview','organization:read','registry:read','support:read','support:manage'],
+ trust_safety:['platform:overview','organization:read','registry:read','registry:write','claims:review','verification:review','providers:oversight'],
+ finance_admin:['platform:overview','organization:read','registry:read','settlements:review','fees:manage','loyalty:manage'],
+ operations_admin:['platform:overview','organization:read','registry:read','registry:write','claims:review','verification:review','providers:oversight','settlements:review','support:read','support:manage'],
+ corporate_admin:['platform:overview','organization:read','organization:manage','registry:read','registry:write','claims:review','verification:review','providers:oversight','settlements:review','fees:manage','loyalty:manage','support:read','support:manage'],
  super_admin:platformPermissions,
 };
 
