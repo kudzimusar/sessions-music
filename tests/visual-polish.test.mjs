@@ -20,10 +20,16 @@ test('visual layers load in the intended additive order', async () => {
   assert.ok(v2 > polish, 'the rebuilt customer surface must load after shared polish');
 });
 
-test('demo routes use the rebuilt Sessions customer surface', async () => {
+test('production routes converge on one registry/account authority domain', async () => {
   const route = await read('app/[...slug]/page.tsx');
   assert.match(route, /import SessionsApp from '\.\.\/sessions-v2';/);
-  assert.match(route, /'demo','bookings','saved','provider','admin','profile','space','booking'/);
+  assert.match(route, /if\(path==='\/provider'\)redirect\('\/manage'\)/);
+  assert.match(route, /if\(path==='\/admin'\)redirect\('\/registry-admin'\)/);
+  assert.match(route, /if\(path==='\/bookings'\)redirect\('\/requests'\)/);
+  assert.match(route, /if\(path==='\/profile'\)redirect\('\/account'\)/);
+  assert.match(route, /const sandboxSurface=\['demo','saved','space','booking'\]/);
+  assert.doesNotMatch(route, /const sandboxSurface=\[[^\]]*'admin'/);
+  assert.match(route, /<AccessBoundary surface="corporate">/);
 });
 
 test('visual polish keeps the Sessions palette and semantic success colour', async () => {
