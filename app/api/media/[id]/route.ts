@@ -1,10 +1,9 @@
 import {env} from 'cloudflare:workers';
 import {getProductionUser} from '@/app/chatgpt-auth';
 import {database} from '@/db/store';
-import {isRegistryUserOperator} from '@/db/registry-store';
-import {hasPermission} from '@/lib/access-control';
 import type {Studio} from '@/lib/registry';
 import {bookingAccess} from '@/lib/booking-access';
+import {canReadPrivateMedia,studioMembershipRole} from '@/lib/data-access-policy';
 
 export async function GET(_request:Request,{params}:{params:Promise<{id:string}>}){
  try{
@@ -26,15 +25,21 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
    if(!user)return new Response('Sign in required',{status:401});
    if(row.purpose==='studio_verification'){
     const studio=await db.prepare('SELECT owner FROM studio_registry WHERE id=?').bind(row.studio_id).first();
-    const membership=user.memberships.find(value=>value.organizationId===row.studio_id&&value.active);
-    const owner=studio?.owner===user.id&&(user.method==='chatgpt_demo'||membership?.role==='owner');
-    const reviewer=hasPermission(user,'verification:review')||isRegistryUserOperator(user);
-    if(!owner&&!reviewer)return new Response('Not found',{status:404});
+    const membership=studioMembershipRole(user,String(row.studio_id));
+    const owner=studio?.owner===user.id&&(user.method==='chatgpt_demo'||membership==='owner');
+    if(!canReadPrivateMedia(user,'studio_verification_evidence',{studioOwner:owner}))return new Response('Not found',{status:404});
    }else if(row.purpose==='settlement_proof'){
-    const booking=await db.prepare('SELECT customer FROM studio_bookings WHERE id=? AND studio_id=?').bind(row.booking_id,row.studio_id).first();if(!booking)return new Response('Not found',{status:404});const finance=hasPermission(user,'settlements:review'),operator=isRegistryUserOperator(user);const studio=await db.prepare('SELECT owner FROM studio_registry WHERE id=?').bind(row.studio_id).first();const membership=user.memberships.find(value=>value.organizationId===row.studio_id&&value.active);const legacy=user.method==='chatgpt_demo';const contacts=[user.email?.toLowerCase(),user.phone].filter(Boolean);const staff=contacts.length?await db.prepare("SELECT role FROM studio_staff WHERE studio_id=? AND email IN (?,?) AND status='active'").bind(row.studio_id,contacts[0]||'',contacts[1]||'').first():null;const owner=studio?.owner===user.id&&(legacy||membership?.role==='owner');const manager=staff?.role==='manager'&&(legacy||membership?.role==='manager'||membership?.role==='staff'||membership?.role==='owner');if(!finance&&!operator&&booking.customer!==user.id&&!owner&&!manager)return new Response('Not found',{status:404});
+    const booking=await db.prepare('SELECT customer FROM studio_bookings WHERE id=? AND studio_id=?').bind(row.booking_id,row.studio_id).first();if(!booking)return new Response('Not found',{status:404});
+    const studio=await db.prepare('SELECT owner FROM studio_registry WHERE id=?').bind(row.studio_id).first();
+    const membership=studioMembershipRole(user,String(row.studio_id));const legacy=user.method==='chatgpt_demo';
+    const contacts=[user.email?.toLowerCase(),user.phone].filter(Boolean);const staff=contacts.length?await db.prepare("SELECT role FROM studio_staff WHERE studio_id=? AND email IN (?,?) AND status='active'").bind(row.studio_id,contacts[0]||'',contacts[1]||'').first():null;
+    const owner=studio?.owner===user.id&&(legacy||membership==='owner');
+    const manager=staff?.role==='manager'&&(legacy||membership==='manager'||membership==='staff'||membership==='owner');
+    if(!canReadPrivateMedia(user,'settlement_proof',{bookingCustomer:booking.customer===user.id,studioOwner:owner,studioManager:manager}))return new Response('Not found',{status:404});
    }else if(row.purpose==='booking_message_attachment'){
-    const access=await bookingAccess(user,row.booking_id,row.studio_id);if(!access||access.role==='operations'||!['requested','confirmed','completed'].includes(access.booking.status))return new Response('Not found',{status:404});
-   }else if(row.owner!==user.id)return new Response('Not found',{status:404});
+    const access=await bookingAccess(user,row.booking_id,row.studio_id);
+    if(!access||!['requested','confirmed','completed'].includes(access.booking.status)||!canReadPrivateMedia(user,'booking_message_attachment',{bookingParticipantRole:access.role}))return new Response('Not found',{status:404});
+   }else if(!canReadPrivateMedia(user,'private_upload',{uploadOwner:row.owner===user.id}))return new Response('Not found',{status:404});
   }
   const object=await (env as any).BUCKET.get(id);
   if(!object)return new Response('Not found',{status:404});
