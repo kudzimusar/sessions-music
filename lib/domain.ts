@@ -9,6 +9,7 @@ export type Block={id:string;roomId:string;date:string;start:number;end:number;r
 export type Profile={name:string;phone:string;intent:string;organisation:string;contact:string;payout:string};
 export type Report={id:string;bookingId:string;reason:string;status:'open'|'resolved';createdAt:string};
 export type AppState={rooms:Room[];bookings:Booking[];blocks:Block[];favorites:string[];feeBps:number;profile:Profile;reports:Report[];user:{email:string;displayName:string}|null};
+export type SearchInterpretation={area:string;equipment:string[];capacity:number;budget:number;date:string;time:string;duration:number;backup:boolean;parking:boolean;accessible:boolean;verified:boolean;cancellation:boolean;bookingMode:'any'|'instant'|'approval';category:'All spaces'|'Full band'|'Solo practice'|'Choirs & worship'|'Institutional spaces'};
 export function localDate(now=new Date()){return new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Harare',year:'numeric',month:'2-digit',day:'2-digit'}).format(now)}
 export function addDays(date:string,n:number){const d=new Date(date+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)}
 export function timeLabel(minutes:number){return `${String(Math.floor(minutes/60)).padStart(2,'0')}:${String(minutes%60).padStart(2,'0')}`}
@@ -37,13 +38,26 @@ export function refundable(booking:Booking,now=Date.now()){
  return timestamp(booking.date,booking.start)-now>=booking.cancellation*3600000?booking.total:booking.deposit;
 }
 export function reviewStats(roomId:string,bookings:Booking[]){const reviews=bookings.filter(b=>b.roomId===roomId&&b.status==='completed'&&b.review&&!b.review.hidden);return {count:reviews.length,rating:reviews.length?reviews.reduce((s,b)=>s+b.review!.rating,0)/reviews.length:0}}
-export function parseSearch(text:string,date=localDate()){
- const t=text.toLowerCase();const area=AREAS.find(a=>t.includes(a.toLowerCase()));const equipment:string[]=[];
- if(/drum/.test(t))equipment.push('Drum kit');if(/\bpa\b|sound system/.test(t))equipment.push('PA system');if(/keyboard/.test(t))equipment.push('Keyboard');if(/piano/.test(t))equipment.push('Piano');if(/mic|vocal/.test(t))equipment.push('Vocal microphones');if(/bass amp/.test(t))equipment.push('Bass amp');if(/guitar/.test(t))equipment.push('Guitar amps');
- const words:Record<string,number>={one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,ten:10};const group=t.match(/(\d+|one|two|three|four|five|six|seven|eight|ten)[ -]?(?:piece|people|musicians|members)/);const price=t.match(/(?:under|max|budget|less than)\s*(?:us)?\$?\s*(\d+)/);const days=['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];const day=days.findIndex(d=>t.includes(d));let target=date;
- if(t.includes('tomorrow'))target=addDays(date,1);else if(day>=0){const current=new Date(date+'T12:00:00Z').getUTCDay();target=addDays(date,(day-current+7)%7||7)}
- const durationMatch=t.match(/(\d+(?:\.5)?)\s*(hours?|hrs?)/);const minutesMatch=t.match(/(30|60|90|120)\s*min/);
- return {area:area||'All Harare',equipment,capacity:group?Number(words[group[1]]||group[1]):1,budget:price?Number(price[1]):100,date:target,time:t.includes('afternoon')?'afternoon':t.includes('evening')?'evening':t.includes('morning')?'morning':'flexible',duration:durationMatch?Math.max(30,Math.min(480,Math.round(Number(durationMatch[1])*2)*30)):minutesMatch?Number(minutesMatch[1]):60,backup:/backup|solar|generator/.test(t)};
+function parseClock(text:string){
+ const twelve=text.match(/\b(1[0-2]|0?[1-9])(?::([0-5]\d))?\s*(am|pm)\b/i);if(twelve){let hour=Number(twelve[1])%12;if(twelve[3].toLowerCase()==='pm')hour+=12;const minute=Number(twelve[2]||0);return Math.round((hour*60+minute)/30)*30;}
+ const twentyFour=text.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b/);if(twentyFour)return Math.round((Number(twentyFour[1])*60+Number(twentyFour[2]))/30)*30;
+ return null;
+}
+export function parseSearch(text:string,date=localDate()):SearchInterpretation{
+ const t=text.toLowerCase().replace(/[–—]/g,'-');const area=AREAS.find(a=>t.includes(a.toLowerCase()));const equipment:string[]=[];
+ const add=(item:string)=>{if(!equipment.includes(item))equipment.push(item)};
+ if(/drum|kit\b/.test(t))add('Drum kit');if(/\bpa\b|sound system|speakers?/.test(t))add('PA system');if(/keyboard|keys\b/.test(t))add('Keyboard');if(/piano/.test(t))add('Piano');if(/mic|vocal/.test(t))add('Vocal microphones');if(/bass\s*(?:amp|amplifier)|bass rig/.test(t))add('Bass amp');if(/guitar\s*(?:amp|amplifier)|guitar rig/.test(t))add('Guitar amps');if(/music stands?|sheet stands?/.test(t))add('Music stands');if(/acoustic|treated room|sound treated/.test(t))add('Acoustic treatment');
+ const words:Record<string,number>={one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,twenty:20,thirty:30,fifty:50};
+ const group=t.match(/\b(\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|twenty|thirty|fifty)[ -]?(?:piece|people|person|musicians?|members?|singers?)\b/)||t.match(/\b(?:band|choir|group|team|ensemble)\s+(?:of\s+)?(\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|twenty|thirty|fifty)\b/);
+ let capacity=group?Number(words[group[1]]||group[1]):1;if(/\bsolo\b|just me|one person/.test(t))capacity=1;
+ const price=t.match(/(?:under|max(?:imum)?|budget(?:\s+of)?|less than|up to)\s*(?:us)?\$?\s*(\d+(?:\.\d+)?)/)||t.match(/(?:us)?\$\s*(\d+(?:\.\d+)?)\s*(?:budget|max|maximum)?/);const budget=price?Number(price[1]):100;
+ const days=['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];const day=days.findIndex(d=>t.includes(d));let target=date;
+ if(t.includes('tomorrow'))target=addDays(date,1);else if(t.includes('today'))target=date;else if(day>=0){const current=new Date(date+'T12:00:00Z').getUTCDay();target=addDays(date,(day-current+7)%7||7)}
+ const durationMatch=t.match(/(\d+(?:\.5)?)\s*(hours?|hrs?)/);const minutesMatch=t.match(/(30|60|90|120|150|180|240|300|360|420|480)\s*(?:min|mins|minutes?)/);let duration=durationMatch?Math.max(30,Math.min(480,Math.round(Number(durationMatch[1])*2)*30)):minutesMatch?Number(minutesMatch[1]):60;if(/half\s*(?:an\s*)?hour/.test(t))duration=30;
+ const exact=parseClock(t);const time=exact!==null?String(Math.max(0,Math.min(1410,exact))):t.includes('afternoon')?'afternoon':t.includes('evening')||t.includes('tonight')?'evening':t.includes('morning')?'morning':'flexible';
+ const bookingMode:/instant|approval/.test(t)?'instant'|'approval':'any'=/approval|request to book|needs? approval/.test(t)?'approval':/instant|book now|immediate/.test(t)?'instant':'any';
+ let category:SearchInterpretation['category']='All spaces';if(/choir|worship|gospel team|praise team/.test(t))category='Choirs & worship';else if(/solo|practice room|individual practice/.test(t))category='Solo practice';else if(/church|school|university|institution|community hall/.test(t))category='Institutional spaces';else if(/band|full band|ensemble/.test(t))category='Full band';
+ return {area:area||'All Harare',equipment,capacity,budget,date:target,time,duration,backup:/backup|solar|generator|load shedding|power cut/.test(t),parking:/parking|car park/.test(t),accessible:/step[- ]?free|wheelchair|accessible/.test(t),verified:/verified|checked provider|reviewed provider/.test(t),cancellation:/flexible cancellation|24\s*h(?:our)?\s*cancellation|cancel 24/.test(t),bookingMode,category};
 }
 const standard:Record<string,[number,number]|null>={'0':[600,1080],'1':[540,1260],'2':[540,1260],'3':[540,1260],'4':[540,1260],'5':[540,1260],'6':[540,1260]};
 const institutional:Record<string,[number,number]|null>={'0':null,'1':[960,1200],'2':null,'3':[900,1140],'4':null,'5':[960,1200],'6':[600,960]};
