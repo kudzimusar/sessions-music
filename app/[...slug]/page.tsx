@@ -18,6 +18,7 @@ export async function generateMetadata({params}:Props):Promise<Metadata>{
  const description=studio?studio.description:'This studio profile is unavailable. Browse the Sessions Harare directory.';
  return {title,description,openGraph:{title,description,images:[]},twitter:{card:'summary',title,description,images:[]},...(studio?{}:{robots:{index:false,follow:false}})};
 }
+const corporateSurface=(children:React.ReactNode)=><div data-sessions-surface="corporate">{children}</div>;
 export default async function Page({params}:Props){
  const {slug}=await params;const path='/'+slug.join('/');
  // Legacy marketplace URLs now resolve into the same production registry/account/authority domain.
@@ -35,15 +36,15 @@ export default async function Page({params}:Props){
  }
  if(slug[0]==='studio'&&slug.length===2)return <RegistryApp path={path} initialStudio={await readPublicStudio(slug[1])}/>;
  if(slug[0]==='corporate'){
-  if(slug.length===1)return <AccessBoundary surface="corporate" returnTo="/corporate"><CorporateWorkspace/></AccessBoundary>;
+  if(slug.length===1)return corporateSurface(<AccessBoundary surface="corporate" returnTo="/corporate"><CorporateWorkspace/></AccessBoundary>);
   if(slug.length!==2)notFound();
-  if(slug[1]==='organization')return <AccessBoundary surface="corporate" returnTo="/corporate/organization" requiredPermissions={['organization:read']}><CorporateOrganization/></AccessBoundary>;
-  if(slug[1]==='trust')return <AccessBoundary surface="corporate" returnTo="/corporate/trust" requiredPermissions={['claims:review','verification:review']}><CorporateOffice office="trust"/></AccessBoundary>;
-  if(slug[1]==='finance')return <AccessBoundary surface="corporate" returnTo="/corporate/finance" requiredPermissions={['settlements:review']}><CorporateOffice office="finance"/></AccessBoundary>;
-  if(slug[1]==='support')return <AccessBoundary surface="corporate" returnTo="/corporate/support" requiredPermissions={['support:read']}><CorporateOffice office="support"/></AccessBoundary>;
-  if(slug[1]==='providers')return <AccessBoundary surface="corporate" returnTo="/corporate/providers" requiredPermissions={['providers:oversight']}><CorporateOffice office="providers"/></AccessBoundary>;
+  if(slug[1]==='organization')return corporateSurface(<AccessBoundary surface="corporate" returnTo="/corporate/organization" requiredPermissions={['organization:read']}><CorporateOrganization/></AccessBoundary>);
+  if(slug[1]==='trust')return corporateSurface(<AccessBoundary surface="corporate" returnTo="/corporate/trust" requiredPermissions={['claims:review','verification:review']}><CorporateOffice office="trust"/></AccessBoundary>);
+  if(slug[1]==='finance')return corporateSurface(<AccessBoundary surface="corporate" returnTo="/corporate/finance" requiredPermissions={['settlements:review']}><CorporateOffice office="finance"/></AccessBoundary>);
+  if(slug[1]==='support')return corporateSurface(<AccessBoundary surface="corporate" returnTo="/corporate/support" requiredPermissions={['support:read']}><CorporateOffice office="support"/></AccessBoundary>);
+  if(slug[1]==='providers')return corporateSurface(<AccessBoundary surface="corporate" returnTo="/corporate/providers" requiredPermissions={['providers:oversight']}><CorporateOffice office="providers"/></AccessBoundary>);
   notFound();
  }
- if(slug[0]==='registry-admin')return <AccessBoundary surface="corporate" returnTo="/registry-admin" requiredPermissions={['claims:review','settlements:review','support:read','providers:oversight']}><RegistryApp path={path}/></AccessBoundary>;
+ if(slug[0]==='registry-admin')return corporateSurface(<AccessBoundary surface="corporate" returnTo="/registry-admin" requiredPermissions={['claims:review','settlements:review','support:read','providers:oversight']}><RegistryApp path={path}/></AccessBoundary>);
  return ['studios','studio','map','mobile','manage','requests','inbox','notifications','account','planner','register','onboarding','subscriptions'].includes(slug[0])?<RegistryApp path={path}/>:<SessionsApp initialPath={path}/>;
 }
