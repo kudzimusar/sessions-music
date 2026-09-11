@@ -5,7 +5,7 @@ import {readLoyaltyCreditSetting,type MembershipLedgerEntry,type BookingSeries} 
 import {studioInboxRecipient} from '@/lib/booking-communications';
 import {emailConfiguration} from '@/lib/notification-delivery';
 export function isRegistryOperator(email:string){return ((env as unknown as {SESSIONS_ADMIN_EMAILS?:string}).SESSIONS_ADMIN_EMAILS||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean).includes(email.toLowerCase());}
-export function isRegistryUserOperator(user:{email?:string|null;roles?:readonly string[]}|null){return !!user&&(user.roles?.includes('operations_admin')||isRegistryOperator(user.email||''));}
+export function isRegistryUserOperator(user:{email?:string|null;roles?:readonly string[];method?:string}|null){return !!user&&(user.roles?.includes('operations_admin')||user.method==='chatgpt_demo'&&isRegistryOperator(user.email||''));}
 export async function seedRegistry(){
  const db=database();await db.batch(studioSeeds.map(s=>db.prepare('INSERT OR IGNORE INTO studio_registry(id,content) VALUES(?,?)').bind(s.id,JSON.stringify(s))));
  // Bounded, idempotent data enrichment, not a schema migration. Never replace owner
