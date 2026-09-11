@@ -20,16 +20,25 @@ test('visual layers load in the intended additive order', async () => {
   assert.ok(v2 > polish, 'the rebuilt customer surface must load after shared polish');
 });
 
-test('production routes converge on one registry/account authority domain', async () => {
+test('production routes converge on one registry/account/authority domain', async () => {
   const route = await read('app/[...slug]/page.tsx');
+  const guard = await read('app/production-route-guard.tsx');
+  const corporate = await read('app/corporate-workspace.tsx');
   assert.match(route, /import SessionsApp from '\.\.\/sessions-v2';/);
+  assert.match(route, /import CorporateWorkspace from '\.\.\/corporate-workspace';/);
   assert.match(route, /if\(path==='\/provider'\)redirect\('\/manage'\)/);
-  assert.match(route, /if\(path==='\/admin'\)redirect\('\/registry-admin'\)/);
+  assert.match(route, /if\(path==='\/admin'\)redirect\('\/corporate'\)/);
   assert.match(route, /if\(path==='\/bookings'\)redirect\('\/requests'\)/);
   assert.match(route, /if\(path==='\/profile'\)redirect\('\/account'\)/);
   assert.match(route, /const sandboxSurface=\['demo','saved','space','booking'\]/);
   assert.doesNotMatch(route, /const sandboxSurface=\[[^\]]*'admin'/);
-  assert.match(route, /<AccessBoundary surface="corporate">/);
+  assert.match(route, /slug\[0\]==='corporate'.*AccessBoundary surface="corporate".*CorporateWorkspace/s);
+  assert.match(route, /slug\[0\]==='registry-admin'.*AccessBoundary surface="corporate"/s);
+  assert.match(guard, /'\/admin':'\/corporate'/);
+  assert.match(guard, /'\/provider':'\/manage'/);
+  assert.match(corporate, /SESSIONS CORPORATE/);
+  assert.match(corporate, /platform:roles\.manage/);
+  assert.match(corporate, /\/api\/corporate\/roles/);
 });
 
 test('visual polish keeps the Sessions palette and semantic success colour', async () => {
