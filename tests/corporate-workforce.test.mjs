@@ -51,7 +51,7 @@ test('delegation is responsibility metadata and cannot self-delegate',()=>{
 });
 
 test('organization route and UI are protected by explicit organization permissions',async()=>{
- const [route,page,workspace,api]=await Promise.all([read('app/[...slug]/page.tsx'),read('app/corporate-workspace.tsx'),read('app/corporate-organization.tsx'),read('app/api/corporate/organization/route.ts')]);
+ const [route,workspace,page,api]=await Promise.all([read('app/[...slug]/page.tsx'),read('app/corporate-workspace.tsx'),read('app/corporate-organization.tsx'),read('app/api/corporate/organization/route.ts')]);
  assert.match(route,/corporate\/organization/);
  assert.match(route,/requiredPermissions=\{\['organization:read'\]\}/);
  assert.match(workspace,/permission:'organization:read'/);
@@ -59,5 +59,6 @@ test('organization route and UI are protected by explicit organization permissio
  assert.match(api,/hasPermission\(actor,'organization:manage'\)/);
  assert.match(api,/authorityChanged:false/);
  assert.match(api,/reportingCycle/);
- assert.match(page,/CorporateOrganization/);
+ assert.match(route,/CorporateOrganization/);
+ assert.match(page,/ORGANIZATION & PEOPLE/);
 });
