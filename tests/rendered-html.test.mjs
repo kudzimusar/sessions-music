@@ -18,7 +18,7 @@ test('production API enforces identity and persists reservations in D1',async()=
  const other=await(await runtime.dispatchFetch('https://sessions.test/api/state',{headers:{...headers,'oai-authenticated-user-email':'other-worker-fixture@example.test'}})).json();assert.equal(other.bookings.length,0);
 });
 
-test('production Worker renders dedicated phone view, map and real studio details',async()=>{for(const [path,pattern]of [['/mobile',/phone-mode/],['/map',/Approximate building location · entrance unconfirmed/],['/studio/onevibe-studiox',/Where this profile comes from/],['/demo',/Sample venue/]]){const r=await runtime.dispatchFetch('https://sessions.test'+path);assert.equal(r.status,200);assert.match(await r.text(),pattern);}});
+test('production Worker renders dedicated phone view, map and real studio details',async()=>{for(const [path,pattern]of [['/mobile',/phone-mode/],['/map',/Approximate building location · entrance unconfirmed/],['/studio/onevibe-studiox',/Where this profile comes from/],['/demo',/Fictional rehearsal inventory/]]){const r=await runtime.dispatchFetch('https://sessions.test'+path);assert.equal(r.status,200);assert.match(await r.text(),pattern);}});
 
 test('production Worker exposes the planner, registration, capacity and visible payment states',async()=>{
  for(const [path,pattern] of [['/planner',/Guided planner/],['/register',/My studio is missing/],['/subscriptions',/Price not set/],['/onboarding/onevibe-studiox',/Sign in to continue/],['/studio/onevibe-studiox',/Capacity not supplied/]]){const r=await runtime.dispatchFetch('https://sessions.test'+path);assert.equal(r.status,200);assert.match(await r.text(),pattern);}
