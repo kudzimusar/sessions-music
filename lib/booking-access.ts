@@ -15,6 +15,6 @@ export async function bookingAccess(user:SessionUser,bookingId:string,studioId?:
  const identity=user.memberships.find(value=>value.organizationId===booking.studioId&&value.active),legacy=user.method==='chatgpt_demo';
  if(studioRow.owner===user.id&&(legacy||identity?.role==='owner'))return {booking,studio,role:'studio',recipient:`studio:${booking.studioId}`};
  const contacts=[user.email?.toLowerCase(),user.phone].filter(Boolean);const staff=contacts.length?await db.prepare("SELECT role FROM studio_staff WHERE studio_id=? AND email IN (?,?) AND status='active'").bind(booking.studioId,contacts[0]||'',contacts[1]||'').first():null;
- if(staff?.role==='manager'&&(legacy||identity?.role==='staff'||identity?.role==='owner'))return {booking,studio,role:'studio',recipient:`studio:${booking.studioId}`};
+ if(staff?.role==='manager'&&(legacy||identity?.role==='manager'||identity?.role==='staff'||identity?.role==='owner'))return {booking,studio,role:'studio',recipient:`studio:${booking.studioId}`};
  return null;
 }
