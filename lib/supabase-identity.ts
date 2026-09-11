@@ -24,7 +24,9 @@ type IdentityContext={
   verified_email?:unknown;
 };
 
-export type SupabaseIdentityPrincipal=IdentityPrincipal&{displayName:string};
+type TokenClaims={exp?:unknown;aal?:unknown};
+export type AuthenticationAssuranceLevel='aal1'|'aal2'|null;
+export type SupabaseIdentityPrincipal=IdentityPrincipal&{displayName:string;assuranceLevel:AuthenticationAssuranceLevel};
 
 function runtimeConfig(){
   const values=env as unknown as SupabaseRuntimeEnv;
@@ -42,15 +44,18 @@ function bearer(headers:Headers){
   return match[1];
 }
 
-function tokenExpiry(token:string){
+function tokenClaims(token:string):TokenClaims{
   try{
     const payload=token.split('.')[1];
-    if(!payload)return 0;
+    if(!payload)return {};
     const base64=payload.replace(/-/g,'+').replace(/_/g,'/').padEnd(Math.ceil(payload.length/4)*4,'=');
-    const decoded=JSON.parse(atob(base64)) as {exp?:unknown};
-    return typeof decoded.exp==='number'?decoded.exp*1000:0;
-  }catch{return 0}
+    const decoded=JSON.parse(atob(base64));
+    return decoded&&typeof decoded==='object'?decoded as TokenClaims:{};
+  }catch{return {}}
 }
+
+function tokenExpiry(claims:TokenClaims){return typeof claims.exp==='number'?claims.exp*1000:0}
+function assuranceLevel(claims:TokenClaims):AuthenticationAssuranceLevel{return claims.aal==='aal2'?'aal2':claims.aal==='aal1'?'aal1':null}
 
 function methodFor(user:AuthUser):IdentityMethod{
   const provider=typeof user.app_metadata?.provider==='string'?user.app_metadata.provider:'';
@@ -98,7 +103,7 @@ export async function authenticateSupabase(headers:Headers):Promise<SupabaseIden
   if(!contextValue||typeof contextValue!=='object')return null;
   const context=contextValue as IdentityContext;
   if(stringOrNull(context.user_id)!==userId||context.session_revoked===true)return null;
-  const expiresAt=tokenExpiry(accessToken);if(!expiresAt||expiresAt<=Date.now())return null;
+  const claims=tokenClaims(accessToken);const expiresAt=tokenExpiry(claims);if(!expiresAt||expiresAt<=Date.now())return null;
   const sessionId=stringOrNull(context.session_id);if(!sessionId)return null;
   const verifiedPhone=stringOrNull(context.verified_phone)||stringOrNull(authUser.phone);
   const verifiedEmail=stringOrNull(context.verified_email)||stringOrNull(authUser.email);
@@ -113,5 +118,6 @@ export async function authenticateSupabase(headers:Headers):Promise<SupabaseIden
     displayName:stringOrNull(context.display_name)||verifiedPhone||verifiedEmail||'Sessions member',
     roles:rolesFrom(context.roles),
     memberships:membershipsFrom(context.memberships),
+    assuranceLevel:assuranceLevel(claims),
   };
 }
