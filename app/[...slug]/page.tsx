@@ -1,5 +1,6 @@
 import SessionsApp from '../sessions-v2';
 import RegistryApp from '../registry';
+import CorporateWorkspace from '../corporate-workspace';
 import AccessBoundary from '../access-boundary';
 import type {Metadata} from 'next';
 import {readPublicStudio} from '@/db/public-studio';
@@ -17,9 +18,9 @@ export async function generateMetadata({params}:Props):Promise<Metadata>{
 }
 export default async function Page({params}:Props){
  const {slug}=await params;const path='/'+slug.join('/');
- // Legacy marketplace URLs now resolve into the same production registry/account domain.
+ // Legacy marketplace URLs now resolve into the same production registry/account/authority domain.
  if(path==='/provider')redirect('/manage');
- if(path==='/admin')redirect('/registry-admin');
+ if(path==='/admin')redirect('/corporate');
  if(path==='/bookings')redirect('/requests');
  if(path==='/profile')redirect('/account');
 
@@ -31,6 +32,7 @@ export default async function Page({params}:Props){
   if(!allowed.includes(user.email.toLowerCase()))notFound();
  }
  if(slug[0]==='studio'&&slug.length===2)return <RegistryApp path={path} initialStudio={await readPublicStudio(slug[1])}/>;
+ if(slug[0]==='corporate')return <AccessBoundary surface="corporate"><CorporateWorkspace/></AccessBoundary>;
  if(slug[0]==='registry-admin')return <AccessBoundary surface="corporate"><RegistryApp path={path}/></AccessBoundary>;
  return ['studios','studio','map','mobile','manage','requests','inbox','notifications','account','planner','register','onboarding','subscriptions'].includes(slug[0])?<RegistryApp path={path}/>:<SessionsApp initialPath={path}/>;
 }
