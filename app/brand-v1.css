@@ -2,26 +2,34 @@
  * Sessions unified platform design tokens — v1.
  * Governing brand colours: Black, Royal Blue, White.
  * Semantic colours are status-only and must not be used as brand accents.
+ *
+ * This file is loaded last on purpose. Legacy styles remain in the repository
+ * while the product is upgraded in place, so this layer is the authoritative
+ * production presentation boundary until those older files can be retired.
  */
 :root {
   --sessions-black: #000000;
   --sessions-royal: #4169e1;
   --sessions-white: #ffffff;
 
-  --sessions-canvas: #ffffff;
-  --sessions-surface: #ffffff;
-  --sessions-surface-subtle: #f7f8fb;
-  --sessions-ink: #000000;
-  --sessions-text-secondary: #4b5563;
-  --sessions-border: #d9dee8;
-  --sessions-border-strong: #b9c2d0;
-  --sessions-focus: #4169e1;
-  --sessions-link: #4169e1;
+  --sessions-canvas: var(--sessions-white);
+  --sessions-surface: var(--sessions-white);
+  --sessions-surface-subtle: color-mix(in srgb, var(--sessions-black) 3%, var(--sessions-white));
+  --sessions-surface-hover: color-mix(in srgb, var(--sessions-royal) 5%, var(--sessions-white));
+  --sessions-ink: var(--sessions-black);
+  --sessions-text-secondary: color-mix(in srgb, var(--sessions-black) 68%, var(--sessions-white));
+  --sessions-text-tertiary: color-mix(in srgb, var(--sessions-black) 52%, var(--sessions-white));
+  --sessions-border: color-mix(in srgb, var(--sessions-black) 13%, var(--sessions-white));
+  --sessions-border-strong: color-mix(in srgb, var(--sessions-black) 25%, var(--sessions-white));
+  --sessions-focus: var(--sessions-royal);
+  --sessions-link: var(--sessions-royal);
+  --sessions-shadow-sm: 0 1px 2px rgba(0, 0, 0, .04), 0 5px 16px rgba(0, 0, 0, .05);
+  --sessions-shadow-md: 0 10px 30px rgba(0, 0, 0, .09), 0 2px 8px rgba(0, 0, 0, .05);
 
   --sessions-success: #247a57;
   --sessions-warning: #a15c00;
   --sessions-danger: #b42318;
-  --sessions-info: #4169e1;
+  --sessions-info: var(--sessions-royal);
 
   --background: var(--sessions-white);
   --foreground: var(--sessions-black);
@@ -50,7 +58,6 @@
   --sidebar-border: var(--sessions-border);
   --sidebar-ring: var(--sessions-focus);
 
-  /* Shared geometry for web now and native token parity later. */
   --sessions-radius-sm: 8px;
   --sessions-radius-md: 12px;
   --sessions-radius-lg: 16px;
@@ -58,110 +65,321 @@
   --sessions-page-max: 1280px;
 }
 
-html,
-body {
+html {
+  color-scheme: light;
+  background: var(--sessions-white);
+}
+
+body[data-sessions-brand='v1'] {
   background: var(--sessions-canvas);
   color: var(--sessions-ink);
 }
 
-body,
-input,
-textarea,
-select,
-button {
+body[data-sessions-brand='v1'],
+body[data-sessions-brand='v1'] input,
+body[data-sessions-brand='v1'] textarea,
+body[data-sessions-brand='v1'] select,
+body[data-sessions-brand='v1'] button {
   color: var(--sessions-ink);
 }
 
-button:focus-visible,
-a:focus-visible,
-input:focus-visible,
-textarea:focus-visible,
-select:focus-visible {
-  outline-color: var(--sessions-focus) !important;
+body[data-sessions-brand='v1'] p,
+body[data-sessions-brand='v1'] small {
+  color: var(--sessions-text-secondary);
 }
 
-/* Production shell */
-.site-header,
-.site-footer,
-.search-bar,
-.card,
-.r-card,
-.r-panel,
-.r-table-wrap,
-.provider-banner,
-.smart-search,
-.mobile-nav {
+body[data-sessions-brand='v1'] ::selection {
+  background: var(--sessions-royal);
+  color: var(--sessions-white);
+}
+
+body[data-sessions-brand='v1'] input,
+body[data-sessions-brand='v1'] textarea,
+body[data-sessions-brand='v1'] select,
+body[data-sessions-brand='v1'] [data-slot='select-trigger'] {
   background-color: var(--sessions-white);
+  border-color: var(--sessions-border);
 }
 
-.brand,
-.brand-symbol,
-.desktop-nav a.active,
-.host-link,
-.eyebrow,
-.smart-label,
-.understood,
-.venue-name svg,
-.heart-button.is-saved,
-.r-brand,
-.r-link,
-.r-back {
+body[data-sessions-brand='v1'] input::placeholder,
+body[data-sessions-brand='v1'] textarea::placeholder {
+  color: var(--sessions-text-tertiary);
+}
+
+body[data-sessions-brand='v1'] input[type='checkbox'],
+body[data-sessions-brand='v1'] input[type='radio'] {
+  accent-color: var(--sessions-royal);
+}
+
+body[data-sessions-brand='v1'] button:focus-visible,
+body[data-sessions-brand='v1'] a:focus-visible,
+body[data-sessions-brand='v1'] input:focus-visible,
+body[data-sessions-brand='v1'] textarea:focus-visible,
+body[data-sessions-brand='v1'] select:focus-visible,
+body[data-sessions-brand='v1'] [tabindex]:focus-visible {
+  outline: 3px solid var(--sessions-focus) !important;
+  outline-offset: 3px;
+}
+
+/* Shared production shell. */
+body[data-sessions-brand='v1'] .site-header,
+body[data-sessions-brand='v1'] .site-footer,
+body[data-sessions-brand='v1'] .search-bar,
+body[data-sessions-brand='v1'] .card,
+body[data-sessions-brand='v1'] .r-card,
+body[data-sessions-brand='v1'] .r-panel,
+body[data-sessions-brand='v1'] .r-table-wrap,
+body[data-sessions-brand='v1'] .provider-banner,
+body[data-sessions-brand='v1'] .smart-search,
+body[data-sessions-brand='v1'] .mobile-nav,
+body[data-sessions-brand='v1'] .panel,
+body[data-sessions-brand='v1'] .booking-panel,
+body[data-sessions-brand='v1'] .confirmation-card,
+body[data-sessions-brand='v1'] .receipt-panel {
+  background-color: var(--sessions-white);
+  border-color: var(--sessions-border);
+}
+
+body[data-sessions-brand='v1'] .site-header,
+body[data-sessions-brand='v1'] .r-header {
+  background: color-mix(in srgb, var(--sessions-white) 96%, transparent);
+  border-bottom-color: var(--sessions-border);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, .03);
+}
+
+body[data-sessions-brand='v1'] .brand,
+body[data-sessions-brand='v1'] .desktop-nav a.active,
+body[data-sessions-brand='v1'] .host-link,
+body[data-sessions-brand='v1'] .eyebrow,
+body[data-sessions-brand='v1'] .smart-label,
+body[data-sessions-brand='v1'] .understood,
+body[data-sessions-brand='v1'] .venue-name svg,
+body[data-sessions-brand='v1'] .heart-button.is-saved,
+body[data-sessions-brand='v1'] .r-link,
+body[data-sessions-brand='v1'] .r-back,
+body[data-sessions-brand='v1'] .r-header nav a.active,
+body[data-sessions-brand='v1'] .r-owner-link,
+body[data-sessions-brand='v1'] .r-hero h1 span {
   color: var(--sessions-royal) !important;
 }
 
-.desktop-nav a.active::after,
-.eyebrow > span:first-child,
-.count,
-.search-submit[data-slot='button'],
-[data-sessions-action='primary'],
-.r-primary,
-.r-button-primary {
+body[data-sessions-brand='v1'] .brand-symbol {
+  color: var(--sessions-royal) !important;
+  background: transparent !important;
+}
+
+body[data-sessions-brand='v1'] .brand-period {
+  color: var(--sessions-royal) !important;
+}
+
+body[data-sessions-brand='v1'] .desktop-nav a,
+body[data-sessions-brand='v1'] .r-header nav a,
+body[data-sessions-brand='v1'] .location-line,
+body[data-sessions-brand='v1'] .venue-name,
+body[data-sessions-brand='v1'] .r-location,
+body[data-sessions-brand='v1'] .r-card-description,
+body[data-sessions-brand='v1'] .r-card-footer > span,
+body[data-sessions-brand='v1'] .r-muted,
+body[data-sessions-brand='v1'] .r-small,
+body[data-sessions-brand='v1'] .r-loading,
+body[data-sessions-brand='v1'] .r-footer,
+body[data-sessions-brand='v1'] .r-trust-row,
+body[data-sessions-brand='v1'] .trust-notes {
+  color: var(--sessions-text-secondary) !important;
+}
+
+body[data-sessions-brand='v1'] .desktop-nav a.active::after,
+body[data-sessions-brand='v1'] .r-header nav a.active::after,
+body[data-sessions-brand='v1'] .eyebrow > span:first-child,
+body[data-sessions-brand='v1'] .count,
+body[data-sessions-brand='v1'] .r-count,
+body[data-sessions-brand='v1'] .search-submit[data-slot='button'],
+body[data-sessions-brand='v1'] [data-sessions-action='primary'],
+body[data-sessions-brand='v1'] .r-primary,
+body[data-sessions-brand='v1'] .r-button-primary,
+body[data-sessions-brand='v1'] .s2-search-button,
+body[data-sessions-brand='v1'] .s2-book-cta {
   background: var(--sessions-royal) !important;
+  border-color: var(--sessions-royal) !important;
   color: var(--sessions-white) !important;
 }
 
-.search-submit[data-slot='button']:hover,
-[data-sessions-action='primary']:hover,
-.r-primary:hover,
-.r-button-primary:hover {
+body[data-sessions-brand='v1'] .search-submit[data-slot='button']:hover,
+body[data-sessions-brand='v1'] [data-sessions-action='primary']:hover,
+body[data-sessions-brand='v1'] .r-primary:hover,
+body[data-sessions-brand='v1'] .r-button-primary:hover,
+body[data-sessions-brand='v1'] .s2-search-button:hover,
+body[data-sessions-brand='v1'] .s2-book-cta:hover {
   filter: brightness(.94);
 }
 
-.category.selected,
-.quick-filters button.on,
-.view-toggle button.active {
-  color: var(--sessions-royal) !important;
-  border-color: color-mix(in srgb, var(--sessions-royal) 35%, white) !important;
-  background: color-mix(in srgb, var(--sessions-royal) 7%, white) !important;
+body[data-sessions-brand='v1'] .r-secondary,
+body[data-sessions-brand='v1'] [data-slot='button'][data-variant='outline'] {
+  background: var(--sessions-white) !important;
+  color: var(--sessions-black) !important;
+  border-color: var(--sessions-border-strong) !important;
 }
 
-/* Status colours remain semantic, never general decorative accents. */
-[data-status='success'],
-[data-status='available'],
-[data-status='confirmed'] {
+body[data-sessions-brand='v1'] .category.selected,
+body[data-sessions-brand='v1'] .quick-filters button.on,
+body[data-sessions-brand='v1'] .view-toggle button.active,
+body[data-sessions-brand='v1'] .r-filter-tabs [data-slot='tabs-trigger'][data-state='active'],
+body[data-sessions-brand='v1'] .r-view-tabs [data-slot='tabs-trigger'][data-state='active'],
+body[data-sessions-brand='v1'] .r-map-list button.selected,
+body[data-sessions-brand='v1'] .s2-category-row button.selected,
+body[data-sessions-brand='v1'] .s2-quick button.on,
+body[data-sessions-brand='v1'] .s2-view-toggle button.active {
+  color: var(--sessions-royal) !important;
+  border-color: color-mix(in srgb, var(--sessions-royal) 35%, var(--sessions-white)) !important;
+  background: color-mix(in srgb, var(--sessions-royal) 7%, var(--sessions-white)) !important;
+}
+
+/* Registry palette remap. This neutralizes the old deep-blue/slate custom properties. */
+body[data-sessions-brand='v1'] .registry-app {
+  --r-blue: var(--sessions-royal);
+  --r-deep: var(--sessions-black);
+  --r-ink: var(--sessions-black);
+  --r-muted: var(--sessions-text-secondary);
+  --r-border: var(--sessions-border);
+  --r-soft: var(--sessions-surface-subtle);
+  background: var(--sessions-white);
+  color: var(--sessions-black);
+}
+
+body[data-sessions-brand='v1'] .registry-app .brand-symbol {
+  width: 39px;
+  height: 39px;
+  border: 1px solid color-mix(in srgb, var(--sessions-royal) 32%, var(--sessions-white));
+  border-radius: 11px;
+}
+
+body[data-sessions-brand='v1'] .r-announcement,
+body[data-sessions-brand='v1'] .r-hero-note,
+body[data-sessions-brand='v1'] .r-studio-brand,
+body[data-sessions-brand='v1'] .r-studio-brand.rehearsal,
+body[data-sessions-brand='v1'] .r-claim-banner,
+body[data-sessions-brand='v1'] .r-empty,
+body[data-sessions-brand='v1'] .r-notice,
+body[data-sessions-brand='v1'] .r-mini-monogram,
+body[data-sessions-brand='v1'] .r-live-map,
+body[data-sessions-brand='v1'] .r-map-list button:hover,
+body[data-sessions-brand='v1'] .provider-banner,
+body[data-sessions-brand='v1'] .portal-demo-note {
+  background: var(--sessions-surface-subtle) !important;
+  border-color: var(--sessions-border) !important;
+  color: var(--sessions-black) !important;
+}
+
+body[data-sessions-brand='v1'] .r-studio-brand,
+body[data-sessions-brand='v1'] .r-studio-brand.rehearsal,
+body[data-sessions-brand='v1'] .r-claim-symbol,
+body[data-sessions-brand='v1'] .provider-icon {
+  color: var(--sessions-royal) !important;
+  background: color-mix(in srgb, var(--sessions-royal) 7%, var(--sessions-white)) !important;
+}
+
+body[data-sessions-brand='v1'] .r-searchbox,
+body[data-sessions-brand='v1'] .r-studio-card,
+body[data-sessions-brand='v1'] .r-map-list,
+body[data-sessions-brand='v1'] .r-map-caption,
+body[data-sessions-brand='v1'] .r-detail-facts,
+body[data-sessions-brand='v1'] .r-panel,
+body[data-sessions-brand='v1'] .week-calendar,
+body[data-sessions-brand='v1'] .provider-room,
+body[data-sessions-brand='v1'] .room-card,
+body[data-sessions-brand='v1'] .booking-row,
+body[data-sessions-brand='v1'] .confirmation-card,
+body[data-sessions-brand='v1'] .receipt-panel {
+  background: var(--sessions-white) !important;
+  border-color: var(--sessions-border) !important;
+  box-shadow: var(--sessions-shadow-sm);
+}
+
+body[data-sessions-brand='v1'] .room-card:hover,
+body[data-sessions-brand='v1'] .r-studio-card:hover,
+body[data-sessions-brand='v1'] .booking-row:hover {
+  border-color: color-mix(in srgb, var(--sessions-royal) 28%, var(--sessions-white)) !important;
+  box-shadow: var(--sessions-shadow-md);
+}
+
+body[data-sessions-brand='v1'] .equipment-tags > span,
+body[data-sessions-brand='v1'] .sample-label,
+body[data-sessions-brand='v1'] .r-badge:not(.claimed),
+body[data-sessions-brand='v1'] .r-tags > span,
+body[data-sessions-brand='v1'] .view-toggle,
+body[data-sessions-brand='v1'] .quick-filters button,
+body[data-sessions-brand='v1'] .category,
+body[data-sessions-brand='v1'] .s2-muted-badge,
+body[data-sessions-brand='v1'] .s2-equipment > span {
+  background: var(--sessions-surface-subtle) !important;
+  border-color: var(--sessions-border) !important;
+  color: var(--sessions-text-secondary) !important;
+}
+
+body[data-sessions-brand='v1'] .trust-notes svg,
+body[data-sessions-brand='v1'] .r-trust-row svg,
+body[data-sessions-brand='v1'] .r-eyebrow,
+body[data-sessions-brand='v1'] .r-card-title > svg,
+body[data-sessions-brand='v1'] .r-empty > svg {
+  color: var(--sessions-royal) !important;
+}
+
+/* Status colours are deliberately outside the brand triad. */
+body[data-sessions-brand='v1'] [data-status='success'],
+body[data-sessions-brand='v1'] [data-status='available'],
+body[data-sessions-brand='v1'] [data-status='confirmed'],
+body[data-sessions-brand='v1'] .r-dot.green,
+body[data-sessions-brand='v1'] .next-time,
+body[data-sessions-brand='v1'] .instant-tag,
+body[data-sessions-brand='v1'] .s2-state.confirmed,
+body[data-sessions-brand='v1'] .s2-recurring.valid {
   color: var(--sessions-success);
 }
 
-[data-status='warning'],
-[data-status='pending'] {
+body[data-sessions-brand='v1'] [data-status='warning'],
+body[data-sessions-brand='v1'] [data-status='pending'],
+body[data-sessions-brand='v1'] .s2-state.pending_approval,
+body[data-sessions-brand='v1'] .s2-warning {
   color: var(--sessions-warning);
 }
 
-[data-status='error'],
-[data-status='cancelled'],
-[data-status='failed'] {
+body[data-sessions-brand='v1'] [data-status='error'],
+body[data-sessions-brand='v1'] [data-status='cancelled'],
+body[data-sessions-brand='v1'] [data-status='failed'],
+body[data-sessions-brand='v1'] .r-error,
+body[data-sessions-brand='v1'] .error-banner,
+body[data-sessions-brand='v1'] .s2-state.cancelled,
+body[data-sessions-brand='v1'] .s2-recurring.invalid {
   color: var(--sessions-danger);
 }
 
-/* Corporate surfaces support desktop density but must remain usable on mobile. */
-[data-sessions-surface='corporate'] {
+/* Corporate surfaces: desktop density with safe mobile fallbacks. */
+body[data-sessions-brand='v1'] [data-sessions-surface='corporate'] {
   --sessions-content-gutter: clamp(16px, 3vw, 40px);
+  min-height: 100dvh;
   color: var(--sessions-ink);
   background: var(--sessions-white);
 }
 
-[data-sessions-surface='corporate'] table {
+body[data-sessions-brand='v1'] [data-sessions-surface='corporate'] .r-width {
+  width: min(var(--sessions-page-max), calc(100% - (2 * var(--sessions-content-gutter))));
+}
+
+body[data-sessions-brand='v1'] [data-sessions-surface='corporate'] .r-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+body[data-sessions-brand='v1'] [data-sessions-surface='corporate'] table {
   width: 100%;
+}
+
+body[data-sessions-brand='v1'] [data-sessions-surface='corporate'] .r-panel,
+body[data-sessions-brand='v1'] [data-sessions-surface='corporate'] .r-card {
+  background: var(--sessions-white) !important;
+  border-color: var(--sessions-border) !important;
 }
 
 @media (max-width: 720px) {
@@ -169,15 +387,25 @@ select:focus-visible {
     --sessions-radius-lg: 14px;
   }
 
-  [data-sessions-surface='corporate'] {
+  body[data-sessions-brand='v1'] [data-sessions-surface='corporate'] {
     --sessions-content-gutter: 16px;
   }
 
-  [data-sessions-surface='corporate'] button,
-  [data-sessions-surface='corporate'] a,
-  [data-sessions-surface='corporate'] input,
-  [data-sessions-surface='corporate'] select {
+  body[data-sessions-brand='v1'] [data-sessions-surface='corporate'] .r-workspace-heading,
+  body[data-sessions-brand='v1'] [data-sessions-surface='corporate'] .r-metrics,
+  body[data-sessions-brand='v1'] [data-sessions-surface='corporate'] .r-studio-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  body[data-sessions-brand='v1'] [data-sessions-surface='corporate'] button,
+  body[data-sessions-brand='v1'] [data-sessions-surface='corporate'] a,
+  body[data-sessions-brand='v1'] [data-sessions-surface='corporate'] input,
+  body[data-sessions-brand='v1'] [data-sessions-surface='corporate'] select {
     min-height: var(--sessions-touch-target);
+  }
+
+  body[data-sessions-brand='v1'] [data-sessions-surface='corporate'] textarea {
+    min-height: 96px;
   }
 }
 
@@ -186,5 +414,19 @@ select:focus-visible {
   *::before,
   *::after {
     scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    transition-delay: 0ms !important;
+  }
+}
+
+@media (forced-colors: active) {
+  body[data-sessions-brand='v1'] button:focus-visible,
+  body[data-sessions-brand='v1'] a:focus-visible,
+  body[data-sessions-brand='v1'] input:focus-visible,
+  body[data-sessions-brand='v1'] textarea:focus-visible,
+  body[data-sessions-brand='v1'] select:focus-visible {
+    outline-color: Highlight !important;
   }
 }
