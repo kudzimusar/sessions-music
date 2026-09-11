@@ -11,18 +11,21 @@ type SessionResponse={
  error?:string;
 };
 
-export default function AccessBoundary({surface,children}:{surface:Surface;children:React.ReactNode}){
+export default function AccessBoundary({surface,requiredPermissions=[],returnTo,children}:{surface:Surface;requiredPermissions?:string[];returnTo?:string;children:React.ReactNode}){
  const[state,setState]=useState<'loading'|'allowed'|'signed-out'|'denied'|'error'>('loading');
  const[session,setSession]=useState<SessionResponse|null>(null);
+ const permissionKey=requiredPermissions.join('|');
  useEffect(()=>{let active=true;void sessionFetch('/api/session',{cache:'no-store'}).then(async response=>{
   const value=await response.json() as SessionResponse;if(!active)return;setSession(value);
   if(response.status===401){setState('signed-out');return}
   if(!response.ok){setState('error');return}
-  setState(value.capabilities?.[surface]?'allowed':'denied');
- }).catch(()=>active&&setState('error'));return()=>{active=false}},[surface]);
+  const surfaceAllowed=!!value.capabilities?.[surface];const granted=new Set(value.permissions||[]);const permissionsAllowed=requiredPermissions.every(permission=>granted.has(permission));
+  setState(surfaceAllowed&&permissionsAllowed?'allowed':'denied');
+ }).catch(()=>active&&setState('error'));return()=>{active=false}},[surface,permissionKey]);
  if(state==='allowed')return <>{children}</>;
  if(state==='loading')return <section className="r-width r-inner"><div className="r-panel"><ShieldCheck size={28}/><h1>Checking account authority…</h1><p>Sessions is verifying this account and its active organization access before opening the workspace.</p></div></section>;
- if(state==='signed-out')return <section className="r-width r-inner"><div className="r-panel"><ShieldAlert size={28}/><h1>Sign in required</h1><p>This workspace contains private operational data. Sign in with the account that has been assigned access.</p><a className="r-primary" href={'/account?return_to='+encodeURIComponent(surface==='corporate'?'/registry-admin':'/manage')}>Go to sign in</a></div></section>;
- if(state==='denied')return <section className="r-width r-inner"><div className="r-panel"><ShieldAlert size={28}/><h1>Access not granted</h1><p>{surface==='corporate'?'Corporate operations require an assigned Sessions office role. Customer or provider accounts cannot open this console.':'Provider tools require an active studio organization membership or provider role.'}</p>{session?.user?.roles?.length?<p className="r-small">Current authority: {session.user.roles.map(value=>value.label).join(', ')}.</p>:null}<a className="r-secondary" href="/account">Your account</a></div></section>;
+ const destination=returnTo||(surface==='corporate'?'/corporate':'/manage');
+ if(state==='signed-out')return <section className="r-width r-inner"><div className="r-panel"><ShieldAlert size={28}/><h1>Sign in required</h1><p>This workspace contains private operational data. Sign in with the account that has been assigned access.</p><a className="r-primary" href={'/account?return_to='+encodeURIComponent(destination)}>Go to sign in</a></div></section>;
+ if(state==='denied')return <section className="r-width r-inner"><div className="r-panel"><ShieldAlert size={28}/><h1>Access not granted</h1><p>{requiredPermissions.length?'This workspace requires a specific Sessions office assignment. Having another corporate role does not inherit these permissions.':surface==='corporate'?'Corporate access requires an assigned Sessions office role. Customer or provider accounts cannot open this console.':'Provider tools require an active studio organization membership or provider role.'}</p>{session?.user?.roles?.length?<p className="r-small">Current authority: {session.user.roles.map(value=>value.label).join(', ')}.</p>:null}<a className="r-secondary" href={surface==='corporate'?'/corporate':'/account'}>{surface==='corporate'?'Corporate control centre':'Your account'}</a></div></section>;
  return <section className="r-width r-inner"><div className="r-panel"><ShieldAlert size={28}/><h1>Authority check unavailable</h1><p>Sessions could not safely resolve this account’s permissions, so access has been denied. No private workspace data has been shown.</p><button className="r-secondary" onClick={()=>window.location.reload()}>Retry</button></div></section>;
 }
