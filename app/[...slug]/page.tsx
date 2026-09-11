@@ -1,4 +1,4 @@
-import SessionsApp from '../sessions';
+import SessionsApp from '../sessions-v2';
 import RegistryApp from '../registry';
 import type {Metadata} from 'next';
 import {readPublicStudio} from '@/db/public-studio';
