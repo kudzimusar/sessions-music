@@ -1,0 +1,190 @@
+/*
+ * Sessions unified platform design tokens — v1.
+ * Governing brand colours: Black, Royal Blue, White.
+ * Semantic colours are status-only and must not be used as brand accents.
+ */
+:root {
+  --sessions-black: #000000;
+  --sessions-royal: #4169e1;
+  --sessions-white: #ffffff;
+
+  --sessions-canvas: #ffffff;
+  --sessions-surface: #ffffff;
+  --sessions-surface-subtle: #f7f8fb;
+  --sessions-ink: #000000;
+  --sessions-text-secondary: #4b5563;
+  --sessions-border: #d9dee8;
+  --sessions-border-strong: #b9c2d0;
+  --sessions-focus: #4169e1;
+  --sessions-link: #4169e1;
+
+  --sessions-success: #247a57;
+  --sessions-warning: #a15c00;
+  --sessions-danger: #b42318;
+  --sessions-info: #4169e1;
+
+  --background: var(--sessions-white);
+  --foreground: var(--sessions-black);
+  --card: var(--sessions-white);
+  --card-foreground: var(--sessions-black);
+  --popover: var(--sessions-white);
+  --popover-foreground: var(--sessions-black);
+  --primary: var(--sessions-royal);
+  --primary-foreground: var(--sessions-white);
+  --secondary: var(--sessions-white);
+  --secondary-foreground: var(--sessions-black);
+  --muted: var(--sessions-surface-subtle);
+  --muted-foreground: var(--sessions-text-secondary);
+  --accent: var(--sessions-white);
+  --accent-foreground: var(--sessions-royal);
+  --destructive: var(--sessions-danger);
+  --border: var(--sessions-border);
+  --input: var(--sessions-border);
+  --ring: var(--sessions-focus);
+  --sidebar: var(--sessions-white);
+  --sidebar-foreground: var(--sessions-black);
+  --sidebar-primary: var(--sessions-royal);
+  --sidebar-primary-foreground: var(--sessions-white);
+  --sidebar-accent: var(--sessions-white);
+  --sidebar-accent-foreground: var(--sessions-royal);
+  --sidebar-border: var(--sessions-border);
+  --sidebar-ring: var(--sessions-focus);
+
+  /* Shared geometry for web now and native token parity later. */
+  --sessions-radius-sm: 8px;
+  --sessions-radius-md: 12px;
+  --sessions-radius-lg: 16px;
+  --sessions-touch-target: 44px;
+  --sessions-page-max: 1280px;
+}
+
+html,
+body {
+  background: var(--sessions-canvas);
+  color: var(--sessions-ink);
+}
+
+body,
+input,
+textarea,
+select,
+button {
+  color: var(--sessions-ink);
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline-color: var(--sessions-focus) !important;
+}
+
+/* Production shell */
+.site-header,
+.site-footer,
+.search-bar,
+.card,
+.r-card,
+.r-panel,
+.r-table-wrap,
+.provider-banner,
+.smart-search,
+.mobile-nav {
+  background-color: var(--sessions-white);
+}
+
+.brand,
+.brand-symbol,
+.desktop-nav a.active,
+.host-link,
+.eyebrow,
+.smart-label,
+.understood,
+.venue-name svg,
+.heart-button.is-saved,
+.r-brand,
+.r-link,
+.r-back {
+  color: var(--sessions-royal) !important;
+}
+
+.desktop-nav a.active::after,
+.eyebrow > span:first-child,
+.count,
+.search-submit[data-slot='button'],
+[data-sessions-action='primary'],
+.r-primary,
+.r-button-primary {
+  background: var(--sessions-royal) !important;
+  color: var(--sessions-white) !important;
+}
+
+.search-submit[data-slot='button']:hover,
+[data-sessions-action='primary']:hover,
+.r-primary:hover,
+.r-button-primary:hover {
+  filter: brightness(.94);
+}
+
+.category.selected,
+.quick-filters button.on,
+.view-toggle button.active {
+  color: var(--sessions-royal) !important;
+  border-color: color-mix(in srgb, var(--sessions-royal) 35%, white) !important;
+  background: color-mix(in srgb, var(--sessions-royal) 7%, white) !important;
+}
+
+/* Status colours remain semantic, never general decorative accents. */
+[data-status='success'],
+[data-status='available'],
+[data-status='confirmed'] {
+  color: var(--sessions-success);
+}
+
+[data-status='warning'],
+[data-status='pending'] {
+  color: var(--sessions-warning);
+}
+
+[data-status='error'],
+[data-status='cancelled'],
+[data-status='failed'] {
+  color: var(--sessions-danger);
+}
+
+/* Corporate surfaces support desktop density but must remain usable on mobile. */
+[data-sessions-surface='corporate'] {
+  --sessions-content-gutter: clamp(16px, 3vw, 40px);
+  color: var(--sessions-ink);
+  background: var(--sessions-white);
+}
+
+[data-sessions-surface='corporate'] table {
+  width: 100%;
+}
+
+@media (max-width: 720px) {
+  :root {
+    --sessions-radius-lg: 14px;
+  }
+
+  [data-sessions-surface='corporate'] {
+    --sessions-content-gutter: 16px;
+  }
+
+  [data-sessions-surface='corporate'] button,
+  [data-sessions-surface='corporate'] a,
+  [data-sessions-surface='corporate'] input,
+  [data-sessions-surface='corporate'] select {
+    min-height: var(--sessions-touch-target);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+  }
+}
