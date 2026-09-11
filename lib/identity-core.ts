@@ -1,6 +1,17 @@
-export const platformRoles=['musician','provider_owner','provider_staff','operations_admin'] as const;
+export const platformRoles=[
+ 'musician',
+ 'provider_owner',
+ 'provider_manager',
+ 'provider_staff',
+ 'support_agent',
+ 'trust_safety',
+ 'finance_admin',
+ 'operations_admin',
+ 'corporate_admin',
+ 'super_admin',
+] as const;
 export type PlatformRole=(typeof platformRoles)[number];
-export type OrganizationRole='owner'|'staff';
+export type OrganizationRole='owner'|'manager'|'staff';
 export type IdentityMethod='phone_otp'|'email_otp'|'google'|'apple'|'chatgpt_demo';
 
 export type OrganizationMembership={organizationId:string;role:OrganizationRole;active:boolean};
@@ -43,9 +54,9 @@ export function requirePlatformRole(actor:IdentityPrincipal|null,allowed:readonl
  return active;
 }
 
-export function requireOrganizationAccess(actor:IdentityPrincipal|null,organizationId:string,allowed:readonly OrganizationRole[]=['owner','staff'],now=Date.now()){
+export function requireOrganizationAccess(actor:IdentityPrincipal|null,organizationId:string,allowed:readonly OrganizationRole[]=['owner','manager','staff'],now=Date.now()){
  const active=requireActiveSession(actor,now);
- if(hasPlatformRole(active,'operations_admin'))return active;
+ if(active.roles.some(role=>['super_admin','corporate_admin','operations_admin'].includes(role)))return active;
  const membership=active.memberships.find(value=>value.organizationId===organizationId&&value.active);
  if(!membership||!allowed.includes(membership.role))throw new IdentityFault('This organization belongs to another account.',403);
  return active;
