@@ -61,6 +61,16 @@ test('approved production brand is Black, Royal Blue and White with semantic sta
   }
 });
 
+test('installed app identity uses the same approved brand', async () => {
+  const manifest = JSON.parse(await read('public/manifest.webmanifest'));
+  const favicon = await read('public/favicon.svg');
+  assert.equal(manifest.background_color, '#FFFFFF');
+  assert.equal(manifest.theme_color, '#4169E1');
+  assert.match(favicon, /fill="#4169E1"/);
+  assert.match(favicon, /stroke="#FFFFFF"/);
+  assert.doesNotMatch(favicon.toLowerCase(), /#1f4e79|#2f80ed/);
+});
+
 test('Phase 1 remaps the legacy registry palette at the final production boundary', async () => {
   const css = await read('app/brand-v1.css');
   assert.match(css, /\.registry-app\s*\{[^}]*--r-blue:\s*var\(--sessions-royal\)/s);
