@@ -2,153 +2,152 @@
 
 Sessions is a persistent, mobile-first **music rehearsal infrastructure marketplace for Zimbabwe**. Its first promise is simple: **“I need somewhere to rehearse.”** It is not a generic appointment app, social network, streaming product, events product or classifieds board.
 
-The repository intentionally contains two trust domains:
+The architecture is now deliberately one product with multiple authority surfaces. Customer, provider and corporate users operate on the same production marketplace data; they do not own separate applications or separate production booking systems.
 
-- `/` — a sourced Harare studio registry. These are public profiles and are not automatically bookable or verified providers.
-- `/demo` — the full rehearsal-marketplace transaction demo using ten clearly fictional Harare spaces. This is where discovery, live inventory logic, checkout states, recurring bookings, provider controls and operations are exercised.
+See [`docs/AUTHORITY-AND-UNIFICATION.md`](docs/AUTHORITY-AND-UNIFICATION.md) for the current authority model and [`docs/TAKEOVER-2026-09-11.md`](docs/TAKEOVER-2026-09-11.md) for the customer-surface rebuild history.
 
-See [`docs/TAKEOVER-2026-09-11.md`](docs/TAKEOVER-2026-09-11.md) for the latest customer-surface rebuild and the exact production boundaries that remain.
+## Production product surfaces
 
-## Marketplace demo
-
-The musician flow is:
-
-1. Search by neighbourhood, date, time, duration, group size, equipment, budget and practical requirements.
-2. Optionally describe the rehearsal in natural language; Sessions converts recognised needs into visible, editable filters.
-3. Compare photo-led room inventory and open a room detail page.
-4. Choose only a valid slot. Provider blocks, existing bookings, opening hours, reset buffers and minimum duration are real constraints.
-5. Repeat weekly for 2 or 4 sessions only when every occurrence is valid.
-6. Review provider subtotal, configurable platform fee, refundable deposit, total, room package and cancellation terms.
-7. Simulate an instant payment or a provider-approval authorization. No real money moves in the demo.
-8. Use the booking reference, receipt, calendar file, share actions, cancellation and repeat-booking flows.
-9. A completed demo booking can create a review.
-
-Provider routes expose a dashboard, room editor, equipment, provider-controlled prices, public hours, internal blocks, booking requests, completion states, revenue ledger and payout placeholders. Operations exposes verification/suspension, booking/payment lookup, incidents, review moderation and configurable platform fees.
-
-The ten fictional spaces vary by Harare area, provider type, capacity, equipment, backup power, rate, cancellation policy, booking model and public hours. **No fictional venue is presented as a real verified business.** Room photography and addresses are explicitly illustrative/sample data.
-
-## Current frontend architecture
-
-- `app/sessions-v2.tsx` — active customer marketplace for `/demo`, `/space/*`, `/bookings`, `/booking/*`, `/saved` and `/profile`; also provides the shell for provider and operations routes.
-- `app/sessions-v2.css` — dedicated marketplace design and responsive system.
-- `app/sessions.tsx` — pre-takeover customer implementation retained for migration/reference safety, but not used by active demo routes.
-- `app/provider.tsx` — multi-room provider dashboard, calendar, room editor, requests and revenue/payout-state UI.
-- `app/operations.tsx` — demo marketplace operations.
-- `app/registry.tsx` — sourced public studio registry and real-profile flows.
-- `app/studio-manager.tsx`, `app/studio-onboarding.tsx` and related registry modules — studio participation/management flows.
-- `app/polish.css` — shared provider/operations/registry visual refinement.
-- `lib/domain.ts` — typed rooms/bookings, integer-cent money, Zimbabwe-local dates, slot validation, recurring constraints, pricing and deterministic music-specific search interpretation.
-- `lib/services.ts` — replaceable payment, map, notification and search contracts.
-
-The product palette is light and practical: `#FFFFFF`, `#F7F9FC`, `#1F4E79`, `#101828`, `#667085`, `#EEF3F8`, `#2F80ED`; green is reserved for availability/confirmed/success semantics.
-
-## Persistence and booking integrity
-
-No browser storage is authoritative for marketplace state. D1 persists workspaces, rooms, bookings, favourites, blocks, reviews, incidents and configuration; R2 is used for authorised media.
-
-Core demo tables include:
-
-| Table | Purpose |
+| Route | Purpose |
 |---|---|
-| `workspaces` | isolated owner record, profile, favourites, fee configuration, incidents and revision |
-| `rooms` | scoped provider/room snapshot including hours, equipment, prices and image references |
-| `bookings` | immutable checkout amounts, booking/payment state, idempotency key and completed review |
-| `slot_claims` | unique room/date/30-minute inventory claims, including reset buffers and manual blocks |
-| `blocks` | internal reservations, closures and blackout intervals |
-| `uploads` | media metadata/ownership; bytes live in R2 |
-| `operation_guards` | optimistic revision guard used inside transactional mutation batches |
+| `/` and `/studios` | Public discovery from the sourced Zimbabwe studio registry |
+| `/studio/:id` | Real studio profile; bookable only after provider setup/verification rules are satisfied |
+| `/requests` | Customer booking/request history |
+| `/account` | Identity, account and notification settings |
+| `/manage` | Provider organization/studio workspace |
+| `/corporate` | Sessions corporate control centre with office-scoped authority |
+| `/registry-admin` | General marketplace Operations console, protected by the full Operations permission set |
+| `/demo` | Optional fictional/sample booking sandbox; not the production marketplace |
 
-Mutations are scoped to authenticated identity. Booking mutations calculate totals server-side rather than trusting client-submitted amounts. Slot claims reject overlaps. Recurring reservations validate all occurrences and commit all-or-none. Replaying the same booking key returns the existing reservation rather than creating a duplicate.
+Legacy URLs converge on those production surfaces: `/provider → /manage`, `/admin → /corporate`, `/bookings → /requests`, and `/profile → /account`.
 
-Booking states: `pending_approval`, `confirmed`, `completed`, `cancelled`.
+The sourced registry remains evidence-aware: a business appearing in public discovery is **not automatically a verified or bookable Sessions provider**. Provider ownership, room configuration, availability and verification are separate controlled states.
 
-Payment states: `authorized`, `paid`, `refunded`, `partially_refunded`, `void` — all demo states until a live payment rail is connected.
+## One production data domain
 
-A declined simulated payment creates no booking/inventory claim. Approval-required requests hold inventory and authorize; approval captures the demo payment, decline voids it and releases the slot. Cancellation releases inventory; the demo refund follows the room's 24/48-hour cancellation rule.
+Cloudflare **D1** is the authoritative product database and **R2** stores authorized media. The production marketplace already contains global tables for:
 
-## Pricing, fees and currency
+- sourced studio registry and provider registrations;
+- ownership claims and verification requests;
+- provider staff and organization-linked access;
+- real studio bookings and global slot claims;
+- settlement records, invoices and fee policies;
+- recurring booking series;
+- memberships and loyalty ledgers;
+- booking vouchers, messages, read state and notifications;
+- uploads/media ownership and audit records.
 
-All money uses integer cents. USD is the enabled checkout currency. The domain is ZiG-ready, but ZiG checkout must not be enabled until a real rail, denomination/FX policy and reconciliation process exist.
+Server-side booking logic prices reservations, enforces identity/tenancy, prevents conflicting slot claims, handles reset buffers and keeps booking/payment snapshots auditable. Browser storage is never authoritative.
 
-The seed service fee is 1,000 basis points (10%) as an editable planning assumption. It is **not a hard-coded business rule**. Operations can change the fee for future quotes; existing bookings retain their immutable fee snapshot.
+The older per-user `workspaces`, `rooms`, `bookings`, `slot_claims` and `blocks` tables remain only for the explicit `/demo` sandbox. They are not the target architecture for production marketplace traffic.
 
-Providers independently control hourly rate, minimum duration, deposit, instant-vs-approval booking, cancellation policy and public hours. Sessions does not dictate provider pricing.
+## Identity and authority
 
-## Search interpretation
+Production identity and tenant authorization are designed around **Supabase Auth**, while D1/R2 remain the product-data layer. The server verifies the bearer session and obtains effective roles/memberships from the `current_identity()` RPC; clients cannot submit or promote their own role.
 
-`parseSearch` is a deterministic, rules-based interpreter, not a live AI integration. It recognises common music requirements including:
+The platform hierarchy is:
 
-- neighbourhoods;
-- group/band/choir size;
-- weekday, today/tomorrow, exact time and dayparts;
-- duration and budget;
-- drums, PA/sound system, microphones, bass/guitar amps, keyboard, piano, stands and acoustic treatment;
-- backup power, parking and step-free access;
-- verification/cancellation preference;
-- instant booking versus provider approval;
-- band, solo, choir/worship and institutional categories.
+- `musician` — customer;
+- `provider_owner` — provider organization owner;
+- `provider_manager` — provider manager;
+- `provider_staff` — ordinary provider staff;
+- `support_agent` — customer support;
+- `trust_safety` — claims, verification and marketplace integrity;
+- `finance_admin` — settlements, fee/reconciliation and loyalty administration;
+- `operations_admin` — cross-marketplace Operations;
+- `corporate_admin` — senior corporate administration;
+- `super_admin` — platform authority administration plus all operational permissions.
 
-The customer UI always exposes the interpreted constraints so they can be edited. A future live model should implement the same structured boundary with schema validation, cost limits and provider-independent recommendations. AI must never invent availability or override provider pricing.
+Provider access is additionally constrained to active organization membership (`owner`, `manager`, `staff`). A provider role never grants access to every studio.
 
-## Authentication and trust boundary
+Corporate access is deny-by-default and permission-based. Finance, Support and Trust & Safety do not automatically inherit the general Operations console. `/registry-admin` requires the combined Operations permission set. Only `super_admin` can call the server endpoint that grants/revokes platform roles.
 
-The private demo supports the platform's ChatGPT identity flow and trusted authenticated-user headers. Mutating endpoints reject missing identity and cross-origin mutation requests. Never trust a client-submitted owner or role.
+The private ChatGPT Sites preview can still use explicit environment email lists to exercise office roles. That fallback is restricted to `chatgpt_demo` identities; production Supabase identities cannot acquire Operations authority from the old `SESSIONS_ADMIN_EMAILS` compatibility list.
 
-Public email/phone authentication is not complete for a live marketplace. Before launch, add supported public identity, real organisation membership, musician/provider/admin authorisation, privacy/consent policy and abuse controls.
+## Customer marketplace
 
-The sourced studio registry remains deliberately separate from fictional booking inventory. A public profile does not become bookable merely because it was discovered online or claimed by a first applicant.
+The production customer domain supports sourced discovery and real provider participation. Real booking requests use provider-owned room inventory, server-side pricing, global availability and D1 persistence.
 
-## Integration status
+The optional `/demo` sandbox continues to exercise a richer fictional end-to-end customer transaction UI while production inventory is being onboarded. It includes:
 
-- **Payments:** deterministic demo gateway only. Production requires real server-side authorization/capture, webhooks/signature verification, expiry, refunds, settlement and reconciliation.
-- **AI:** rules-based interpreter only; live model intentionally not required for the demo.
-- **Maps:** neighbourhood-level map context for fictional inventory; no fabricated precise pins. Sourced registry location handling follows its own evidence rules.
-- **WhatsApp/share:** native share/clipboard and user-triggered `wa.me` deep links. No automatic WhatsApp API messaging.
-- **Email/notifications:** in-app records exist; production delivery needs configured provider credentials/consent and scheduler activation.
-- **Storage:** D1/R2 are active. Production still needs image transformation, abuse scanning, retention/orphan cleanup and operational review.
-- **Payouts/verification:** workflow/ledger placeholders exist; real identity verification and settlement are not claimed.
+1. structured rehearsal search by area/date/time/duration/group/equipment/budget;
+2. deterministic natural-language requirement extraction into visible editable filters;
+3. room comparison and detailed equipment/access information;
+4. valid-slot selection with opening hours, blocks, existing bookings, minimum duration and reset buffers;
+5. recurring-session validation;
+6. provider subtotal, configurable fee, deposit and total separation;
+7. instant-versus-provider-approval states;
+8. booking reference, receipt/calendar/share/cancellation/rebooking controls;
+9. completed-booking reviews.
+
+Sandbox data is clearly fictional/sample inventory and must never be presented as verified real business inventory.
+
+## Provider system
+
+The production provider surface is `/manage`, backed by the real registry/provider domain rather than the old standalone demo portal. It supports the provider lifecycle around ownership/registration, studio and room configuration, prices, equipment, public hours, room capacity, map/entrance data, availability, staff, booking management, settlement records and subscriptions/integration gates.
+
+Authorization is tenant-scoped. Owners, managers and staff are distinct roles; management actions are not inferred merely from knowing a studio ID or opening the provider URL.
+
+## Corporate system
+
+`/corporate` is the Sessions control plane. It resolves the signed-in account’s trusted roles and permissions, then exposes only the office responsibilities assigned to that account.
+
+Current corporate domains include:
+
+- Provider Operations — registrations, provider readiness and marketplace onboarding;
+- Trust & Safety — ownership claims, verification and marketplace integrity;
+- Finance — settlements, invoices, fee governance and reconciliation;
+- Customer Support — service issues and notification health;
+- Super Administration — platform-role assignment.
+
+The broad `/registry-admin` console remains reserved for accounts with the full Operations permission combination. Dedicated mutation queues for Finance, Support and Trust & Safety are intentionally being separated rather than giving every corporate user broad Operations power.
+
+## Booking integrity and money
+
+Money uses integer cents. USD is the enabled currency. ZiG support remains an architectural capability only until real rail, denomination/FX and reconciliation rules exist.
+
+Production booking/settlement code enforces server pricing, ownership/participant access, idempotency and auditable state. Existing booking/settlement snapshots are not silently repriced when future fee policy changes.
+
+Provider price sovereignty remains a core rule: providers control their own room rates, while Sessions platform fees are separately governed and snapshotted.
+
+## Search and AI boundary
+
+The deterministic rehearsal interpreter recognizes common music requirements such as neighbourhood, group size, day/time, duration, budget, drums, PA, microphones, amps, keyboards/piano, music stands, backup power, parking, accessibility, verification, cancellation preference and instant-versus-approval booking.
+
+Interpreted requirements are always visible/editable. AI must never invent availability, pricing, equipment or provider verification. Any live model remains a structured interpretation layer over authoritative marketplace data.
+
+## Integration state
+
+- **Database/storage:** D1/R2 are active and authoritative for product data/media metadata.
+- **Identity:** Supabase production schema and application integration are implemented in source, but the latest authority migration must be applied to the dedicated Sessions Supabase project and its runtime keys must be configured before production identity is considered live.
+- **Payments:** payment/settlement architecture and subscription provider adapters exist; live marketplace payment credentials, webhooks, refund/payout procedures and launch gates still require production configuration/certification.
+- **Maps:** sourced/provider coordinates follow evidence and owner-controlled entrance-pin rules; fictional sandbox inventory does not fabricate precise real-world business locations.
+- **Notifications:** in-app records exist; external email/scheduler delivery remains credential/consent dependent.
+- **Calendar:** integration contracts exist; production provider credentials remain a launch gate.
+- **AI:** deterministic search works without a model; live AI remains optional and constrained.
 
 ## Validation
 
-The GitHub workflow runs `npm test` on every push to `main`. `npm test` performs the production build and then runs the complete Node test suite.
+GitHub Actions runs `npm test` on every push to `main`. That command performs the production build and then the complete Node test suite.
 
-Coverage includes:
+Coverage includes authentication, Origin enforcement, server pricing, booking idempotency, inventory conflicts/reset buffers, recurring rollback, provider blocks, account and tenant isolation, real registry/claim/verification workflows, provider staff permissions, global studio bookings, settlement lifecycle, messaging/notifications, media privacy, subscription/billing contracts, Supabase identity behavior, corporate permission separation, super-admin restrictions and production route unification.
 
-- authentication and Origin enforcement;
-- server pricing and fee snapshots;
-- booking idempotency;
-- overlapping inventory and reset buffers;
-- recurring conflict rollback;
-- institutional blocks;
-- failed/authorized/captured/void/refunded demo payment states;
-- cancellation and inventory release;
-- completed reviews/moderation;
-- account isolation;
-- public registry and management behavior;
-- booking communications/settlements/retention;
-- production Worker rendering with local D1/R2 bindings;
-- the rebuilt customer surface and mobile visual contracts;
-- music-specific search interpretation.
+A green CI build is not a substitute for physical-device UAT or live-provider certification. ChatGPT Sites deployment synchronization, the correct Sessions Supabase migration/secrets, real payment/provider credentials, real venue/equipment verification, scheduler activation, load testing and operational settlement/dispute procedures remain deployment/launch checks rather than facts to infer from source code.
 
-The 11 September 2026 takeover passed the full production CI gate after activation of `sessions-v2`.
+## Environment and deployment
 
-A green CI build is **not** a substitute for physical-device or live-provider certification. The following remain launch work: signed-in iOS/Android QA, assistive-technology UAT, real payment/provider credentials, real venue/equipment verification, scheduler activation, production load/concurrency testing and live settlement/dispute procedures.
+`.openai/hosting.json` declares the logical D1 `DB` and R2 `BUCKET` resources used by the Sites runtime. `.env.example` documents identity modes, private preview office lists and external integration gates. Secrets and real customer/provider private data must never be committed.
 
-## Environment and launch path
-
-`.openai/hosting.json` declares the logical `DB` and `BUCKET` resources used by the Sites runtime. Do not check in secrets, real payment credentials or private customer/provider data. Future provider credentials belong in managed environment variables with non-secret names documented in `.env.example`.
-
-Keep the current domain principles when normalising the production data model: server-scoped authorisation, integer money, immutable booking/payment snapshots, provider price sovereignty and transactional inventory constraints.
-
-Before public launch, complete real provider onboarding/moderation, public identity/roles, verified venue data, payment holds/webhooks/refunds/payouts, reliable consented notifications, security/load testing and accessible mobile UAT.
+The authority migration is `supabase/migrations/202609110001_platform_authority_hierarchy.sql`. Apply it only to the dedicated Sessions Supabase project. Do not apply it to an unrelated connected Supabase project.
 
 ## Further documentation
 
 - [`docs/PRODUCT-BRIEF.txt`](docs/PRODUCT-BRIEF.txt) — governing product specification.
-- [`docs/TAKEOVER-2026-09-11.md`](docs/TAKEOVER-2026-09-11.md) — latest rebuild/gap record.
+- [`docs/AUTHORITY-AND-UNIFICATION.md`](docs/AUTHORITY-AND-UNIFICATION.md) — current production authority and route/data architecture.
+- [`docs/TAKEOVER-2026-09-11.md`](docs/TAKEOVER-2026-09-11.md) — customer rebuild history and previous gap record.
 - [`docs/UX-AUDIT.md`](docs/UX-AUDIT.md) — competitive/design interpretation.
 - [`docs/REGISTRY-IMPLEMENTATION.md`](docs/REGISTRY-IMPLEMENTATION.md) — sourced registry and claim workflow.
 - [`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md) — integration/launch guide.
 - [`docs/PRODUCTION-ROADMAP.md`](docs/PRODUCTION-ROADMAP.md) — production migration boundary.
 
-Run the same local gates as CI before shipping: `npm test`. For focused development, `npx tsc --noEmit --incremental false` and individual `node --test tests/<name>.test.mjs` files remain useful.
+Run the same gate as CI before shipping: `npm test`.
