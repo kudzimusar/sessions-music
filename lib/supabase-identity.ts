@@ -1,5 +1,5 @@
 import {env} from 'cloudflare:workers';
-import type {IdentityMethod,IdentityPrincipal,OrganizationMembership,PlatformRole} from './identity-core';
+import {platformRoles,type IdentityMethod,type IdentityPrincipal,type OrganizationMembership,type PlatformRole} from './identity-core';
 
 type SupabaseRuntimeEnv={
   SUPABASE_URL?:string;
@@ -64,7 +64,7 @@ function stringOrNull(value:unknown){return typeof value==='string'&&value.trim(
 
 function rolesFrom(value:unknown):PlatformRole[]{
   if(!Array.isArray(value))return [];
-  const allowed=new Set<PlatformRole>(['musician','provider_owner','provider_staff','operations_admin']);
+  const allowed=new Set<PlatformRole>(platformRoles);
   return [...new Set(value.filter((role):role is PlatformRole=>typeof role==='string'&&allowed.has(role as PlatformRole)))];
 }
 
@@ -74,7 +74,7 @@ function membershipsFrom(value:unknown):OrganizationMembership[]{
     if(!item||typeof item!=='object')return [];
     const row=item as Record<string,unknown>;
     const organizationId=stringOrNull(row.studio_id)||stringOrNull(row.organization_id);
-    const role=row.role==='owner'?'owner':row.role==='manager'||row.role==='staff'?'staff':null;
+    const role=row.role==='owner'?'owner':row.role==='manager'?'manager':row.role==='staff'?'staff':null;
     if(!organizationId||!role)return [];
     return [{organizationId,role,active:row.active===true}];
   });
