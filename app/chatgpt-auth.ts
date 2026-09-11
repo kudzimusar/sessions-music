@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { env } from "cloudflare:workers";
-import { authenticateSupabase } from "@/lib/supabase-identity";
+import { authenticateSupabase,type AuthenticationAssuranceLevel } from "@/lib/supabase-identity";
 import type {IdentityMethod,OrganizationMembership,PlatformRole} from '@/lib/identity-core';
 
 export type ChatGPTUser = {
@@ -19,6 +19,7 @@ export type SessionUser={
   memberships:OrganizationMembership[];
   method:IdentityMethod;
   sessionId:string;
+  assuranceLevel:AuthenticationAssuranceLevel;
 };
 
 const USER_EMAIL_HEADER = "oai-authenticated-user-email";
@@ -88,12 +89,13 @@ export async function getProductionUser():Promise<SessionUser|null>{
       memberships:principal.memberships,
       method:principal.method,
       sessionId:principal.sessionId,
+      assuranceLevel:principal.assuranceLevel,
     }:null;
   }
   const preview=await getChatGPTUser();
   return preview?{
     id:preview.email.toLowerCase(),displayName:preview.displayName,email:preview.email.toLowerCase(),phone:null,
-    roles:configuredPreviewRoles(preview.email),memberships:[],method:'chatgpt_demo',sessionId:'chatgpt-dispatch',
+    roles:configuredPreviewRoles(preview.email),memberships:[],method:'chatgpt_demo',sessionId:'chatgpt-dispatch',assuranceLevel:null,
   }:null;
 }
 
