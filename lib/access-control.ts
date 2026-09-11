@@ -12,6 +12,7 @@ export const platformPermissions=[
  'fees:manage',
  'loyalty:manage',
  'support:read',
+ 'support:manage',
 ] as const;
 export type PlatformPermission=(typeof platformPermissions)[number];
 export type AccessSurface='customer'|'provider'|'corporate';
@@ -23,11 +24,11 @@ const rolePermissions:Record<PlatformRole,readonly PlatformPermission[]>={
  provider_owner:[],
  provider_manager:[],
  provider_staff:[],
- support_agent:['platform:overview','registry:read','support:read'],
+ support_agent:['platform:overview','registry:read','support:read','support:manage'],
  trust_safety:['platform:overview','registry:read','registry:write','claims:review','verification:review','providers:oversight'],
  finance_admin:['platform:overview','registry:read','settlements:review','fees:manage','loyalty:manage'],
- operations_admin:['platform:overview','registry:read','registry:write','claims:review','verification:review','providers:oversight','settlements:review','support:read'],
- corporate_admin:['platform:overview','registry:read','registry:write','claims:review','verification:review','providers:oversight','settlements:review','fees:manage','loyalty:manage','support:read'],
+ operations_admin:['platform:overview','registry:read','registry:write','claims:review','verification:review','providers:oversight','settlements:review','support:read','support:manage'],
+ corporate_admin:['platform:overview','registry:read','registry:write','claims:review','verification:review','providers:oversight','settlements:review','fees:manage','loyalty:manage','support:read','support:manage'],
  super_admin:platformPermissions,
 };
 
