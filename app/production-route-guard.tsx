@@ -3,7 +3,7 @@ import {useEffect} from 'react';
 
 const aliases:Record<string,string>={
  '/provider':'/manage',
- '/admin':'/registry-admin',
+ '/admin':'/corporate',
  '/bookings':'/requests',
  '/profile':'/account',
 };
