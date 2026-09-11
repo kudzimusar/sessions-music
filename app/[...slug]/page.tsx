@@ -1,6 +1,7 @@
 import SessionsApp from '../sessions-v2';
 import RegistryApp from '../registry';
 import CorporateWorkspace from '../corporate-workspace';
+import CorporateOffice from '../corporate-office';
 import AccessBoundary from '../access-boundary';
 import type {Metadata} from 'next';
 import {readPublicStudio} from '@/db/public-studio';
@@ -32,7 +33,15 @@ export default async function Page({params}:Props){
   if(!allowed.includes(user.email.toLowerCase()))notFound();
  }
  if(slug[0]==='studio'&&slug.length===2)return <RegistryApp path={path} initialStudio={await readPublicStudio(slug[1])}/>;
- if(slug[0]==='corporate')return <AccessBoundary surface="corporate" returnTo="/corporate"><CorporateWorkspace/></AccessBoundary>;
+ if(slug[0]==='corporate'){
+  if(slug.length===1)return <AccessBoundary surface="corporate" returnTo="/corporate"><CorporateWorkspace/></AccessBoundary>;
+  if(slug.length!==2)notFound();
+  if(slug[1]==='trust')return <AccessBoundary surface="corporate" returnTo="/corporate/trust" requiredPermissions={['claims:review','verification:review']}><CorporateOffice office="trust"/></AccessBoundary>;
+  if(slug[1]==='finance')return <AccessBoundary surface="corporate" returnTo="/corporate/finance" requiredPermissions={['settlements:review']}><CorporateOffice office="finance"/></AccessBoundary>;
+  if(slug[1]==='support')return <AccessBoundary surface="corporate" returnTo="/corporate/support" requiredPermissions={['support:read']}><CorporateOffice office="support"/></AccessBoundary>;
+  if(slug[1]==='providers')return <AccessBoundary surface="corporate" returnTo="/corporate/providers" requiredPermissions={['providers:oversight']}><CorporateOffice office="providers"/></AccessBoundary>;
+  notFound();
+ }
  if(slug[0]==='registry-admin')return <AccessBoundary surface="corporate" returnTo="/registry-admin" requiredPermissions={['claims:review','settlements:review','support:read','providers:oversight']}><RegistryApp path={path}/></AccessBoundary>;
  return ['studios','studio','map','mobile','manage','requests','inbox','notifications','account','planner','register','onboarding','subscriptions'].includes(slug[0])?<RegistryApp path={path}/>:<SessionsApp initialPath={path}/>;
 }
