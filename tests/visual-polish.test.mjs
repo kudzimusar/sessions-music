@@ -22,6 +22,7 @@ test('visual layers load in the intended additive order', async () => {
   assert.ok(brand > v2, 'the approved production brand layer must be the final design-system override');
   assert.match(layout, /themeColor:'#4169E1'/);
   assert.match(layout, /<body data-sessions-brand="v1">/);
+  assert.doesNotMatch(layout, /\/og\.png/, 'unreviewed generic social imagery must not be advertised');
 });
 
 test('production routes converge on one registry/account/authority domain', async () => {
