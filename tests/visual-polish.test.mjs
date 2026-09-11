@@ -5,21 +5,29 @@ import {readFile} from 'node:fs/promises';
 const root = new URL('../', import.meta.url);
 const read = (path) => readFile(new URL(path, root), 'utf8');
 
-test('visual polish is loaded after the established application styles', async () => {
+test('visual layers load in the intended additive order', async () => {
   const layout = await read('app/layout.tsx');
   const globals = layout.indexOf("import './globals.css';");
   const registry = layout.indexOf("import './registry.css';");
   const expansion = layout.indexOf("import './expansion.css';");
   const polish = layout.indexOf("import './polish.css';");
+  const v2 = layout.indexOf("import './sessions-v2.css';");
 
   assert.ok(globals >= 0, 'global application styles must remain loaded');
   assert.ok(registry > globals, 'registry styles must remain after global styles');
   assert.ok(expansion > registry, 'expansion styles must remain after registry styles');
-  assert.ok(polish > expansion, 'polish layer must load last so it stays additive');
+  assert.ok(polish > expansion, 'shared polish must remain additive');
+  assert.ok(v2 > polish, 'the rebuilt customer surface must load after shared polish');
+});
+
+test('demo routes use the rebuilt Sessions customer surface', async () => {
+  const route = await read('app/[...slug]/page.tsx');
+  assert.match(route, /import SessionsApp from '\.\.\/sessions-v2';/);
+  assert.match(route, /'demo','bookings','saved','provider','admin','profile','space','booking'/);
 });
 
 test('visual polish keeps the Sessions palette and semantic success colour', async () => {
-  const css = await read('app/polish.css');
+  const css = (await read('app/polish.css')) + '\n' + (await read('app/sessions-v2.css'));
   for (const token of ['#f7f9fc', '#ffffff', '#101828', '#667085', '#1f4e79', '#2f80ed', '#eef3f8']) {
     assert.match(css.toLowerCase(), new RegExp(token.replace('#', '#')));
   }
@@ -36,8 +44,17 @@ test('phone navigation and booking action are safe-area aware with usable target
   assert.match(css, /\.mobile-book-button\s*\{[^}]*position:\s*fixed/s);
 });
 
+test('rebuilt customer surface exposes marketplace-critical controls', async () => {
+  const source = await read('app/sessions-v2.tsx');
+  assert.match(source, /Provider approval only/);
+  assert.match(source, /All recurring slots are valid/);
+  assert.match(source, /Neighbourhood context, not fake pins/);
+  assert.match(source, /Included room package/);
+  assert.match(source, /Save room/);
+});
+
 test('visual polish preserves keyboard focus and reduced-motion support', async () => {
-  const css = await read('app/polish.css');
+  const css = (await read('app/polish.css')) + '\n' + (await read('app/sessions-v2.css'));
   assert.match(css, /:focus-visible/);
   assert.match(css, /outline:\s*3px solid/);
   assert.match(css, /@media\s*\(prefers-reduced-motion:\s*reduce\)/);
