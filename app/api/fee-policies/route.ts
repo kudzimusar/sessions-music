@@ -2,6 +2,7 @@ import {z} from 'zod';
 import {getProductionUser} from '@/app/chatgpt-auth';
 import {database} from '@/db/store';
 import {isRegistryUserOperator} from '@/db/registry-store';
+import {hasPermission} from '@/lib/access-control';
 import {ensureFoundingPilot,readFeePolicies,validatePolicy,type FeePolicyRecord} from '@/lib/commerce-server';
 
 const text=z.string().trim();const id=text.min(1).max(100);const day=text.regex(/^\d{4}-\d{2}-\d{2}$/);
@@ -10,11 +11,11 @@ const retireSchema=z.object({type:z.literal('retire'),key:z.string().uuid(),id,r
 const response=(data:unknown,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store'}});
 class Fault extends Error{constructor(message:string,public status:number){super(message)}}
 const intervalsOverlap=(aFrom:string,aUntil:string|undefined,bFrom:string,bUntil:string|undefined)=>aFrom<=(bUntil||'9999-12-31')&&bFrom<=(aUntil||'9999-12-31');
-async function operationsUser(){const user=await getProductionUser();if(!user)return null;if(!isRegistryUserOperator(user))throw new Fault('Operations role required',403);return user;}
-export async function GET(){try{if(!await operationsUser())return response({error:'Sign in to Sessions to continue'},401);return response({policies:await readFeePolicies()})}catch(error){return response({error:error instanceof Error?error.message:'Unable to load fee policies'},403)}}
+async function financeUser(){const user=await getProductionUser();if(!user)return null;if(!hasPermission(user,'fees:manage')&&!isRegistryUserOperator(user))throw new Fault('Finance fee-policy authority required',403);return user;}
+export async function GET(){try{if(!await financeUser())return response({error:'Sign in to Sessions to continue'},401);return response({policies:await readFeePolicies()})}catch(error){return response({error:error instanceof Error?error.message:'Unable to load fee policies'},403)}}
 export async function POST(req:Request){try{
  const origin=req.headers.get('Origin');if(origin&&origin!==new URL(req.url).origin)return response({error:'Cross-origin request rejected'},403);
- const user=await operationsUser();if(!user)return response({error:'Sign in to Sessions to continue'},401);if(Number(req.headers.get('content-length')||0)>12000)return response({error:'Request too large'},413);
+ const user=await financeUser();if(!user)return response({error:'Sign in to Sessions to continue'},401);if(Number(req.headers.get('content-length')||0)>12000)return response({error:'Request too large'},413);
  const raw=await req.text();if(raw.length>12000)return response({error:'Request too large'},413);const payload=z.union([createSchema,retireSchema]).parse(JSON.parse(raw));await ensureFoundingPilot();const db=database();const now=new Date().toISOString();
  const duplicate=await db.prepare('SELECT content FROM fee_policy_events WHERE actor=? AND idempotency_key=?').bind(user.id,payload.key).first();if(duplicate)return response({...JSON.parse(duplicate.content),duplicate:true});
  if(payload.type==='create'){
