@@ -2,7 +2,7 @@ import test,{after} from 'node:test';
 import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import {build} from 'esbuild';
-import {readFileSync,writeFileSync,mkdtempSync,rmSync} from 'node:fs';
+import {readFileSync,mkdtempSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join,resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
@@ -12,9 +12,13 @@ for(const file of ['0000_premium_charles_xavier.sql','0001_violet_angel.sql'])sq
 class Statement{constructor(query){this.query=query;this.params=[]}bind(...params){this.params=params;return this}async first(){return sql.prepare(this.query).get(...this.params)??null}async all(){return {results:sql.prepare(this.query).all(...this.params)}}async run(){return sql.prepare(this.query).run(...this.params)}}
 const db={prepare:q=>new Statement(q),async batch(statements){sql.exec('BEGIN');try{const results=[];for(const s of statements)results.push(sql.prepare(s.query).run(...s.params));sql.exec('COMMIT');return results}catch(e){sql.exec('ROLLBACK');throw e}}};
 globalThis.__sessionsTest={db,user:{email:'musician-a@example.test',displayName:'Test Musician'}};
-const plugin={name:'test-boundaries',setup(b){b.onResolve({filter:/cloudflare:workers/},()=>({path:'runtime',namespace:'fixture'}));b.onResolve({filter:/chatgpt-auth/},()=>({path:'auth',namespace:'fixture'}));b.onLoad({filter:/.*/,namespace:'fixture'},args=>({contents:args.path==='auth'?'export const getChatGPTUser=async()=>globalThis.__sessionsTest.user;':'export const env={DB:globalThis.__sessionsTest.db};',loader:'js'}))}};
+const authFixture=`
+export const getChatGPTUser=async()=>globalThis.__sessionsTest.user;
+export const getProductionUser=async()=>{const user=globalThis.__sessionsTest.user;return user?{id:user.email.toLowerCase(),displayName:user.displayName,email:user.email.toLowerCase(),phone:null,roles:['musician'],scopedRoles:[],memberships:[],method:'chatgpt_demo',sessionId:'test-session',assuranceLevel:null}:null};
+`;
+const plugin={name:'test-boundaries',setup(b){b.onResolve({filter:/cloudflare:workers/},()=>({path:'runtime',namespace:'fixture'}));b.onResolve({filter:/chatgpt-auth/},()=>({path:'auth',namespace:'fixture'}));b.onLoad({filter:/.*/,namespace:'fixture'},args=>({contents:args.path==='auth'?authFixture:'export const env={DB:globalThis.__sessionsTest.db};',loader:'js'}))}};
 for(const [name,entry]of [['route','app/api/action/route.ts'],['domain','lib/domain.ts'],['state','app/api/state/route.ts']]){await build({entryPoints:[resolve(entry)],bundle:true,platform:'node',format:'esm',outfile:join(temp,name+'.mjs'),plugins:[plugin],logLevel:'silent'})}
-const {POST}=await import(pathToFileURL(join(temp,'route.mjs')));const {GET}=await import(pathToFileURL(join(temp,'state.mjs')));const d=await import(pathToFileURL(join(temp,'domain.mjs')));
+const {POST}=await import(pathToFileURL(join(temp,'route.mjs')));const {GET}=await import(pathToFileURL(join(temp,'state.mjs')));const d=await import(pathToFileURL(join(temp,'domain.mjs'));
 async function action(payload){const response=await POST(new Request('https://sessions.test/api/action',{method:'POST',headers:{'Content-Type':'application/json','Origin':'https://sessions.test'},body:JSON.stringify(payload)}));return {status:response.status,...await response.json()}}
 const date=d.addDays(d.localDate(),14);let booked;
 const base=()=>({type:'book',roomId:'the-live-room',date,start:600,duration:60,weeks:1,groupName:'The Test Band',groupSize:4,key:crypto.randomUUID()});
