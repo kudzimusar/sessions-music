@@ -63,3 +63,12 @@ test('organization route and UI are protected by the shared corporate module per
  assert.match(route,/CorporateOrganization/);
  assert.match(page,/ORGANIZATION & PEOPLE/);
 });
+
+test('delegation reasons are restricted while responsibility metadata stays directory-visible',async()=>{
+ const [api,page]=await Promise.all([read('app/api/corporate/organization/route.ts'),read('app/corporate-organization.tsx')]);
+ assert.match(api,/\.\.\.\(canManage\?\{reason:content\.reason\|\|''\}:\{\}\)/);
+ assert.match(api,/Restricted workforce identity fields and delegation reasons require organization administration authority/);
+ assert.match(page,/reason\?:string/);
+ assert.match(page,/data\.canManage&&<th>Reason<\/th>/);
+ assert.match(page,/Delegation reasons are restricted to organization administrators/);
+});
