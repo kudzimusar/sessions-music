@@ -26,7 +26,7 @@ test('production registry primitives are forced to the approved royal-blue visua
 
 test('release endpoint exposes the canonical customer visual revision separately from the phase marker',async()=>{
   const [release,route]=await Promise.all([read('lib/release-info.ts'),read('app/api/release/route.ts')]);
-  assert.match(release,/visualRevision:\s*'canonical-customer-v5-1'/);
+  assert.match(release,/visualRevision:\s*'canonical-customer-v5-2'/);
   assert.match(release,/brandPrimary:\s*'#4169E1'/);
   assert.match(route,/Response\.json\(SESSIONS_RELEASE/);
 });
