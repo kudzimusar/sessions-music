@@ -58,10 +58,12 @@ test('restricted and confidential media are never retained in browser caches',as
  assert.match(media,/Media unavailable.*Cache-Control.*private, no-store, max-age=0/s);
 });
 
-test('Super Administration exposes access governance directly through the shared control plane',async()=>{
- const [workspace,modules]=await Promise.all([read('app/corporate-workspace.tsx'),read('lib/corporate-control-plane.ts')]);
- assert.match(modules,/id:'access'.*href:'\/corporate\/access'.*requiredPermissions:\['platform:roles\.manage'\]/s);
- assert.match(workspace,/Access governance/);
+test('Access & Security is visible to governance without weakening privileged mutation gates',async()=>{
+ const [workspace,modules,reviews]=await Promise.all([read('app/corporate-workspace.tsx'),read('lib/corporate-control-plane.ts'),read('app/api/corporate/access-reviews/route.ts')]);
+ assert.match(modules,/id:'access'.*href:'\/corporate\/access'.*requiredPermissions:\['security:read'\]/s);
+ assert.match(workspace,/Access & security/);
  assert.match(workspace,/href="\/corporate\/access"/);
- assert.match(workspace,/Open access reviews/);
+ assert.match(reviews,/hasPermission\(user,'security:read'\)/);
+ assert.match(reviews,/requirePrivilegedSession\(user\)/);
+ assert.match(reviews,/canManagePlatformRoles\(user\)/);
 });
