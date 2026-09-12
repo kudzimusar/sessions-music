@@ -30,6 +30,7 @@ const PERCENT_ENCODED_UTF8 = "percent-encoded-utf-8";
 const SIGN_IN_PATH = "/signin-with-chatgpt";
 const SIGN_OUT_PATH = "/signout-with-chatgpt";
 const CALLBACK_PATH = "/callback";
+const SUPABASE_SESSION_COOKIE='__Host-sessions_access';
 
 export async function getChatGPTUser(): Promise<ChatGPTUser | null> {
   const requestHeaders = await headers();
@@ -42,8 +43,6 @@ export async function getChatGPTUser(): Promise<ChatGPTUser | null> {
 
 function withInheritedRoles(input:readonly PlatformRole[]):PlatformRole[]{
  const roles=new Set<PlatformRole>(input);
- // Compatibility only: legacy broad corporate roles continue to satisfy old Operations endpoints.
- // New functional roles never inherit Operations or other broad roles.
  if(roles.has('corporate_admin')||roles.has('super_admin'))roles.add('operations_admin');
  return [...roles];
 }
@@ -64,17 +63,27 @@ function configuredPreviewRoles(email:string):PlatformRole[]{
     ['SESSIONS_DATA_ANALYST_EMAILS','data_analyst'],['SESSIONS_DATA_ADMIN_EMAILS','data_admin'],
     ['SESSIONS_PRODUCT_OPERATIONS_EMAILS','product_operations'],['SESSIONS_GOVERNANCE_REVIEWER_EMAILS','governance_reviewer'],
   ];
-  // Legacy preview compatibility. This list is never consulted in Supabase production mode.
   if(listed('SESSIONS_ADMIN_EMAILS'))roles.push('super_admin');
   for(const [name,role] of mappings)if(listed(name))roles.push(role);
   return withInheritedRoles([...new Set(roles)]);
+}
+
+function cookieValue(cookieHeader:string|null,name:string){
+ if(!cookieHeader)return null;
+ for(const part of cookieHeader.split(';')){const [rawName,...rest]=part.trim().split('=');if(rawName===name){try{return decodeURIComponent(rest.join('='))}catch{return null}}}
+ return null;
 }
 
 export async function getProductionUser():Promise<SessionUser|null>{
   const requestHeaders=await headers();
   const values=env as unknown as {SESSIONS_IDENTITY_MODE?:string};
   if(values.SESSIONS_IDENTITY_MODE==='supabase'){
-    const principal=await authenticateSupabase(requestHeaders);
+    let authHeaders:Headers|typeof requestHeaders=requestHeaders;
+    if(!requestHeaders.get('authorization')){
+      const token=cookieValue(requestHeaders.get('cookie'),SUPABASE_SESSION_COOKIE);
+      if(token&&token.length<20_000){const derived=new Headers(requestHeaders);derived.set('Authorization',`Bearer ${token}`);authHeaders=derived}
+    }
+    const principal=await authenticateSupabase(authHeaders);
     return principal?{
       id:principal.userId,displayName:principal.displayName,email:principal.verifiedEmail,phone:principal.verifiedPhone,
       roles:withInheritedRoles(principal.roles),scopedRoles:principal.scopedRoles,memberships:principal.memberships,
