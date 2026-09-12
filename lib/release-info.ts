@@ -1,6 +1,6 @@
 export const SESSIONS_RELEASE = {
-  id: 'unified-platform-v1-phase4',
-  phase: 4,
+  id: 'unified-platform-v1-phase5',
+  phase: 5,
   phaseStatus: 'complete',
   brand: 'black-royal-blue-white',
   brandPrimary: '#4169E1',

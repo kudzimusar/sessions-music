@@ -40,7 +40,7 @@ test('successful exact revisions publish machine-readable immutable release evid
  assert.match(evidence,/contains no credentials/);
 });
 
-test('release preflight fails closed on wrong revision, wrong hosting or missing Phase 5 contract files',async()=>{
+test('release preflight fails closed on wrong revision, wrong hosting, stale phase provenance or missing Phase 5 contract files',async()=>{
  const gate=await read('scripts/release-gate.mjs');
  assert.match(gate,/SESSIONS_EXPECTED_SHA/);
  assert.match(gate,/git.*rev-parse.*HEAD/s);
@@ -50,6 +50,9 @@ test('release preflight fails closed on wrong revision, wrong hosting or missing
  assert.match(gate,/app\/api\/corporate\/booking-ops\/route\.ts/);
  assert.match(gate,/app\/api\/corporate\/cases\/route\.ts/);
  assert.match(gate,/PHASE-1-5-CROSS-PHASE-REVIEW\.md/);
+ assert.match(gate,/unified-platform-v1-phase5/);
+ assert.match(gate,/expected phase 5/);
+ assert.match(gate,/phaseStatus: 'complete'/);
 });
 
 test('production build packages every migration required by the Phase 5 runtime',async()=>{
