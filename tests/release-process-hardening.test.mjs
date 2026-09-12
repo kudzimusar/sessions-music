@@ -17,10 +17,18 @@ test('CI verifies the immutable PR head and the merge candidate before exposing 
  assert.match(ci,/persist-credentials:\s*false/g);
 });
 
+test('release CI dependencies are pinned to immutable upstream commit revisions',async()=>{
+ const ci=await read('.github/workflows/ci.yml');
+ assert.match(ci,/actions\/checkout@11d5960a326750d5838078e36cf38b85af677262/);
+ assert.match(ci,/actions\/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020/);
+ assert.match(ci,/actions\/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02/);
+ assert.doesNotMatch(ci,/uses:\s+actions\/(?:checkout|setup-node|upload-artifact)@v\d/);
+});
+
 test('successful exact revisions publish machine-readable immutable release evidence',async()=>{
  const ci=await read('.github/workflows/ci.yml');
  const evidence=await read('scripts/write-release-evidence.mjs');
- assert.match(ci,/actions\/upload-artifact@v4/);
+ assert.match(ci,/actions\/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02/);
  assert.match(ci,/sessions-release-evidence-\$\{\{ github\.event\.pull_request\.head\.sha \}\}/);
  assert.match(ci,/sessions-release-evidence-main-\$\{\{ github\.sha \}\}/);
  assert.match(evidence,/SESSIONS_EXPECTED_SHA/);
