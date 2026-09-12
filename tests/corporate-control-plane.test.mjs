@@ -55,7 +55,7 @@ test('Phase 4 read API projects canonical tables and never creates parallel corp
 test('customer references are separately permission-gated and direct PII is excluded from Phase 4 projections',async()=>{
  const [api,policy]=await Promise.all([read('app/api/corporate/control-plane/route.ts'),read('lib/data-access-policy.ts')]);
  assert.match(policy,/customer_directory:'internal'/);assert.match(policy,/canReadCustomerField/);assert.match(policy,/field==='contact'.*support:manage/s);assert.match(policy,/customers:read/);
- assert.match(api,/bookings\(db,showCustomer:boolean\)/);assert.match(api,/canSeeCustomerRef=canReadCustomerField\(user,'reference'\)/);assert.match(api,/Customer references are omitted unless/);
+ assert.match(api,/bookings\(db:any,showCustomer:boolean\)/);assert.match(api,/canSeeCustomerRef=canReadCustomerField\(user,'reference'\)/);assert.match(api,/Customer references are omitted unless/);
  assert.doesNotMatch(api,/json_extract\(content,'\$\.phone'\)|json_extract\(content,'\$\.email'\)|json_extract\(content,'\$\.note'\)/);
 });
 
