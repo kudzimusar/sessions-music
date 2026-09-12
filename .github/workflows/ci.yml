@@ -32,6 +32,17 @@ jobs:
         run: npm run verify:release
         env:
           SESSIONS_EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+      - name: Write immutable release evidence
+        run: node scripts/write-release-evidence.mjs
+        env:
+          SESSIONS_EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+      - name: Publish exact-head release evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: sessions-release-evidence-${{ github.event.pull_request.head.sha }}
+          path: release-evidence.json
+          if-no-files-found: error
+          retention-days: 30
 
   verify-merge:
     name: verify merge candidate
@@ -88,3 +99,14 @@ jobs:
         run: npm run verify:release
         env:
           SESSIONS_EXPECTED_SHA: ${{ github.sha }}
+      - name: Write merged release evidence
+        run: node scripts/write-release-evidence.mjs
+        env:
+          SESSIONS_EXPECTED_SHA: ${{ github.sha }}
+      - name: Publish merged-main release evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: sessions-release-evidence-main-${{ github.sha }}
+          path: release-evidence.json
+          if-no-files-found: error
+          retention-days: 30
