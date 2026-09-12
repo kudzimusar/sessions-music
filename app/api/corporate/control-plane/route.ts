@@ -11,11 +11,12 @@ const customerRef=(value:unknown)=>{const text=String(value||'');return text.len
 const rows=async(db:any,sql:string,...bindings:unknown[])=>((await db.prepare(sql).bind(...bindings).all()).results||[]) as any[];
 const metric=(label:string,value:string|number,detail?:string)=>({label,value,detail});
 
-async function bookings(db:any){
+async function bookings(db:any,showCustomer:boolean){
  const counts=await rows(db,"SELECT json_extract(content,'$.status') status,count(*) n FROM studio_bookings GROUP BY json_extract(content,'$.status')");
  const byStatus=Object.fromEntries(counts.map(row=>[String(row.status||'unknown'),Number(row.n||0)]));
  const recent=await rows(db,"SELECT id,studio_id,customer,json_extract(content,'$.roomName') room,json_extract(content,'$.status') status,json_extract(content,'$.date') date,json_extract(content,'$.duration') duration,json_extract(content,'$.createdAt') created_at FROM studio_bookings ORDER BY rowid DESC LIMIT 60");
- return {metrics:[metric('All bookings',Object.values(byStatus).reduce((a:any,b:any)=>Number(a)+Number(b),0)),metric('Requested',byStatus.requested||0),metric('Confirmed',byStatus.confirmed||0),metric('Completed',byStatus.completed||0),metric('Cancelled / declined',(byStatus.cancelled||0)+(byStatus.declined||0))],columns:['Booking','Studio','Customer ref','Room','Status','Session date','Duration'],rows:recent.map(row=>[row.id,row.studio_id,customerRef(row.customer),row.room||'—',row.status||'unknown',row.date||'—',`${Number(row.duration||0)} min`]),note:'Read-only Phase 4 projection from studio_bookings. Booking mutation/escalation workflows remain Phase 5.'};
+ const columns=showCustomer?['Booking','Studio','Customer ref','Room','Status','Session date','Duration']:['Booking','Studio','Room','Status','Session date','Duration'];
+ return {metrics:[metric('All bookings',Object.values(byStatus).reduce((a:any,b:any)=>Number(a)+Number(b),0)),metric('Requested',byStatus.requested||0),metric('Confirmed',byStatus.confirmed||0),metric('Completed',byStatus.completed||0),metric('Cancelled / declined',(byStatus.cancelled||0)+(byStatus.declined||0))],columns,rows:recent.map(row=>showCustomer?[row.id,row.studio_id,customerRef(row.customer),row.room||'—',row.status||'unknown',row.date||'—',`${Number(row.duration||0)} min`]:[row.id,row.studio_id,row.room||'—',row.status||'unknown',row.date||'—',`${Number(row.duration||0)} min`]),note:'Read-only Phase 4 projection from studio_bookings. Customer references are omitted unless the account separately has customer-directory authority. Booking mutation/escalation workflows remain Phase 5.'};
 }
 
 async function customers(db:any){
@@ -77,12 +78,12 @@ export async function GET(request:Request){
   const moduleId=new URL(request.url).searchParams.get('module')||'';if(!isCorporateReadModule(moduleId))return response({error:'Unknown corporate module.'},404);
   const module=moduleForId(moduleId);if(!module)return response({error:'Unknown corporate module.'},404);
   if(!module.requiredPermissions.every(permission=>hasPermission(user,permission)))return response({error:'This corporate module is not assigned to this account.'},403);
-  const db=database();let data:any;
-  if(moduleId==='bookings')data=await bookings(db);
+  const db=database();let data:any;const canSeeCustomerRef=canReadCustomerField(user,'reference');
+  if(moduleId==='bookings')data=await bookings(db,canSeeCustomerRef);
   else if(moduleId==='customers'){
    if(!canReadCustomerField(user,'activity'))return response({error:'Customer directory authority required.'},403);
    data=await customers(db);
-  }else if(moduleId==='memberships')data=await memberships(db,canReadCustomerField(user,'reference'));
+  }else if(moduleId==='memberships')data=await memberships(db,canSeeCustomerRef);
   else if(moduleId==='incidents')data=await incidents(db);
   else if(moduleId==='analytics')data=await analytics(db);
   else data=await audit(db,hasPermission(user,'organization:manage'),hasPermission(user,'platform:roles.manage'));
