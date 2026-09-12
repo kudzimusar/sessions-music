@@ -55,10 +55,10 @@ async function effectiveProductionAuthority(userId:string,rawRoles:readonly Plat
  if(!roles.some(role=>corporateRoleSet.has(role))&&!scopedRoles.some(value=>corporateRoleSet.has(value.role)))return {roles,scopedRoles:[...scopedRoles]};
  let activeStaff=false;
  try{
-  const row=await database().prepare("SELECT 1 ok FROM corporate_staff WHERE user_id=? AND status='active' LIMIT 1").bind(userId).first();
+  const row=await database().prepare("SELECT 1 ok FROM corporate_staff s LEFT JOIN corporate_staff_access_state a ON a.staff_id=s.id WHERE s.user_id=? AND s.status='active' AND COALESCE(a.status,'active')='active' LIMIT 1").bind(userId).first();
   activeStaff=!!row;
  }catch(error){
-  // Production corporate authority fails closed if workforce state cannot be proven.
+  // Production corporate authority fails closed if workforce/access state cannot be proven.
   console.error('Corporate employment authority check failed',error instanceof Error?error.message:'Unknown error');
  }
  if(activeStaff)return {roles,scopedRoles:[...scopedRoles]};
