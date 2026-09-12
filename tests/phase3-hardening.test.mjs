@@ -58,9 +58,10 @@ test('restricted and confidential media are never retained in browser caches',as
  assert.match(media,/Media unavailable.*Cache-Control.*private, no-store, max-age=0/s);
 });
 
-test('Super Administration exposes access governance directly',async()=>{
- const workspace=await read('app/corporate-workspace.tsx');
- assert.match(workspace,/Super administration'.*access reviews.*href:'\/corporate\/access'/s);
+test('Super Administration exposes access governance directly through the shared control plane',async()=>{
+ const [workspace,modules]=await Promise.all([read('app/corporate-workspace.tsx'),read('lib/corporate-control-plane.ts')]);
+ assert.match(modules,/id:'access'.*href:'\/corporate\/access'.*requiredPermissions:\['platform:roles\.manage'\]/s);
  assert.match(workspace,/Access governance/);
+ assert.match(workspace,/href="\/corporate\/access"/);
  assert.match(workspace,/Open access reviews/);
 });
