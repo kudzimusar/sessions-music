@@ -12,7 +12,7 @@ const digest=path=>createHash('sha256').update(readFileSync(resolve(root,path)))
 const hosting=JSON.parse(read('.openai/hosting.json'));
 const releaseSource=read('lib/release-info.ts');
 const match=(name,pattern)=>{const value=releaseSource.match(pattern)?.[1];if(!value)throw new Error(`Release evidence refused: ${name} is missing from release-info.ts`);return value};
-const migrations=['0017_corporate_control_plane_indexes.sql','0018_phase45_identity_onboarding.sql','0019_phase5_booking_ops_cases.sql'];
+const migrations=['0017_corporate_control_plane_indexes.sql','0018_phase45_identity_onboarding.sql','0019_phase5_booking_ops_cases.sql','0020_staff_lifecycle_access.sql'];
 const evidence={
  schemaVersion:1,
  repository:'kudzimusar/sessions-music',
