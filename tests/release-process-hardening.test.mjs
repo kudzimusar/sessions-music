@@ -14,6 +14,20 @@ test('CI verifies the immutable PR head and the merge candidate before exposing 
  assert.match(ci,/release-gate:/);
  assert.match(ci,/needs:\s*\[verify-head, verify-merge\]/);
  assert.match(ci,/verify-main:/);
+ assert.match(ci,/persist-credentials:\s*false/g);
+});
+
+test('successful exact revisions publish machine-readable immutable release evidence',async()=>{
+ const ci=await read('.github/workflows/ci.yml');
+ const evidence=await read('scripts/write-release-evidence.mjs');
+ assert.match(ci,/actions\/upload-artifact@v4/);
+ assert.match(ci,/sessions-release-evidence-\$\{\{ github\.event\.pull_request\.head\.sha \}\}/);
+ assert.match(ci,/sessions-release-evidence-main-\$\{\{ github\.sha \}\}/);
+ assert.match(evidence,/SESSIONS_EXPECTED_SHA/);
+ assert.match(evidence,/sha256/);
+ assert.match(evidence,/packageLockSha256/);
+ assert.match(evidence,/0019_phase5_booking_ops_cases\.sql/);
+ assert.match(evidence,/contains no credentials/);
 });
 
 test('release preflight fails closed on wrong revision, wrong hosting or missing Phase 5 contract files',async()=>{
