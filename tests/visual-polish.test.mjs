@@ -12,6 +12,7 @@ test('visual layers load in the intended additive order', async () => {
   const expansion = layout.indexOf("import './expansion.css';");
   const polish = layout.indexOf("import './polish.css';");
   const v2 = layout.indexOf("import './sessions-v2.css';");
+  const corporate = layout.indexOf("import './corporate-v4.css';");
   const brand = layout.indexOf("import './brand-v1.css';");
 
   assert.ok(globals >= 0, 'global application styles must remain loaded');
@@ -19,9 +20,11 @@ test('visual layers load in the intended additive order', async () => {
   assert.ok(expansion > registry, 'expansion styles must remain after registry styles');
   assert.ok(polish > expansion, 'shared polish must remain additive');
   assert.ok(v2 > polish, 'the rebuilt customer surface must load after shared polish');
-  assert.ok(brand > v2, 'the approved production brand layer must be the final design-system override');
+  assert.ok(corporate > v2, 'the Phase 4 corporate layer must load after the customer surface');
+  assert.ok(brand > corporate, 'the approved production brand layer must be the final design-system override');
   assert.match(layout, /themeColor:'#4169E1'/);
-  assert.match(layout, /<body data-sessions-brand="v1">/);
+  assert.match(layout, /<body[^>]*data-sessions-brand="v1"[^>]*>/);
+  assert.match(layout, /data-sessions-release=\{SESSIONS_RELEASE\.id\}/);
   assert.doesNotMatch(layout, /\/og\.png/, 'unreviewed generic social imagery must not be advertised');
 });
 
