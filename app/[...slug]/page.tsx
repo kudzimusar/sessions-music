@@ -1,5 +1,6 @@
 import SessionsApp from '../sessions-v2';
 import RegistryApp from '../registry';
+import CustomerV5 from '../customer-v5';
 import CorporateWorkspace from '../corporate-workspace';
 import CorporateOffice from '../corporate-office';
 import CorporateOrganization from '../corporate-organization';
@@ -29,6 +30,8 @@ export default async function Page({params}:Props){
   const allowed=((env as unknown as {SESSIONS_DEMO_OWNER_EMAILS?:string}).SESSIONS_DEMO_OWNER_EMAILS||'').split(',').map(value=>value.trim().toLowerCase()).filter(Boolean);if(!allowed.includes(user.email.toLowerCase()))notFound();
  }
  if(slug[0]==='studio'&&slug.length===2)return <RegistryApp path={path} initialStudio={await readPublicStudio(slug[1])}/>;
+ if(path==='/mobile')return <CustomerV5 path="/mobile"/>;
+ if(path==='/account')return <CustomerV5 path="/account"/>;
  if(slug[0]==='corporate'){
   if(slug.length===1)return corporateSurface(<AccessBoundary surface="corporate" returnTo="/corporate"><CorporateWorkspace/></AccessBoundary>);
   if(slug.length!==2)notFound();
@@ -42,5 +45,5 @@ export default async function Page({params}:Props){
   notFound();
  }
  if(slug[0]==='registry-admin')return corporateSurface(<AccessBoundary surface="corporate" returnTo="/registry-admin" requiredPermissions={['claims:review','settlements:review','support:read','providers:oversight']}><RegistryApp path={path}/></AccessBoundary>);
- return ['studios','studio','map','mobile','manage','requests','inbox','notifications','account','planner','register','onboarding','subscriptions'].includes(slug[0])?<RegistryApp path={path}/>:<SessionsApp initialPath={path}/>;
+ return ['studios','studio','map','manage','requests','inbox','notifications','planner','register','onboarding','subscriptions'].includes(slug[0])?<RegistryApp path={path}/>:<SessionsApp initialPath={path}/>;
 }
