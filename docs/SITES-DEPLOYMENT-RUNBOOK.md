@@ -13,54 +13,72 @@ Current hosted project linkage:
 - R2 binding: `BUCKET`
 - canonical public origin: `https://sessions-music.kudzimusar.chatgpt.site`
 
+Current source release target:
+
+- release id: `unified-platform-v1-phase5`
+- phase: `5`
+- phase status: `complete`
+- brand primary: `#4169E1`
+
 ## Required release sequence
 
 1. Start from the current Sessions source project, not from the already-published Site preview.
-2. Check out the intended Git commit/branch and make sure the working tree contains `.openai/hosting.json`.
-3. Run the production verification gate (`npm test`). The build must package `dist/.openai/hosting.json` and the current `drizzle/` migrations.
-4. In ChatGPT desktop/Work/Codex with that source project open, ask Sites to prepare the existing project for deployment. Use wording such as:
+2. Check out the intended merged `main` commit and make sure the working tree contains `.openai/hosting.json`.
+3. Confirm the immutable `main` CI run is green and retain its `sessions-release-evidence-main-<sha>` artifact.
+4. Run the production verification gate (`npm test`) if validating locally. The build must package `dist/.openai/hosting.json` and the current `drizzle/` migrations.
+5. In ChatGPT desktop/Work/Codex with that source project open, ask Sites to prepare the existing project for deployment. Use wording such as:
 
-   `Deploy this project with Sites. Check whether it is compatible, make any required changes, save a reviewable version first, and tell me which Git commit that version uses. Do not deploy until I approve the saved version.`
+   `Build a private reviewable Sessions Site version from this exact merged main commit. Do not publish or deploy it. Confirm the saved version's source commit, /api/release payload, D1 DB binding and R2 BUCKET binding.`
 
-5. Inspect the saved Site version and confirm it is associated with the expected Git commit.
-6. Review `/mobile` and `/corporate` in the saved preview. Do not deploy a version that still shows the legacy teal/slate production palette.
+6. Inspect the saved Site version and confirm it is associated with the expected merged `main` commit.
 7. Confirm the release provenance endpoint in the saved version reports:
 
-   - `id`: `unified-platform-v1-phase4`
-   - `phase`: `4`
+   - `id`: `unified-platform-v1-phase5`
+   - `phase`: `5`
+   - `phaseStatus`: `complete`
    - `brandPrimary`: `#4169E1`
 
-8. Only then deploy the approved saved version to the existing Sessions Site project.
-9. After deployment, verify:
+8. Review the private UAT routes before any publication:
 
-   - `/api/release`
+   - `/welcome`
+   - `/onboarding`
    - `/mobile`
+   - `/account`
+   - `/onboarding/provider`
+   - `/manage`
    - `/corporate`
-   - the public root route
-   - D1-backed reads and R2/private-media authorization
+   - `/corporate/bookings`
+   - `/corporate/incidents`
+
+9. Exercise the Phase 4.5/5 lifecycle rather than checking screenshots only: sign in, complete profile and required consent, verify Personal access, provider onboarding/context selection, corporate context authorization, Booking Operations and Cases. An authenticated but incomplete identity must remain in onboarding.
+10. Confirm the approved production brand is Black / Royal Blue / White and that legacy teal/slate is not acting as the production identity.
+11. Confirm the intended hosted D1 environment has all required migrations applied in order, including Phase 4.5/5 migrations, and verify R2/private-media authorization.
+12. Only after private UAT succeeds should the saved version be considered eligible for a separate publish/deploy decision.
+13. After any approved deployment, verify `/api/release`, the critical routes above, D1-backed reads and R2/private-media authorization again against the deployed version.
 
 ## Do not confuse these states
 
 - **GitHub green:** source builds/tests successfully.
-- **Saved Sites version:** Sites has built a deployable candidate from a specific source commit.
+- **Merged main green:** the exact immutable merge commit has passed the post-merge verification gate.
+- **Saved Sites version:** Sites has built a deployable private candidate from that exact source commit.
 - **Deployed Sites version:** that saved candidate is what the public `chatgpt.site` URL actually serves.
 
-A change is not considered live until all three states are aligned.
+A change is not considered live until all applicable states are aligned.
 
 ## Failure triage
 
-### Public Site still shows the old UI
+### Public Site still shows an old release
 
-The most likely cause is that the old saved Site version is still deployed. Check the saved version's source commit before debugging CSS.
+First compare `/api/release` with the expected Phase 5 marker and compare the saved/deployed Site version's source commit with the reviewed merged `main` SHA. Do not debug CSS or product code until provenance is aligned.
 
 ### Site editor shows `Unexpected Server Error`
 
 First reopen the Site/editor. If the error repeats for a version built from the current source, inspect the Sites build/runtime logs and verify hosted environment variables. Do not assume the old published Site is evidence that the new source failed.
 
-### D1/R2 features fail after a new version is deployed
+### D1/R2 features fail after a new version is saved or deployed
 
-Confirm the saved build contains `.openai/hosting.json` and the complete `drizzle/` directory, then verify the Site's hosted environment values/secrets. The production build now fails if the hosting manifest or Phase 4 migration package is missing.
+Confirm the saved build contains `.openai/hosting.json` and the complete `drizzle/` directory, then verify the Site's hosted environment values/secrets and hosted migration state. The production build fails if the hosting manifest or required Phase 4/4.5/5 migration package is missing.
 
 ## Production certification boundary
 
-The source repository can prove build, tests, packaged hosting metadata, migrations and application authorization contracts. Only a successful saved-version build and deployment from Sites can prove what the public Site is actually serving.
+The source repository can prove build, tests, packaged hosting metadata, migrations, release provenance and application authorization contracts. Only a successful private saved-version build, hosted migration/configuration verification and UAT from Sites can certify the hosted Phase 5 candidate. Publication remains a separate explicit decision.
