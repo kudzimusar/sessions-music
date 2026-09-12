@@ -12,22 +12,25 @@ test('Sites hosting manifest remains linked to the Sessions project and canonica
  assert.equal(hosting.r2,'BUCKET');
 });
 
-test('production build fails closed if Sites metadata or Phase 4 migrations are not packaged',async()=>{
+test('production build fails closed if Sites metadata or Phase 4/4.5/5 migrations are not packaged',async()=>{
  const script=await read('scripts/build-verified.sh');
  assert.match(script,/dist\/.openai\/hosting\.json/);
  assert.match(script,/0017_corporate_control_plane_indexes\.sql/);
+ assert.match(script,/0018_phase45_identity_onboarding\.sql/);
+ assert.match(script,/0019_phase5_booking_ops_cases\.sql/);
  assert.match(script,/Unexpected Sites project_id/);
  assert.match(script,/Expected DB\/R2 Sites bindings/);
 });
 
-test('running application exposes a stable Phase 4 release provenance marker',async()=>{
+test('running application exposes the Phase 5 release provenance marker',async()=>{
  const [release,route,layout]=await Promise.all([
   read('lib/release-info.ts'),
   read('app/api/release/route.ts'),
   read('app/layout.tsx'),
  ]);
- assert.match(release,/unified-platform-v1-phase4/);
- assert.match(release,/phase:\s*4/);
+ assert.match(release,/unified-platform-v1-phase5/);
+ assert.match(release,/phase:\s*5/);
+ assert.match(release,/phaseStatus:\s*'complete'/);
  assert.match(release,/#4169E1/);
  assert.match(route,/X-Sessions-Release/);
  assert.match(route,/SESSIONS_RELEASE/);
