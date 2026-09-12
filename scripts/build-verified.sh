@@ -44,4 +44,17 @@ node --input-type=module -e '
   if(config.d1!=="DB"||config.r2!=="BUCKET") throw new Error("Expected DB/R2 Sites bindings are missing from packaged hosting config");
 ' "${hosting_artifact}"
 
-echo "Sites deployment artifact verified: hosting linkage and Phase 4 migrations are packaged."
+node --input-type=module -e '
+  import {readdirSync,readFileSync,statSync} from "node:fs";
+  import {join} from "node:path";
+  const root=process.argv[1];
+  const cssFiles=[];
+  const walk=dir=>{for(const name of readdirSync(dir)){const path=join(dir,name);const stat=statSync(path);if(stat.isDirectory())walk(path);else if(name.endsWith(".css"))cssFiles.push(path)}};
+  walk(root);
+  if(!cssFiles.length)throw new Error("Sites build is invalid: no compiled CSS assets were produced");
+  const css=cssFiles.map(path=>readFileSync(path,"utf8")).join("\n");
+  if(!/\.registry-app\s*\{[^}]*--r-blue\s*:\s*#4169e1/i.test(css)) throw new Error("Sites build is invalid: compiled CSS lost the Royal Blue registry root");
+  if(!/\.registry-app\s+\.brand-symbol\s*\{[^}]*background\s*:\s*#4169e1\s*!important/i.test(css)) throw new Error("Sites build is invalid: compiled CSS lost the Royal Blue brand symbol override");
+' "${SITES_PROJECT_ROOT}/dist"
+
+echo "Sites deployment artifact verified: hosting linkage, Phase 4 migrations, and runtime Royal Blue CSS are packaged."
