@@ -38,7 +38,8 @@ export type IdentityPrincipal={
  verifiedPhone:string|null;
  verifiedEmail:string|null;
  roles:PlatformRole[];
- scopedRoles:ScopedPlatformRole[];
+ /** Additive Phase 3 scope model. Absence is treated as no scoped grants. */
+ scopedRoles?:ScopedPlatformRole[];
  memberships:OrganizationMembership[];
 };
 
