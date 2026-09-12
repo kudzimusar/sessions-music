@@ -18,7 +18,7 @@ export const getProductionUser=async()=>{const user=globalThis.__sessionsTest.us
 `;
 const plugin={name:'test-boundaries',setup(b){b.onResolve({filter:/cloudflare:workers/},()=>({path:'runtime',namespace:'fixture'}));b.onResolve({filter:/chatgpt-auth/},()=>({path:'auth',namespace:'fixture'}));b.onLoad({filter:/.*/,namespace:'fixture'},args=>({contents:args.path==='auth'?authFixture:'export const env={DB:globalThis.__sessionsTest.db};',loader:'js'}))}};
 for(const [name,entry]of [['route','app/api/action/route.ts'],['domain','lib/domain.ts'],['state','app/api/state/route.ts']]){await build({entryPoints:[resolve(entry)],bundle:true,platform:'node',format:'esm',outfile:join(temp,name+'.mjs'),plugins:[plugin],logLevel:'silent'})}
-const {POST}=await import(pathToFileURL(join(temp,'route.mjs')));const {GET}=await import(pathToFileURL(join(temp,'state.mjs')));const d=await import(pathToFileURL(join(temp,'domain.mjs'));
+const {POST}=await import(pathToFileURL(join(temp,'route.mjs')));const {GET}=await import(pathToFileURL(join(temp,'state.mjs')));const d=await import(pathToFileURL(join(temp,'domain.mjs')));
 async function action(payload){const response=await POST(new Request('https://sessions.test/api/action',{method:'POST',headers:{'Content-Type':'application/json','Origin':'https://sessions.test'},body:JSON.stringify(payload)}));return {status:response.status,...await response.json()}}
 const date=d.addDays(d.localDate(),14);let booked;
 const base=()=>({type:'book',roomId:'the-live-room',date,start:600,duration:60,weeks:1,groupName:'The Test Band',groupSize:4,key:crypto.randomUUID()});
