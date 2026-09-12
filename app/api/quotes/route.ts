@@ -4,12 +4,14 @@ import {seedRegistry} from '@/db/registry-store';
 import {resolveFeePolicy} from '@/lib/commerce-server';
 import {quoteRoomBooking} from '@/lib/booking-quote';
 import type {Studio} from '@/lib/registry';
+import {getProductionUser} from '@/app/chatgpt-auth';
 
 const text=z.string().trim();
 const requestSchema=z.object({studioId:text.min(1).max(100),roomId:text.min(1).max(100),date:text.regex(/^\d{4}-\d{2}-\d{2}$/),duration:z.number().int().min(30).max(480).multipleOf(30),addOns:z.array(z.object({id:text.min(1).max(100),quantity:z.number().int().min(1).max(12)})).max(12).default([]),clientKey:text.uuid().optional()});
 const response=(data:unknown,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store'}});
 export async function POST(req:Request){
  try{
+  const user=await getProductionUser();if(!user)return response({error:'Sign in to Sessions to calculate a booking quote.'},401);
   const origin=req.headers.get('Origin');if(origin&&origin!==new URL(req.url).origin)return response({error:'Cross-origin request rejected'},403);
   if(Number(req.headers.get('content-length')||0)>8000)return response({error:'Request too large'},413);
   const raw=await req.text();if(raw.length>8000)return response({error:'Request too large'},413);
