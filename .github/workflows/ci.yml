@@ -27,7 +27,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      - run: npm ci --include=dev
       - name: Verify locked build inputs
         run: |
           set -euo pipefail
@@ -64,7 +64,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      - run: npm ci --include=dev
       - name: Verify locked build inputs
         run: |
           set -euo pipefail
@@ -109,7 +109,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      - run: npm ci --include=dev
       - name: Verify locked build inputs
         run: |
           set -euo pipefail
