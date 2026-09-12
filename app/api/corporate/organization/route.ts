@@ -18,7 +18,7 @@ const mutation=z.discriminatedUnion('action',[
 ]);
 
 type Row=Record<string,unknown>;
-const response=(data:unknown,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store'}});
+const response=(data:unknown,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'private, no-store, max-age=0','Pragma':'no-cache'}});
 const safeJson=(value:unknown)=>{try{return typeof value==='string'?JSON.parse(value):{}}catch{return {}}};
 const newId=(prefix:string)=>`${prefix}_${crypto.randomUUID()}`;
 const now=()=>new Date().toISOString();
@@ -61,8 +61,8 @@ export async function GET(){
   const positions=(positionsResult.results as Row[]).map(row=>{const content=safeJson(row.content);return {id:row.id,departmentId:row.department_id,code:row.code,title:row.title,level:row.level,reportsToPositionId:row.reports_to_position_id,isDepartmentHead:!!row.is_department_head,status:row.status,description:content.description||''}});
   const staff=(staffResult.results as Row[]).map(row=>{const content=safeJson(row.content);return {id:row.id,staffCode:row.staff_code,positionId:row.position_id,status:row.status,displayName:content.displayName||'Unnamed staff member',location:content.location||'',startedAt:row.started_at,...(canReadIdentity?{identityUserId:row.user_id,workEmail:content.workEmail||'',employmentType:content.employmentType||'employee'}:{})}});
   const reporting=(reportingResult.results as Row[]).map(row=>({id:row.id,staffId:row.staff_id,managerStaffId:row.manager_staff_id,kind:row.kind,effectiveFrom:row.effective_from}));
-  const delegations=(delegationsResult.results as Row[]).map(row=>{const content=safeJson(row.content);return {id:row.id,principalStaffId:row.principal_staff_id,delegateStaffId:row.delegate_staff_id,scope:row.scope,status:row.status,startsAt:row.starts_at,endsAt:row.ends_at,reason:content.reason||''}});
-  return response({departments,positions,staff,reporting,delegations,canManage,generatedAt:now(),authorityNote:'Organization hierarchy and delegation do not grant platform roles or permissions. Restricted workforce identity fields require organization administration authority.'});
+  const delegations=(delegationsResult.results as Row[]).map(row=>{const content=safeJson(row.content);return {id:row.id,principalStaffId:row.principal_staff_id,delegateStaffId:row.delegate_staff_id,scope:row.scope,status:row.status,startsAt:row.starts_at,endsAt:row.ends_at,...(canManage?{reason:content.reason||''}:{})}});
+  return response({departments,positions,staff,reporting,delegations,canManage,generatedAt:now(),authorityNote:'Organization hierarchy and delegation do not grant platform roles or permissions. Restricted workforce identity fields and delegation reasons require organization administration authority.'});
  }catch(error){
   console.error('Corporate organization read failed',error instanceof Error?error.message:'Unknown error');
   return response({error:'Corporate organization data is unavailable. The workforce schema may not be provisioned yet.'},503);
