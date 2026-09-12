@@ -12,13 +12,15 @@ import {readPublicStudio} from '@/db/public-studio';
 import {isCorporateReadModule,moduleForId} from '@/lib/corporate-control-plane';
 import {env} from 'cloudflare:workers';
 import {notFound,redirect} from 'next/navigation';
-import {getChatGPTUser,chatGPTSignInPath} from '@/app/chatgpt-auth';
+import {getChatGPTUser,getProductionUser,chatGPTSignInPath} from '@/app/chatgpt-auth';
+import {hasWorkspaceContext,readOnboardingSnapshot} from '@/lib/onboarding-server';
 type Props={params:Promise<{slug:string[]}>};
 export const dynamic='force-dynamic';
 export async function generateMetadata({params}:Props):Promise<Metadata>{
  const {slug}=await params;if(slug[0]!=='studio'||slug.length!==2)return {};
- const studio=await readPublicStudio(slug[1]);const title=studio?studio.name+' | Sessions':'Studio unavailable | Sessions';const description=studio?studio.description:'This studio profile is unavailable. Browse the Sessions Harare directory.';
- return {title,description,openGraph:{title,description,images:[]},twitter:{card:'summary',title,description,images:[]},...(studio?{}:{robots:{index:false,follow:false}})};
+ const actor=await getProductionUser();if(!actor)return {title:'Sessions',description:'Sign in to Sessions to view music spaces and manage your bookings.',robots:{index:false,follow:false}};
+ const studio=await readPublicStudio(slug[1]);const title=studio?studio.name+' | Sessions':'Studio unavailable | Sessions';const description=studio?studio.description:'This studio profile is unavailable.';
+ return {title,description,openGraph:{title,description,images:[]},twitter:{card:'summary',title,description,images:[]},robots:{index:false,follow:false}};
 }
 const corporateSurface=(children:React.ReactNode)=><div data-sessions-surface="corporate">{children}</div>;
 export default async function Page({params}:Props){
@@ -29,6 +31,14 @@ export default async function Page({params}:Props){
   const user=await getChatGPTUser();if(!user)redirect(chatGPTSignInPath(path));
   const allowed=((env as unknown as {SESSIONS_DEMO_OWNER_EMAILS?:string}).SESSIONS_DEMO_OWNER_EMAILS||'').split(',').map(value=>value.trim().toLowerCase()).filter(Boolean);if(!allowed.includes(user.email.toLowerCase()))notFound();
  }
+ const actor=await getProductionUser();if(!actor)redirect('/welcome?return_to='+encodeURIComponent(path));
+ const snapshot=await readOnboardingSnapshot(actor).catch(()=>null);if(!snapshot)redirect('/onboarding?return_to='+encodeURIComponent(path));
+ if(['profile','consent','workspace','restricted'].includes(snapshot.nextStep))redirect('/onboarding?return_to='+encodeURIComponent(path));
+ const corporatePath=slug[0]==='corporate'||slug[0]==='registry-admin';
+ if(corporatePath&&!hasWorkspaceContext(snapshot,'corporate'))redirect('/onboarding?return_to='+encodeURIComponent(path));
+ if(path==='/manage'&&!hasWorkspaceContext(snapshot,'provider'))redirect('/onboarding?return_to='+encodeURIComponent(path));
+ const customerPath=!corporatePath&&path!=='/manage'&&!sandboxSurface&&path!=='/account';
+ if(customerPath&&!hasWorkspaceContext(snapshot,'personal'))redirect('/onboarding?return_to='+encodeURIComponent(path));
  if(slug[0]==='studio'&&slug.length===2)return <RegistryApp path={path} initialStudio={await readPublicStudio(slug[1])}/>;
  if(path==='/mobile')return <CustomerV5 path="/mobile"/>;
  if(path==='/account')return <CustomerV5 path="/account"/>;
