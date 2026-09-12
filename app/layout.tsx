@@ -12,6 +12,7 @@ import './brand-v1.css';
 import './brand-runtime.css';
 import './customer-v5.css';
 import './onboarding.css';
+import './provider-onboarding.css';
 import './phase5-operations.css';
 import './workspace-switcher.css';
 const siteOrigin='https://sessions-music.kudzimusar.chatgpt.site';
