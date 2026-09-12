@@ -12,6 +12,26 @@ const bodySchema=z.object({
 });
 const newId=(prefix:string)=>`${prefix}_${crypto.randomUUID()}`;
 
+export async function GET(){
+ try{
+  const actor=await getProductionUser();if(!actor)return response({error:'Sign in required.'},401);
+  if(!hasPermission(actor,'organization:read'))return response({error:'Organization directory authority is required.'},403);
+  const canManage=hasPermission(actor,'organization:manage')&&hasPermission(actor,'identity:lifecycle.manage');const db=database();
+  const result=await db.prepare(`SELECT s.id staff_id,s.staff_code,s.user_id,s.status workforce_status,s.started_at,s.ended_at,s.content,
+    COALESCE(a.status,CASE WHEN s.status='departed' THEN 'departed' WHEN s.status='suspended' THEN 'suspended' ELSE 'active' END) access_status,
+    a.reason_code,a.reason,a.effective_at,a.updated_at
+    FROM corporate_staff s LEFT JOIN corporate_staff_access_state a ON a.staff_id=s.id
+    ORDER BY CASE COALESCE(a.status,s.status) WHEN 'active' THEN 0 WHEN 'suspended' THEN 1 WHEN 'departed' THEN 2 ELSE 3 END,s.staff_code ASC`).all();
+  const staff=(result.results as Record<string,unknown>[]).map(row=>{let content:any={};try{content=JSON.parse(String(row.content||'{}'))}catch{}return {
+   staffId:String(row.staff_id),staffCode:String(row.staff_code),displayName:String(content.displayName||'Unnamed staff member'),
+   status:String(row.access_status),workforceStatus:String(row.workforce_status),startedAt:row.started_at?String(row.started_at):null,endedAt:row.ended_at?String(row.ended_at):null,
+   effectiveAt:row.effective_at?String(row.effective_at):null,
+   ...(canManage?{userId:String(row.user_id),reasonCode:row.reason_code?String(row.reason_code):null,reason:row.reason?String(row.reason):null,updatedAt:row.updated_at?String(row.updated_at):null}:{}),
+  }});
+  return response({staff,canManage,authorityNote:'Suspension, departure and termination remove corporate execution authority only. Personal and provider contexts are evaluated independently.'});
+ }catch(error){console.error('Staff lifecycle read failed',error instanceof Error?error.message:'Unknown error');return response({error:'Staff lifecycle state is unavailable. The lifecycle migration may not be provisioned yet.'},503)}
+}
+
 export async function POST(request:Request){
  try{
   const origin=request.headers.get('origin');if(origin&&origin!==new URL(request.url).origin)return response({error:'Cross-origin request rejected.'},403);
