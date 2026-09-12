@@ -17,6 +17,7 @@ const reviewId=()=>`arev_${crypto.randomUUID()}`;
 const itemId=()=>`ari_${crypto.randomUUID()}`;
 const eventId=()=>`sevt_${crypto.randomUUID()}`;
 const managedRole=(value:string):value is PlatformRole=>value!=='musician'&&(platformRoles as readonly string[]).includes(value);
+const safeJson=(value:unknown)=>{try{return typeof value==='string'?JSON.parse(value):{}}catch{return {}}};
 
 async function actor(){
  const user=await getProductionUser();
@@ -36,7 +37,7 @@ export async function GET(request:Request){
   const requested=new URL(request.url).searchParams.get('reviewId');
   const selected=requested||String((reviews[0] as any)?.id||'');
   const items=selected?((await db.prepare('SELECT id,review_id,user_id,role,decision,remediation_status,reviewer,reviewed_at,remediated_at,snapshot_granted_by,snapshot_granted_at,content FROM corporate_access_review_items WHERE review_id=? ORDER BY role,user_id').bind(selected).all()).results||[]):[];
-  return response({reviews:reviews.map((row:any)=>({id:row.id,title:row.title,status:row.status,createdBy:row.created_by,createdAt:row.created_at,dueAt:row.due_at,completedAt:row.completed_at,snapshotCount:Number(row.snapshot_count)})),selectedReviewId:selected||null,items:items.map((row:any)=>({id:row.id,reviewId:row.review_id,userId:row.user_id,role:row.role,decision:row.decision,remediationStatus:row.remediation_status,reviewer:row.reviewer,reviewedAt:row.reviewed_at,remediatedAt:row.remediated_at,snapshotGrantedBy:row.snapshot_granted_by,snapshotGrantedAt:row.snapshot_granted_at,note:JSON.parse(String(row.content||'{}')).note||''}))});
+  return response({reviews:reviews.map((row:any)=>({id:row.id,title:row.title,status:row.status,createdBy:row.created_by,createdAt:row.created_at,dueAt:row.due_at,completedAt:row.completed_at,snapshotCount:Number(row.snapshot_count)})),selectedReviewId:selected||null,items:items.map((row:any)=>{const content=safeJson(row.content);return {id:row.id,reviewId:row.review_id,userId:row.user_id,role:row.role,decision:row.decision,remediationStatus:row.remediation_status,reviewer:row.reviewer,reviewedAt:row.reviewed_at,remediatedAt:row.remediated_at,snapshotGrantedBy:row.snapshot_granted_by,snapshotGrantedAt:row.snapshot_granted_at,note:typeof content.note==='string'?content.note:''}})});
  }catch(error:any){
   const status=Number(error?.status)||503;if(status===401||status===403)return response({error:error.message},status);
   console.error('Access review read failed',error instanceof Error?error.message:'Unknown error');
@@ -50,6 +51,7 @@ export async function POST(request:Request){
   if(Number(request.headers.get('content-length')||0)>8000)return response({error:'Request too large.'},413);
   const user=await privilegedActor();const input=schema.parse(await request.json());const db=database();const now=new Date().toISOString();
   if(input.action==='create'){
+   if(input.dueAt&&Date.parse(input.dueAt)<=Date.now())return response({error:'Access review due date must be in the future.'},400);
    const snapshot=(await listActivePlatformRoleAssignments()).filter(row=>row.role!=='musician');
    const id=reviewId();
    const statements=[
@@ -61,13 +63,14 @@ export async function POST(request:Request){
    return response({ok:true,reviewId:id,snapshotCount:snapshot.length},201);
   }
   if(input.action==='decide'){
-   const item=await db.prepare("SELECT i.id,i.review_id,i.user_id,i.role,r.status review_status FROM corporate_access_review_items i JOIN corporate_access_reviews r ON r.id=i.review_id WHERE i.id=?").bind(input.itemId).first();
+   const item=await db.prepare("SELECT i.id,i.review_id,i.user_id,i.role,i.decision,i.remediation_status,r.status review_status FROM corporate_access_review_items i JOIN corporate_access_reviews r ON r.id=i.review_id WHERE i.id=?").bind(input.itemId).first();
    if(!item)return response({error:'Access review item not found.'},404);
    if(item.review_status!=='open')return response({error:'Only open access reviews can be changed.'},409);
+   if(item.remediation_status==='completed')return response({error:'A successfully remediated access decision is immutable. Start a new access review if authority should be granted again.'},409);
    const remediation=input.decision==='revoke'?'pending':'not_required';
    await db.batch([
     db.prepare('UPDATE corporate_access_review_items SET decision=?,remediation_status=?,reviewer=?,reviewed_at=?,remediated_at=NULL,content=? WHERE id=?').bind(input.decision,remediation,user.id,now,JSON.stringify({note:input.note}),input.itemId),
-    securityEvent(db,user,'access_review.decision','access_review_item',input.itemId,{decision:input.decision,role:item.role,userId:item.user_id,reviewId:item.review_id},now),
+    securityEvent(db,user,'access_review.decision','access_review_item',input.itemId,{previousDecision:item.decision,decision:input.decision,role:item.role,userId:item.user_id,reviewId:item.review_id},now),
    ]);
    return response({ok:true,itemId:input.itemId,decision:input.decision,remediationStatus:remediation});
   }
@@ -79,6 +82,11 @@ export async function POST(request:Request){
    if(item.remediation_status==='completed')return response({ok:true,itemId:input.itemId,remediationStatus:'completed'});
    if(String(item.user_id)===user.id&&String(item.role)==='super_admin')return response({error:'Do not revoke the current Super Admin through its own privileged session. Another authorized Super Admin must review this access.'},409);
    if(!managedRole(String(item.role)))return response({error:'This role is not managed by the platform-role provisioning boundary.'},409);
+   // Record the external mutation intent before touching Supabase. A retry is safe because role revocation is idempotent and verified.
+   await db.batch([
+    db.prepare("UPDATE corporate_access_review_items SET remediation_status='pending' WHERE id=? AND remediation_status!='completed'").bind(input.itemId),
+    securityEvent(db,user,'access_review.remediation_requested','access_review_item',input.itemId,{role:item.role,userId:item.user_id,reviewId:item.review_id},now),
+   ]);
    try{
     await setPlatformRole({userId:String(item.user_id),role:String(item.role) as PlatformRole,enabled:false,grantedBy:user.id});
     const remediatedAt=new Date().toISOString();
@@ -88,7 +96,11 @@ export async function POST(request:Request){
     ]);
     return response({ok:true,itemId:input.itemId,remediationStatus:'completed'});
    }catch(error){
-    await db.prepare("UPDATE corporate_access_review_items SET remediation_status='failed' WHERE id=?").bind(input.itemId).run();
+    const failedAt=new Date().toISOString();
+    try{await db.batch([
+     db.prepare("UPDATE corporate_access_review_items SET remediation_status='failed' WHERE id=? AND remediation_status!='completed'").bind(input.itemId),
+     securityEvent(db,user,'access_review.remediation_failed','access_review_item',input.itemId,{role:item.role,userId:item.user_id,reviewId:item.review_id,error:'authority_source_change_or_verification_failed'},failedAt),
+    ])}catch(auditError){console.error('Access review remediation failure audit could not be recorded',auditError instanceof Error?auditError.message:'Unknown error')}
     throw error;
    }
   }
@@ -99,8 +111,8 @@ export async function POST(request:Request){
   if(Number(counts?.pending||0)>0)return response({error:'Every access item must have a retain or revoke decision before completion.'},409);
   if(Number(counts?.unremediated||0)>0)return response({error:'Every revoke decision must be successfully remediated before completion.'},409);
   await db.batch([
-   db.prepare("UPDATE corporate_access_reviews SET status='completed',completed_at=? WHERE id=? AND status='open'").bind(now,input.reviewId),
    securityEvent(db,user,'access_review.completed','access_review',input.reviewId,{itemCount:Number(counts?.total||0)},now),
+   db.prepare("UPDATE corporate_access_reviews SET status='completed',completed_at=? WHERE id=? AND status='open'").bind(now,input.reviewId),
   ]);
   return response({ok:true,reviewId:input.reviewId,status:'completed'});
  }catch(error:any){
