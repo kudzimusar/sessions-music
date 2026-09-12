@@ -1,8 +1,9 @@
 'use client';
 import {useEffect,useState} from 'react';
-import {Building2,CheckCircle2,Headphones,KeyRound,Landmark,ReceiptText,RefreshCw,ShieldAlert,ShieldCheck,UserCog,Users} from 'lucide-react';
+import {Activity,BarChart3,BookOpenCheck,Building2,CheckCircle2,ClipboardCheck,Headphones,KeyRound,Landmark,ReceiptText,RefreshCw,ShieldAlert,ShieldCheck,UserCog,Users,UsersRound} from 'lucide-react';
 import {Button} from '@/components/ui/button';
 import {sessionFetch} from '@/lib/supabase-browser';
+import {visibleCorporateModules,type CorporateModuleId} from '@/lib/corporate-control-plane';
 
 type Overview={
  roles:string[];permissions:string[];generatedAt:string;
@@ -10,19 +11,12 @@ type Overview={
  providers?:{pendingRegistrations:number;activeStaff:number};
  finance?:{disputed:number;awaitingPayment:number;invoices:number};
  support?:{openRegistryIssues:number;failedNotifications:number};
+ controlPlane?:{bookings:number;customers:number;activeMemberships:number;openSignals:number};
  error?:string;
 };
 type PrivilegedSession={id:string;purpose:string;createdAt:string;expiresAt:string};
 type PrivilegedState={assuranceLevel:'aal1'|'aal2'|null;eligible:boolean;privileged:PrivilegedSession|null;error?:string};
-type Office={permission:string;title:string;copy:string;icon:typeof ShieldCheck;href:string};
-const offices:Office[]=[
- {permission:'organization:read',title:'Organization & people',copy:'Departments, positions, reporting lines, leadership and acting responsibility inside Sessions.',icon:Users,href:'/corporate/organization'},
- {permission:'claims:review',title:'Trust & safety',copy:'Ownership claims, studio verification and marketplace integrity.',icon:ShieldCheck,href:'/corporate/trust'},
- {permission:'settlements:review',title:'Finance',copy:'Settlement exceptions, invoices, fee governance and reconciliation.',icon:ReceiptText,href:'/corporate/finance'},
- {permission:'support:read',title:'Customer support',copy:'Customer-facing issues and operational service health without private message access.',icon:Headphones,href:'/corporate/support'},
- {permission:'providers:oversight',title:'Provider operations',copy:'Provider onboarding, registrations and marketplace readiness.',icon:Building2,href:'/corporate/providers'},
- {permission:'platform:roles.manage',title:'Super administration',copy:'Platform authority, access reviews and office-role assignment. No provider or customer can self-promote.',icon:UserCog,href:'/corporate/access'},
-];
+const moduleIcons:Record<CorporateModuleId,typeof ShieldCheck>={organization:Users,bookings:BookOpenCheck,customers:UsersRound,providers:Building2,memberships:UsersRound,incidents:Activity,finance:ReceiptText,support:Headphones,trust:ShieldCheck,analytics:BarChart3,audit:ClipboardCheck,access:UserCog};
 
 export default function CorporateWorkspace(){
  const[data,setData]=useState<Overview|null>(null),[error,setError]=useState(''),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
@@ -33,16 +27,17 @@ export default function CorporateWorkspace(){
  useEffect(()=>{if(data?.permissions.includes('platform:roles.manage'))void loadPrivileged()},[data]);
  if(loading)return <section data-sessions-surface="corporate" className="r-width r-inner"><div className="r-loading">Loading corporate authority…</div></section>;
  if(error)return <section data-sessions-surface="corporate" className="r-width r-inner"><div className="r-panel"><h1>Corporate console unavailable</h1><p>{error}</p><Button onClick={()=>void load()}><RefreshCw size={16}/>Retry</Button></div></section>;
- const permissions=new Set(data?.permissions||[]),roles=data?.roles||[];
+ const permissions=new Set(data?.permissions||[]),roles=data?.roles||[],modules=visibleCorporateModules(permissions);
  const canOpenOperations=permissions.has('claims:review')&&permissions.has('settlements:review')&&permissions.has('support:read')&&permissions.has('providers:oversight');
  const privilegedReady=!!privileged?.privileged;
  const changePrivileged=async(action:'activate'|'revoke',purpose='')=>{setPrivilegedBusy(true);setPrivilegedMessage('');try{const response=await sessionFetch('/api/corporate/privileged',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(action==='activate'?{action,purpose}:{action})});const value=await response.json();if(!response.ok)throw new Error(value.error||'Privileged administration change failed');setPrivilegedMessage(action==='activate'?'Privileged administration is active for this identity session.':'Privileged administration was revoked.');await loadPrivileged()}catch(e){setPrivilegedMessage(e instanceof Error?e.message:'Privileged administration change failed')}finally{setPrivilegedBusy(false)}};
  return <section data-sessions-surface="corporate" className="r-width r-inner">
-  <div className="r-workspace-heading"><div><div className="r-eyebrow"><Landmark size={16}/>SESSIONS CORPORATE</div><h1>Platform control centre.</h1><p className="r-intro">One authority plane for the marketplace and the company operating it. Each office sees only the responsibilities assigned to its account.</p></div><div className="r-panel"><strong>Signed-in authority</strong><p>{roles.map(role=>role.replaceAll('_',' ')).join(' · ')||'No corporate role'}</p></div></div>
-  <div className="r-trust-row"><span><ShieldCheck/>Deny by default</span><span><Users/>Named staff identities</span><span><CheckCircle2/>Org chart ≠ RBAC</span></div>
+  <div className="r-workspace-heading"><div><div className="r-eyebrow"><Landmark size={16}/>SESSIONS CORPORATE</div><h1>Platform control centre.</h1><p className="r-intro">One authority plane for the marketplace and the company operating it. Navigation is generated from this account’s assigned permissions; customer, provider and corporate views remain projections of the same production records.</p></div><div className="r-panel"><strong>Signed-in authority</strong><p>{roles.map(role=>role.replaceAll('_',' ')).join(' · ')||'No corporate role'}</p><p className="r-small">{modules.length} corporate modules assigned</p></div></div>
+  <div className="r-trust-row"><span><ShieldCheck/>Deny by default</span><span><Users/>Named staff identities</span><span><CheckCircle2/>Org chart ≠ RBAC</span><span><Landmark/>One source of truth</span></div>
+  {data?.controlPlane&&<div className="r-metrics"><div><span>Bookings</span><strong>{data.controlPlane.bookings}</strong><BookOpenCheck/></div><div><span>Customers</span><strong>{data.controlPlane.customers}</strong><UsersRound/></div><div><span>Active memberships</span><strong>{data.controlPlane.activeMemberships}</strong><UsersRound/></div><div><span>Open signals</span><strong>{data.controlPlane.openSignals}</strong><Activity/></div></div>}
   {data?.marketplace&&<div className="r-metrics"><div><span>Marketplace studios</span><strong>{data.marketplace.studios}</strong><Building2/></div><div><span>Bookable studios</span><strong>{data.marketplace.bookable}</strong><CheckCircle2/></div><div><span>Pending claims</span><strong>{data.marketplace.pendingClaims}</strong><ShieldCheck/></div><div><span>Verification queue</span><strong>{data.marketplace.pendingVerifications}</strong><ShieldCheck/></div></div>}
-  <h2>Corporate offices</h2><div className="r-studio-grid">{offices.map(({permission,title,copy,icon:Icon,href})=>{const allowed=permissions.has(permission);return <article className="r-panel" key={permission}><Icon size={25}/><span className={'r-badge '+(allowed?'claimed':'')}>{allowed?'Assigned':'Not assigned'}</span><h3>{title}</h3><p>{copy}</p>{allowed?<a className="r-primary" href={href}>Open {title}</a>:<p className="r-small">This account cannot open this office.</p>}</article>})}</div>
-  {canOpenOperations&&<section className="r-panel"><div className="r-eyebrow"><Landmark size={16}/>CROSS-MARKETPLACE OPERATIONS</div><h2>General Operations console</h2><p>This account has the combined Trust, Finance, Support and Provider Operations authority required for cross-marketplace incident handling.</p><a className="r-primary" href="/registry-admin">Open Operations console</a></section>}
+  <div className="c4-section-heading"><div><h2>Your corporate modules</h2><p className="r-small">Only modules this account is authorized to open are rendered.</p></div></div><div className="r-studio-grid c4-module-grid">{modules.map(module=>{const Icon=moduleIcons[module.id];return <article className="r-panel" key={module.id}><Icon size={25}/><span className="r-badge claimed">Assigned</span><h3>{module.title}</h3><p>{module.description}</p><a className="r-primary" href={module.href}>Open {module.shortTitle}</a></article>})}</div>
+  {canOpenOperations&&<section className="r-panel"><div className="r-eyebrow"><Landmark size={16}/>CROSS-MARKETPLACE OPERATIONS</div><h2>General Operations console</h2><p>This account has the combined Trust, Finance, Support and Provider Operations authority required for cross-marketplace operational handling. This legacy combined view remains available while the control plane is migrated module by module.</p><a className="r-secondary" href="/registry-admin">Open combined Operations console</a></section>}
   <div className="r-metrics">{data?.providers&&<><div><span>Provider registrations</span><strong>{data.providers.pendingRegistrations}</strong><Building2/></div><div><span>Active provider staff</span><strong>{data.providers.activeStaff}</strong><Users/></div></>}{data?.finance&&<><div><span>Settlement disputes</span><strong>{data.finance.disputed}</strong><ReceiptText/></div><div><span>Payment records needing attention</span><strong>{data.finance.awaitingPayment}</strong><ReceiptText/></div></>}{data?.support&&<><div><span>Open registry issues</span><strong>{data.support.openRegistryIssues}</strong><Headphones/></div><div><span>Failed notifications</span><strong>{data.support.failedNotifications}</strong><Headphones/></div></>}</div>
   {permissions.has('platform:roles.manage')&&<section className="r-panel" id="role-control"><div className="r-eyebrow"><UserCog size={16}/>SUPER ADMINISTRATION</div><h2>Privileged authority control</h2><p>Role administration is a two-gate action: the account must already be Super Admin, and this exact production identity session must have AAL2 multi-factor assurance plus a current 15-minute privileged window.</p>
    <div className="r-trust-row"><span><KeyRound/>Authentication assurance: <strong>{privileged?.assuranceLevel?.toUpperCase()||'Unavailable'}</strong></span><span><ShieldCheck/>Privileged window: <strong>{privilegedReady?'Active':'Inactive'}</strong></span></div>
