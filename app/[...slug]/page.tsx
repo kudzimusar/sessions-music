@@ -16,33 +16,24 @@ type Props={params:Promise<{slug:string[]}>};
 export const dynamic='force-dynamic';
 export async function generateMetadata({params}:Props):Promise<Metadata>{
  const {slug}=await params;if(slug[0]!=='studio'||slug.length!==2)return {};
- const studio=await readPublicStudio(slug[1]);
- const title=studio?studio.name+' | Sessions':'Studio unavailable | Sessions';
- const description=studio?studio.description:'This studio profile is unavailable. Browse the Sessions Harare directory.';
+ const studio=await readPublicStudio(slug[1]);const title=studio?studio.name+' | Sessions':'Studio unavailable | Sessions';const description=studio?studio.description:'This studio profile is unavailable. Browse the Sessions Harare directory.';
  return {title,description,openGraph:{title,description,images:[]},twitter:{card:'summary',title,description,images:[]},...(studio?{}:{robots:{index:false,follow:false}})};
 }
 const corporateSurface=(children:React.ReactNode)=><div data-sessions-surface="corporate">{children}</div>;
 export default async function Page({params}:Props){
  const {slug}=await params;const path='/'+slug.join('/');
- // Legacy marketplace URLs now resolve into the same production registry/account/authority domain.
- if(path==='/provider')redirect('/manage');
- if(path==='/admin')redirect('/corporate');
- if(path==='/bookings')redirect('/requests');
- if(path==='/profile')redirect('/account');
-
- // The sample booking sandbox remains deliberately separate and owner-only once production identity is enabled.
+ if(path==='/provider')redirect('/manage');if(path==='/admin')redirect('/corporate');if(path==='/bookings')redirect('/requests');if(path==='/profile')redirect('/account');
  const sandboxSurface=['demo','saved','space','booking'].includes(slug[0]);
  if(sandboxSurface&&(env as unknown as {SESSIONS_IDENTITY_MODE?:string}).SESSIONS_IDENTITY_MODE==='supabase'){
   const user=await getChatGPTUser();if(!user)redirect(chatGPTSignInPath(path));
-  const allowed=((env as unknown as {SESSIONS_DEMO_OWNER_EMAILS?:string}).SESSIONS_DEMO_OWNER_EMAILS||'').split(',').map(value=>value.trim().toLowerCase()).filter(Boolean);
-  if(!allowed.includes(user.email.toLowerCase()))notFound();
+  const allowed=((env as unknown as {SESSIONS_DEMO_OWNER_EMAILS?:string}).SESSIONS_DEMO_OWNER_EMAILS||'').split(',').map(value=>value.trim().toLowerCase()).filter(Boolean);if(!allowed.includes(user.email.toLowerCase()))notFound();
  }
  if(slug[0]==='studio'&&slug.length===2)return <RegistryApp path={path} initialStudio={await readPublicStudio(slug[1])}/>;
  if(slug[0]==='corporate'){
   if(slug.length===1)return corporateSurface(<AccessBoundary surface="corporate" returnTo="/corporate"><CorporateWorkspace/></AccessBoundary>);
   if(slug.length!==2)notFound();
   if(slug[1]==='organization')return corporateSurface(<AccessBoundary surface="corporate" returnTo="/corporate/organization" requiredPermissions={['organization:read']}><CorporateOrganization/></AccessBoundary>);
-  if(slug[1]==='access')return corporateSurface(<AccessBoundary surface="corporate" returnTo="/corporate/access" requiredPermissions={['platform:roles.manage']}><CorporateAccessReviews/></AccessBoundary>);
+  if(slug[1]==='access')return corporateSurface(<AccessBoundary surface="corporate" returnTo="/corporate/access" requiredPermissions={['security:read']}><CorporateAccessReviews/></AccessBoundary>);
   if(isCorporateReadModule(slug[1])){const module=moduleForId(slug[1]);if(!module)notFound();return corporateSurface(<AccessBoundary surface="corporate" returnTo={module.href} requiredPermissions={[...module.requiredPermissions]}><CorporateControlPlane module={slug[1]}/></AccessBoundary>)}
   if(slug[1]==='trust')return corporateSurface(<AccessBoundary surface="corporate" returnTo="/corporate/trust" requiredPermissions={['claims:review','verification:review']}><CorporateOffice office="trust"/></AccessBoundary>);
   if(slug[1]==='finance')return corporateSurface(<AccessBoundary surface="corporate" returnTo="/corporate/finance" requiredPermissions={['settlements:review']}><CorporateOffice office="finance"/></AccessBoundary>);
