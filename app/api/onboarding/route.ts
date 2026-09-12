@@ -2,6 +2,7 @@ import {z} from 'zod';
 import {getProductionUser} from '@/app/chatgpt-auth';
 import {database} from '@/db/store';
 import {normalizeZimbabwePhone} from '@/lib/identity-core';
+import {consumeContinuationIntent} from '@/lib/continuation';
 import {REQUIRED_CONSENTS,readOnboardingSnapshot,safeInternalPath} from '@/lib/onboarding-server';
 
 const response=(data:unknown,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'private, no-store, max-age=0','Pragma':'no-cache','X-Content-Type-Options':'nosniff'}});
@@ -13,6 +14,7 @@ const input=z.discriminatedUnion('action',[
  z.object({action:z.literal('setIntention'),journey:z.enum(['customer','provider','corporate'])}),
  z.object({action:z.literal('setWhatsAppPreference'),phone:z.string().min(7).max(30),optedIn:z.boolean(),idempotencyKey:z.string().min(8).max(120),channel:z.enum(['web','pwa','ios','android']).default('web')}),
  z.object({action:z.literal('setLastContext'),contextType:z.enum(['personal','provider','corporate']),contextId:z.string().min(1).max(160)}),
+ z.object({action:z.literal('consumeContinuation'),token:z.string().min(20).max(180)}),
 ]);
 
 export async function GET(){
@@ -52,9 +54,7 @@ export async function POST(request:Request){
     if(!staff)return response({error:'Corporate access is invitation-only. No active Sessions staff invitation matches this identity.'},403);
     const status=String(staff.status)==='active'?'security_setup_required':'invited';
     await db.prepare("INSERT INTO sessions_onboarding_journeys(id,user_id,journey,context_key,status,current_step,revision,started_at,updated_at,content) VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT(user_id,journey,context_key) DO UPDATE SET status=excluded.status,current_step=excluded.current_step,revision=sessions_onboarding_journeys.revision+1,updated_at=excluded.updated_at").bind(newId('journey'),actor.id,'corporate',String(staff.id),status,status==='invited'?'accept_invitation':'security_setup',0,at,at,'{}').run();
-   }else{
-    await db.prepare("UPDATE sessions_onboarding_journeys SET updated_at=? WHERE user_id=? AND journey='customer'").bind(at,actor.id).run();
-   }
+   }else await db.prepare("UPDATE sessions_onboarding_journeys SET updated_at=? WHERE user_id=? AND journey='customer'").bind(at,actor.id).run();
   }else if(body.action==='setWhatsAppPreference'){
    const phone=normalizeZimbabwePhone(body.phone);
    if(!actor.phone||normalizeZimbabwePhone(actor.phone)!==phone)return response({error:'WhatsApp can only be enabled for the verified phone on your Sessions identity.'},409);
@@ -62,6 +62,9 @@ export async function POST(request:Request){
    if(existing)await db.prepare('UPDATE sessions_user_contacts SET consent_status=?,verified_at=?,updated_at=? WHERE id=?').bind(body.optedIn?'opted_in':'opted_out',at,at,String(existing.id)).run();
    else await db.prepare('INSERT INTO sessions_user_contacts(id,user_id,kind,value,is_primary,verified_at,source,consent_status,created_at,updated_at,content) VALUES(?,?,?,?,?,?,?,?,?,?,?)').bind(newId('contact'),actor.id,'whatsapp',phone,0,at,'user',body.optedIn?'opted_in':'opted_out',at,at,'{}').run();
    await db.prepare('INSERT OR IGNORE INTO sessions_consents(id,user_id,consent_type,document_version,decision,channel,source,idempotency_key,occurred_at,content) VALUES(?,?,?,?,?,?,?,?,?,?)').bind(newId('consent'),actor.id,'whatsapp','whatsapp-v1',body.optedIn?'granted':'withdrawn',body.channel,'settings',body.idempotencyKey,at,'{}').run();
+  }else if(body.action==='consumeContinuation'){
+   const continuation=await consumeContinuationIntent(body.token,actor.id);if(!continuation)return response({error:'That continuation link has expired, was already used, or belongs to another identity.'},409);
+   return response({...await readOnboardingSnapshot(actor),returnPath:continuation.returnPath,continuationConsumed:true});
   }else{
    const snapshot=await readOnboardingSnapshot(actor);const allowed=snapshot.contexts.some(context=>context.type===body.contextType&&context.id===body.contextId&&context.status==='active');
    if(!allowed)return response({error:'That workspace is not currently authorized for this identity.'},403);
