@@ -26,6 +26,9 @@ if(new Set(migrationNumbers).size!==migrationNumbers.length)fail('duplicate nume
 for(const required of ['0018_phase45_identity_onboarding.sql','0019_phase5_booking_ops_cases.sql'])if(!migrationFiles.includes(required))fail(`required migration is missing: ${required}`);
 
 const releaseInfo=readFileSync(resolve(root,'lib/release-info.ts'),'utf8');
+if(!releaseInfo.includes("id: 'unified-platform-v1-phase5'"))fail('release provenance is stale: expected Phase 5 release id');
+if(!/phase:\s*5\b/.test(releaseInfo))fail('release provenance is stale: expected phase 5');
+if(!releaseInfo.includes("phaseStatus: 'complete'"))fail('release provenance does not declare Phase 5 complete');
 if(!releaseInfo.includes("brandPrimary: '#4169E1'"))fail('release provenance no longer declares canonical Royal Blue');
 if(!releaseInfo.includes("deploymentModel: 'chatgpt-sites-versioned'"))fail('release provenance no longer declares versioned Sites deployment');
 
@@ -36,4 +39,4 @@ if(expectedSha){
 }
 
 if(process.exitCode)process.exit(process.exitCode);
-console.log(`Release preflight passed for ${expectedSha||'local revision'}: canonical hosting, migrations, Phase 5 routes, review docs and provenance are present.`);
+console.log(`Release preflight passed for ${expectedSha||'local revision'}: canonical hosting, Phase 4.5/5 migrations and routes, review docs, and Phase 5 provenance are present.`);
