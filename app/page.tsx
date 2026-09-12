@@ -1,2 +1,2 @@
-import RegistryApp from './registry';
-export default function Page(){return <RegistryApp/>}
+import CustomerV5 from './customer-v5';
+export default function Page(){return <CustomerV5 path="/mobile"/>}
