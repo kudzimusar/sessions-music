@@ -6,7 +6,9 @@ type RuntimeEnv={
   SUPABASE_URL?:string;
   SUPABASE_PUBLISHABLE_KEY?:string;
   SUPABASE_PHONE_AUTH_ENABLED?:string;
+  SUPABASE_EMAIL_AUTH_ENABLED?:string;
   SUPABASE_GOOGLE_AUTH_ENABLED?:string;
+  SUPABASE_APPLE_AUTH_ENABLED?:string;
   SUPABASE_CAPTCHA_PROVIDER?:string;
   SUPABASE_CAPTCHA_SITE_KEY?:string;
 };
@@ -22,9 +24,10 @@ export async function GET(){
     enabled:configured,
     ...(configured?{url:values.SUPABASE_URL,publishableKey:values.SUPABASE_PUBLISHABLE_KEY}:{}),
     phoneEnabled:configured&&enabled(values.SUPABASE_PHONE_AUTH_ENABLED),
+    emailEnabled:configured&&enabled(values.SUPABASE_EMAIL_AUTH_ENABLED),
     googleEnabled:configured&&enabled(values.SUPABASE_GOOGLE_AUTH_ENABLED),
+    appleEnabled:configured&&enabled(values.SUPABASE_APPLE_AUTH_ENABLED),
     captchaProvider,
     ...(captchaProvider&&values.SUPABASE_CAPTCHA_SITE_KEY?{captchaSiteKey:values.SUPABASE_CAPTCHA_SITE_KEY}:{}),
   },{headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
 }
-
