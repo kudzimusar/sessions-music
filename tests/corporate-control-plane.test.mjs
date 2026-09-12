@@ -42,7 +42,7 @@ test('corporate navigation covers the approved Phase 4 information architecture 
  const governance=control.visibleCorporateModules(access.permissionsForRoles(['governance_reviewer'])).map(module=>module.id);assert.ok(governance.includes('access'));assert.ok(governance.includes('audit'));assert.equal(governance.includes('finance'),false);
 });
 
-test('department workspace ownership is explicit but remains separate from RBAC',()=>{
+test('department workspace ownership is explicit but remains separate from RBAC',async()=>{
  const modules=control.visibleCorporateModules(access.permissionsForRoles(['corporate_admin']));const contexts=control.departmentContextsForModules(modules);const marketplace=contexts.find(value=>value.department==='Marketplace Operations');
  assert.ok(marketplace?.modules.some(module=>module.id==='bookings'));assert.equal(control.moduleForId('memberships').ownerDepartment,'Memberships & Retention');assert.equal(control.moduleForId('growth').ownerDepartment,'Growth & Marketing');
  const source=await read('lib/corporate-control-plane.ts');const authBody=source.slice(source.indexOf('export function canOpenCorporateModule'),source.indexOf('export function visibleCorporateModules'));assert.doesNotMatch(authBody,/ownerDepartment|supportingDepartments/);
