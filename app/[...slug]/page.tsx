@@ -13,6 +13,7 @@ import {isCorporateReadModule,moduleForId} from '@/lib/corporate-control-plane';
 import {env} from 'cloudflare:workers';
 import {notFound,redirect} from 'next/navigation';
 import {getChatGPTUser,getProductionUser,chatGPTSignInPath} from '@/app/chatgpt-auth';
+import {createContinuationIntent} from '@/lib/continuation';
 import {hasWorkspaceContext,readOnboardingSnapshot} from '@/lib/onboarding-server';
 type Props={params:Promise<{slug:string[]}>};
 export const dynamic='force-dynamic';
@@ -23,6 +24,7 @@ export async function generateMetadata({params}:Props):Promise<Metadata>{
  return {title,description,openGraph:{title,description,images:[]},twitter:{card:'summary',title,description,images:[]},robots:{index:false,follow:false}};
 }
 const corporateSurface=(children:React.ReactNode)=><div data-sessions-surface="corporate">{children}</div>;
+async function sendToOnboarding(path:string,userId?:string|null,entry:'welcome'|'onboarding'='onboarding'):Promise<never>{const token=await createContinuationIntent(path,'route',userId||null);redirect(`/${entry}?continue=${encodeURIComponent(token)}`)}
 export default async function Page({params}:Props){
  const {slug}=await params;const path='/'+slug.join('/');
  if(path==='/provider')redirect('/manage');if(path==='/admin')redirect('/corporate');if(path==='/bookings')redirect('/requests');if(path==='/profile')redirect('/account');
@@ -31,14 +33,13 @@ export default async function Page({params}:Props){
   const user=await getChatGPTUser();if(!user)redirect(chatGPTSignInPath(path));
   const allowed=((env as unknown as {SESSIONS_DEMO_OWNER_EMAILS?:string}).SESSIONS_DEMO_OWNER_EMAILS||'').split(',').map(value=>value.trim().toLowerCase()).filter(Boolean);if(!allowed.includes(user.email.toLowerCase()))notFound();
  }
- const actor=await getProductionUser();if(!actor)redirect('/welcome?return_to='+encodeURIComponent(path));
- const snapshot=await readOnboardingSnapshot(actor).catch(()=>null);if(!snapshot)redirect('/onboarding?return_to='+encodeURIComponent(path));
- if(['profile','consent','workspace','restricted'].includes(snapshot.nextStep))redirect('/onboarding?return_to='+encodeURIComponent(path));
+ const actor=await getProductionUser();if(!actor)return sendToOnboarding(path,null,'welcome');
+ const snapshot=await readOnboardingSnapshot(actor).catch(()=>null);if(!snapshot||['profile','consent','workspace','restricted'].includes(snapshot.nextStep))return sendToOnboarding(path,actor.id);
  const corporatePath=slug[0]==='corporate'||slug[0]==='registry-admin';
- if(corporatePath&&!hasWorkspaceContext(snapshot,'corporate'))redirect('/onboarding?return_to='+encodeURIComponent(path));
- if(path==='/manage'&&!hasWorkspaceContext(snapshot,'provider'))redirect('/onboarding?return_to='+encodeURIComponent(path));
+ if(corporatePath&&!hasWorkspaceContext(snapshot,'corporate'))return sendToOnboarding(path,actor.id);
+ if(path==='/manage'&&!hasWorkspaceContext(snapshot,'provider'))return sendToOnboarding(path,actor.id);
  const customerPath=!corporatePath&&path!=='/manage'&&!sandboxSurface&&path!=='/account';
- if(customerPath&&!hasWorkspaceContext(snapshot,'personal'))redirect('/onboarding?return_to='+encodeURIComponent(path));
+ if(customerPath&&!hasWorkspaceContext(snapshot,'personal'))return sendToOnboarding(path,actor.id);
  if(slug[0]==='studio'&&slug.length===2)return <RegistryApp path={path} initialStudio={await readPublicStudio(slug[1])}/>;
  if(path==='/mobile')return <CustomerV5 path="/mobile"/>;
  if(path==='/account')return <CustomerV5 path="/account"/>;
