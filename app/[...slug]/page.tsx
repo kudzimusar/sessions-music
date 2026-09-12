@@ -6,6 +6,8 @@ import CorporateOffice from '../corporate-office';
 import CorporateOrganization from '../corporate-organization';
 import CorporateAccessReviews from '../corporate-access-reviews';
 import CorporateControlPlane from '../corporate-control-plane';
+import CorporateBookingOps from '../corporate-booking-ops';
+import CorporateCases from '../corporate-cases';
 import AccessBoundary from '../access-boundary';
 import type {Metadata} from 'next';
 import {readPublicStudio} from '@/db/public-studio';
@@ -48,6 +50,8 @@ export default async function Page({params}:Props){
   if(slug.length!==2)notFound();
   if(slug[1]==='organization')return corporateSurface(<AccessBoundary surface="corporate" returnTo="/corporate/organization" requiredPermissions={['organization:read']}><CorporateOrganization/></AccessBoundary>);
   if(slug[1]==='access')return corporateSurface(<AccessBoundary surface="corporate" returnTo="/corporate/access" requiredPermissions={['security:read']}><CorporateAccessReviews/></AccessBoundary>);
+  if(slug[1]==='bookings')return corporateSurface(<AccessBoundary surface="corporate" returnTo="/corporate/bookings" requiredPermissions={['bookings:read']}><CorporateBookingOps/></AccessBoundary>);
+  if(slug[1]==='incidents')return corporateSurface(<AccessBoundary surface="corporate" returnTo="/corporate/incidents" requiredPermissions={['cases:read']}><CorporateCases/></AccessBoundary>);
   if(isCorporateReadModule(slug[1])){const module=moduleForId(slug[1]);if(!module)notFound();return corporateSurface(<AccessBoundary surface="corporate" returnTo={module.href} requiredPermissions={[...module.requiredPermissions]}><CorporateControlPlane module={slug[1]}/></AccessBoundary>)}
   if(slug[1]==='trust')return corporateSurface(<AccessBoundary surface="corporate" returnTo="/corporate/trust" requiredPermissions={['claims:review','verification:review']}><CorporateOffice office="trust"/></AccessBoundary>);
   if(slug[1]==='finance')return corporateSurface(<AccessBoundary surface="corporate" returnTo="/corporate/finance" requiredPermissions={['settlements:review']}><CorporateOffice office="finance"/></AccessBoundary>);
