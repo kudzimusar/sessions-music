@@ -1,0 +1,21 @@
+# Sessions release/security ownership boundaries.
+# GitHub enforces these only when the repository rules require code-owner review.
+
+/.github/workflows/ @kudzimusar
+/.github/CODEOWNERS @kudzimusar
+/.openai/hosting.json @kudzimusar
+/scripts/build-verified.sh @kudzimusar
+/scripts/release-gate.mjs @kudzimusar
+/scripts/write-release-evidence.mjs @kudzimusar
+/package.json @kudzimusar
+/package-lock.json @kudzimusar
+/drizzle/ @kudzimusar
+/supabase/ @kudzimusar
+/app/chatgpt-auth.ts @kudzimusar
+/lib/access-control.ts @kudzimusar
+/lib/identity-core.ts @kudzimusar
+/lib/privileged-access.ts @kudzimusar
+/lib/data-access-policy.ts @kudzimusar
+/app/api/corporate/ @kudzimusar
+/docs/RELEASE-GATE-PROCESS.md @kudzimusar
+/docs/SITES-DEPLOYMENT-RUNBOOK.md @kudzimusar

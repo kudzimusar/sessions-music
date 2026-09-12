@@ -2,7 +2,7 @@ import test,{after} from 'node:test';
 import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import {build} from 'esbuild';
-import {readFileSync,writeFileSync,mkdtempSync,rmSync} from 'node:fs';
+import {readFileSync,mkdtempSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join,resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
@@ -12,7 +12,11 @@ for(const file of ['0000_premium_charles_xavier.sql','0001_violet_angel.sql'])sq
 class Statement{constructor(query){this.query=query;this.params=[]}bind(...params){this.params=params;return this}async first(){return sql.prepare(this.query).get(...this.params)??null}async all(){return {results:sql.prepare(this.query).all(...this.params)}}async run(){return sql.prepare(this.query).run(...this.params)}}
 const db={prepare:q=>new Statement(q),async batch(statements){sql.exec('BEGIN');try{const results=[];for(const s of statements)results.push(sql.prepare(s.query).run(...s.params));sql.exec('COMMIT');return results}catch(e){sql.exec('ROLLBACK');throw e}}};
 globalThis.__sessionsTest={db,user:{email:'musician-a@example.test',displayName:'Test Musician'}};
-const plugin={name:'test-boundaries',setup(b){b.onResolve({filter:/cloudflare:workers/},()=>({path:'runtime',namespace:'fixture'}));b.onResolve({filter:/chatgpt-auth/},()=>({path:'auth',namespace:'fixture'}));b.onLoad({filter:/.*/,namespace:'fixture'},args=>({contents:args.path==='auth'?'export const getChatGPTUser=async()=>globalThis.__sessionsTest.user;':'export const env={DB:globalThis.__sessionsTest.db};',loader:'js'}))}};
+const authFixture=`
+export const getChatGPTUser=async()=>globalThis.__sessionsTest.user;
+export const getProductionUser=async()=>{const user=globalThis.__sessionsTest.user;return user?{id:user.email.toLowerCase(),displayName:user.displayName,email:user.email.toLowerCase(),phone:null,roles:['musician'],scopedRoles:[],memberships:[],method:'chatgpt_demo',sessionId:'test-session',assuranceLevel:null}:null};
+`;
+const plugin={name:'test-boundaries',setup(b){b.onResolve({filter:/cloudflare:workers/},()=>({path:'runtime',namespace:'fixture'}));b.onResolve({filter:/chatgpt-auth/},()=>({path:'auth',namespace:'fixture'}));b.onLoad({filter:/.*/,namespace:'fixture'},args=>({contents:args.path==='auth'?authFixture:'export const env={DB:globalThis.__sessionsTest.db};',loader:'js'}))}};
 for(const [name,entry]of [['route','app/api/action/route.ts'],['domain','lib/domain.ts'],['state','app/api/state/route.ts']]){await build({entryPoints:[resolve(entry)],bundle:true,platform:'node',format:'esm',outfile:join(temp,name+'.mjs'),plugins:[plugin],logLevel:'silent'})}
 const {POST}=await import(pathToFileURL(join(temp,'route.mjs')));const {GET}=await import(pathToFileURL(join(temp,'state.mjs')));const d=await import(pathToFileURL(join(temp,'domain.mjs')));
 async function action(payload){const response=await POST(new Request('https://sessions.test/api/action',{method:'POST',headers:{'Content-Type':'application/json','Origin':'https://sessions.test'},body:JSON.stringify(payload)}));return {status:response.status,...await response.json()}}
@@ -29,7 +33,7 @@ test('booking is server-priced, durable and idempotent',async()=>{const request=
 test('double booking and the reset buffer cannot overlap',async()=>{assert.equal((await action(base())).status,409);assert.equal((await action({...base(),start:660})).status,409);assert.equal((await action({...base(),start:690})).status,200)});
 test('reviews require a completed booking',async()=>{const r=await action({type:'review',id:booked.id,review:{rating:5,text:'Clear and balanced sound.'}});assert.equal(r.status,400)});
 test('one conflicting recurring week rolls back the whole series',async()=>{const existing=await action({...base(),date:d.addDays(date,7),start:900});assert.equal(existing.status,200);const count=sql.prepare('SELECT count(*) n FROM bookings').get().n;const r=await action({...base(),start:900,weeks:4});assert.equal(r.status,409);assert.equal(sql.prepare('SELECT count(*) n FROM bookings').get().n,count)});
-test('concurrent competing reservations commit only one',async()=>{const requests=[{...base(),start:1020},{...base(),start:1020}];const out=await Promise.all(requests.map(action));assert.equal(out.filter(r=>r.status===200).length,1);assert.equal(out.filter(r=>r.status===409).length,1)});
+test('concurrent competing reservations commit only one',async()=>{const concurrentDate=d.addDays(date,3);const requests=[{...base(),date:concurrentDate,start:1020},{...base(),date:concurrentDate,start:1020}];const out=await Promise.all(requests.map(action));assert.equal(out.filter(r=>r.status===200).length,1);assert.equal(out.filter(r=>r.status===409).length,1)});
 test('manual institutional blocks prevent reservations',async()=>{const r=await action({type:'block',block:{roomId:'the-live-room',date,start:1140,end:1260,reason:'Internal use'}});assert.equal(r.status,200);assert.equal((await action({...base(),start:1140})).status,409)});
 test('cancellation records a refund and releases the inventory',async()=>{const r=await action({type:'cancel',id:booked.id});assert.equal(r.status,200);assert.equal(r.booking.refund,r.booking.total);assert.equal(r.booking.payment,'refunded');assert.equal((await action(base())).status,200)});
 test('approval-required room authorizes then captures only after approval',async()=>{const room='the-music-hall';let day=d.addDays(d.localDate(),15);while(new Date(day+'T12:00Z').getUTCDay()!==6)day=d.addDays(day,1);const req=await action({...base(),roomId:room,date:day,start:600});assert.equal(req.status,200);assert.equal(req.booking.status,'pending_approval');assert.equal(req.booking.payment,'authorized');const approved=await action({type:'approve',id:req.booking.id});assert.equal(approved.booking.payment,'paid');assert.equal(approved.booking.status,'confirmed')});

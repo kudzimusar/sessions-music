@@ -9,18 +9,126 @@ permissions:
   contents: read
 
 concurrency:
-  group: sessions-ci-${{ github.ref }}
+  group: sessions-ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  verify:
+  verify-head:
+    name: verify exact PR head
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
-      - run: npm test
+      - run: npm ci --include=dev
+      - name: Verify locked build inputs
+        run: |
+          set -euo pipefail
+          test -s node_modules/.bin/vinext
+          test -s node_modules/tw-animate-css/dist/tw-animate.css
+          test -s node_modules/@tailwindcss/postcss/package.json
+          npm ls tw-animate-css tailwindcss vinext --depth=0
+      - name: Verify immutable source revision
+        run: npm run verify:release
+        env:
+          SESSIONS_EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+      - name: Write immutable release evidence
+        run: node scripts/write-release-evidence.mjs
+        env:
+          SESSIONS_EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+      - name: Publish exact-head release evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: sessions-release-evidence-${{ github.event.pull_request.head.sha }}
+          path: release-evidence.json
+          if-no-files-found: error
+          retention-days: 30
+
+  verify-merge:
+    name: verify merge candidate
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --include=dev
+      - name: Verify locked build inputs
+        run: |
+          set -euo pipefail
+          test -s node_modules/.bin/vinext
+          test -s node_modules/tw-animate-css/dist/tw-animate.css
+          test -s node_modules/@tailwindcss/postcss/package.json
+          npm ls tw-animate-css tailwindcss vinext --depth=0
+      - name: Verify integration with current base
+        run: npm run verify:release
+
+  release-gate:
+    name: release-gate
+    if: always() && github.event_name == 'pull_request'
+    needs: [verify-head, verify-merge]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require exact-head and merge-candidate success
+        env:
+          HEAD_RESULT: ${{ needs.verify-head.result }}
+          MERGE_RESULT: ${{ needs.verify-merge.result }}
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          if [[ "$HEAD_RESULT" != "success" || "$MERGE_RESULT" != "success" ]]; then
+            echo "Release gate blocked. exact-head=$HEAD_RESULT merge-candidate=$MERGE_RESULT expected-head=$EXPECTED_HEAD" >&2
+            exit 1
+          fi
+          echo "Release gate passed for immutable PR head $EXPECTED_HEAD and its current merge candidate."
+
+  verify-main:
+    name: verify merged main revision
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --include=dev
+      - name: Verify locked build inputs
+        run: |
+          set -euo pipefail
+          test -s node_modules/.bin/vinext
+          test -s node_modules/tw-animate-css/dist/tw-animate.css
+          test -s node_modules/@tailwindcss/postcss/package.json
+          npm ls tw-animate-css tailwindcss vinext --depth=0
+      - name: Verify merged immutable revision
+        run: npm run verify:release
+        env:
+          SESSIONS_EXPECTED_SHA: ${{ github.sha }}
+      - name: Write merged release evidence
+        run: node scripts/write-release-evidence.mjs
+        env:
+          SESSIONS_EXPECTED_SHA: ${{ github.sha }}
+      - name: Publish merged-main release evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: sessions-release-evidence-main-${{ github.sha }}
+          path: release-evidence.json
+          if-no-files-found: error
+          retention-days: 30

@@ -16,10 +16,11 @@ export async function seedRegistry(){
  await db.batch(patches);
 }
 export async function readRegistry(user:(Partial<RegistryUser>&{email?:string|null;displayName:string;memberships?:readonly {organizationId:string;active:boolean}[]})|null,studioId?:string):Promise<RegistryState>{
- await seedRegistry();const db=database();const email=user?.email?.toLowerCase()||'';const phone=user?.phone||'';const contacts=[email,phone].filter(Boolean);const actor=user?.id||email;const operator=isRegistryUserOperator(user);
+ if(!user)throw new Error('SESSIONS_IDENTITY_REQUIRED');
+ await seedRegistry();const db=database();const email=user.email?.toLowerCase()||'';const phone=user.phone||'';const contacts=[email,phone].filter(Boolean);const actor=user.id||email;const operator=isRegistryUserOperator(user);
  const rows=(await db.prepare('SELECT * FROM studio_registry').all()).results;
  const allStaff=(await db.prepare('SELECT * FROM studio_staff').all()).results;
- const legacyIdentity=!user?.method||user.method==='chatgpt_demo';const activeOrganizations=new Set((user?.memberships||[]).filter(value=>value.active).map(value=>value.organizationId));
+ const legacyIdentity=!user.method||user.method==='chatgpt_demo';const activeOrganizations=new Set((user.memberships||[]).filter(value=>value.active).map(value=>value.organizationId));
  const ownerIds=rows.filter((r:any)=>r.owner===actor&&!!actor&&(legacyIdentity||activeOrganizations.has(r.id))).map((r:any)=>r.id);
  const managedIds=[...ownerIds,...allStaff.filter((r:any)=>contacts.includes(r.email)&&r.status==='active'&&r.role==='manager'&&(legacyIdentity||activeOrganizations.has(r.studio_id))).map((r:any)=>r.studio_id)];
  const studios=rows.map((r:any)=>({...JSON.parse(r.content),revision:r.revision} as Studio)).filter((s:Studio)=>!s.hidden||operator||managedIds.includes(s.id));
@@ -52,6 +53,6 @@ export async function readRegistry(user:(Partial<RegistryUser>&{email?:string|nu
  const preferenceRow=actor?await db.prepare('SELECT revision,content FROM booking_notification_preferences WHERE recipient=?').bind(actor).first():null;
  const notificationPreference:NotificationPreference|undefined=preferenceRow?{...JSON.parse(preferenceRow.content),revision:preferenceRow.revision}:undefined;
  const loyaltyCreditSetting=await readLoyaltyCreditSetting();
- const normalizedUser=user?{id:actor,displayName:user.displayName,email:user.email||null,phone:user.phone||null,roles:user.roles||[],method:user.method,sessionId:user.sessionId}:null;
+ const normalizedUser={id:actor,displayName:user.displayName,email:user.email||null,phone:user.phone||null,roles:user.roles||[],method:user.method,sessionId:user.sessionId};
  return {memberships,membershipLedger,loyaltyCreditSetting,bookingSeries,registrations,verifications,settlements,invoices,vouchers,bookingMessages:messages,messageThreads,notifications,notificationPreference,emailRemindersConfigured:emailConfiguration().ready,studios,staff,managedIds,ownerIds,bookings,claims,issues,operator,user:normalizedUser,invitations:personalStaff.filter((s:Staff)=>s.status==='invited'),myStaff:personalStaff.filter((s:Staff)=>s.status==='active'),occupancy} as RegistryState;
 }
