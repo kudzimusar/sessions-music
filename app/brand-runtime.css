@@ -1,0 +1,254 @@
+/*
+ * Runtime-safe production brand layer.
+ *
+ * ChatGPT Sites can render the application inside a hosting shell where relying
+ * on custom attributes attached to <body> is not a safe visual boundary. The
+ * original brand-v1 layer deliberately scoped most overrides through
+ * body[data-sessions-brand='v1']; this fallback binds the approved palette
+ * directly to production surface roots so the old registry palette cannot win
+ * because of host DOM normalization or stylesheet ordering.
+ */
+
+.registry-app {
+  --r-blue: #4169e1;
+  --r-deep: #000000;
+  --r-ink: #000000;
+  --r-muted: #5f6368;
+  --r-border: #dedede;
+  --r-soft: #f7f7f8;
+  --r-mint: #f7f7f8;
+  background: #ffffff !important;
+  color: #000000 !important;
+}
+
+.registry-app .r-header,
+.registry-app .r-panel,
+.registry-app .r-studio-card,
+.registry-app .r-map-list,
+.registry-app .r-map-caption,
+.registry-app .r-live-map,
+.registry-app .r-detail-facts,
+.registry-app .room-card,
+.registry-app .booking-row,
+.registry-app .confirmation-card,
+.registry-app .receipt-panel {
+  background: #ffffff !important;
+  border-color: #dedede !important;
+}
+
+.registry-app .r-header {
+  box-shadow: 0 1px 0 rgba(0, 0, 0, .04);
+}
+
+.registry-app .brand {
+  color: #000000 !important;
+}
+
+.registry-app .brand-symbol {
+  background: #4169e1 !important;
+  color: #ffffff !important;
+  border: 1px solid #4169e1 !important;
+}
+
+.registry-app .brand-period,
+.registry-app .r-link,
+.registry-app .r-back,
+.registry-app .r-owner-link,
+.registry-app .r-header nav a.active,
+.registry-app .r-eyebrow,
+.registry-app .r-card-title > svg,
+.registry-app .r-empty > svg,
+.registry-app .r-trust-row svg,
+.registry-app .r-bottom-nav a.active,
+.registry-app .r-bottom-nav a.active svg,
+.registry-app .r-bottom-nav a.active span {
+  color: #4169e1 !important;
+}
+
+.registry-app .r-header nav a.active::after {
+  background: #4169e1 !important;
+}
+
+.registry-app .r-primary,
+.registry-app .r-button-primary,
+.registry-app [data-sessions-action='primary'] {
+  background: #4169e1 !important;
+  border-color: #4169e1 !important;
+  color: #ffffff !important;
+}
+
+.registry-app .r-primary:hover,
+.registry-app .r-button-primary:hover,
+.registry-app [data-sessions-action='primary']:hover {
+  filter: brightness(.94);
+}
+
+.registry-app .r-secondary,
+.registry-app [data-slot='button'][data-variant='outline'] {
+  background: #ffffff !important;
+  border-color: #bdbdbd !important;
+  color: #000000 !important;
+}
+
+.registry-app .r-account {
+  background: #ffffff !important;
+  border-color: #c9c9c9 !important;
+  color: #000000 !important;
+}
+
+.registry-app .r-announcement,
+.registry-app .r-hero-note,
+.registry-app .r-claim-banner,
+.registry-app .r-empty,
+.registry-app .r-notice,
+.registry-app .r-mini-monogram,
+.registry-app .r-studio-brand,
+.registry-app .r-studio-brand.rehearsal,
+.registry-app .provider-banner,
+.registry-app .portal-demo-note {
+  background: #f7f7f8 !important;
+  border-color: #dedede !important;
+  color: #000000 !important;
+}
+
+.registry-app .r-announcement {
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.registry-app .r-mini-monogram,
+.registry-app .r-claim-symbol,
+.registry-app .provider-icon {
+  background: color-mix(in srgb, #4169e1 8%, #ffffff) !important;
+  color: #4169e1 !important;
+}
+
+.registry-app .r-filter-tabs [data-slot='tabs-trigger'][data-state='active'],
+.registry-app .r-view-tabs [data-slot='tabs-trigger'][data-state='active'],
+.registry-app .r-map-list button.selected,
+.registry-app .category.selected,
+.registry-app .quick-filters button.on,
+.registry-app .view-toggle button.active {
+  background: color-mix(in srgb, #4169e1 8%, #ffffff) !important;
+  border-color: color-mix(in srgb, #4169e1 32%, #ffffff) !important;
+  color: #4169e1 !important;
+}
+
+.registry-app .r-tags > span,
+.registry-app .equipment-tags > span,
+.registry-app .sample-label,
+.registry-app .r-badge:not(.claimed) {
+  background: #f7f7f8 !important;
+  border-color: #dedede !important;
+  color: #5f6368 !important;
+}
+
+.registry-app .r-location,
+.registry-app .r-card-description,
+.registry-app .r-card-footer > span,
+.registry-app .r-muted,
+.registry-app .r-small,
+.registry-app .r-loading,
+.registry-app .r-footer,
+.registry-app .r-trust-row,
+.registry-app .r-account-person p {
+  color: #5f6368 !important;
+}
+
+.registry-app .r-searchbox,
+.registry-app input,
+.registry-app textarea,
+.registry-app select,
+.registry-app [data-slot='select-trigger'] {
+  background-color: #ffffff !important;
+  border-color: #cfcfcf !important;
+  color: #000000 !important;
+}
+
+.registry-app input[type='checkbox'],
+.registry-app input[type='radio'] {
+  accent-color: #4169e1;
+}
+
+.registry-app button:focus-visible,
+.registry-app a:focus-visible,
+.registry-app input:focus-visible,
+.registry-app textarea:focus-visible,
+.registry-app select:focus-visible,
+.registry-app [tabindex]:focus-visible {
+  outline: 3px solid #4169e1 !important;
+  outline-offset: 3px;
+}
+
+.registry-app .r-dot.green,
+.registry-app [data-status='success'],
+.registry-app [data-status='available'],
+.registry-app [data-status='confirmed'] {
+  color: #247a57 !important;
+}
+
+.registry-app .r-dot.green {
+  background: #247a57 !important;
+}
+
+.registry-app .r-account-page > h1,
+.registry-app .r-account-page > h2,
+.registry-app .r-account-person h3 {
+  color: #000000 !important;
+}
+
+.registry-app .r-account-page > h2 {
+  margin-top: 34px;
+}
+
+.registry-app .r-account-page .r-panel {
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .03);
+}
+
+.registry-app .r-bottom-nav {
+  background: rgba(255, 255, 255, .98) !important;
+  border-top-color: #dedede !important;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, .05);
+}
+
+.registry-app .r-bottom-nav a {
+  color: #767676 !important;
+}
+
+.registry-app .r-bottom-nav a.active {
+  color: #4169e1 !important;
+}
+
+/* Corporate surfaces get a host-independent palette root as well. */
+[data-sessions-surface='corporate'] {
+  --sessions-black: #000000;
+  --sessions-royal: #4169e1;
+  --sessions-white: #ffffff;
+  --sessions-ink: #000000;
+  --sessions-border: #dedede;
+  background: #ffffff !important;
+  color: #000000 !important;
+}
+
+[data-sessions-surface='corporate'] .r-primary,
+[data-sessions-surface='corporate'] [data-sessions-action='primary'] {
+  background: #4169e1 !important;
+  border-color: #4169e1 !important;
+  color: #ffffff !important;
+}
+
+@media (max-width: 760px) {
+  .registry-app .r-header {
+    background: #ffffff !important;
+  }
+
+  .registry-app .r-account-page .r-panel {
+    border-radius: 14px;
+  }
+
+  .registry-app .r-primary,
+  .registry-app .r-secondary,
+  .registry-app [data-slot='button'] {
+    min-height: 44px;
+  }
+}
