@@ -2,6 +2,7 @@
 import {useEffect,useState} from 'react';
 import {ShieldAlert,ShieldCheck} from 'lucide-react';
 import {sessionFetch} from '@/lib/supabase-browser';
+import CorporateNavigation from './corporate-navigation';
 
 type Surface='provider'|'corporate';
 type SessionResponse={
@@ -22,7 +23,7 @@ export default function AccessBoundary({surface,requiredPermissions=[],returnTo,
   const surfaceAllowed=!!value.capabilities?.[surface];const granted=new Set(value.permissions||[]);const permissionsAllowed=requiredPermissions.every(permission=>granted.has(permission));
   setState(surfaceAllowed&&permissionsAllowed?'allowed':'denied');
  }).catch(()=>active&&setState('error'));return()=>{active=false}},[surface,permissionKey]);
- if(state==='allowed')return <>{children}</>;
+ if(state==='allowed')return <>{surface==='corporate'?<CorporateNavigation permissions={session?.permissions||[]}/>:null}{children}</>;
  if(state==='loading')return <section className="r-width r-inner"><div className="r-panel"><ShieldCheck size={28}/><h1>Checking account authority…</h1><p>Sessions is verifying this account and its active organization access before opening the workspace.</p></div></section>;
  const destination=returnTo||(surface==='corporate'?'/corporate':'/manage');
  if(state==='signed-out')return <section className="r-width r-inner"><div className="r-panel"><ShieldAlert size={28}/><h1>Sign in required</h1><p>This workspace contains private operational data. Sign in with the account that has been assigned access.</p><a className="r-primary" href={'/account?return_to='+encodeURIComponent(destination)}>Go to sign in</a></div></section>;
