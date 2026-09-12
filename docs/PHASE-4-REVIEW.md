@@ -4,9 +4,9 @@ Date: 2026-09-12
 
 ## Status
 
-**Phase 4 is complete in source. Phase 5 has not started.**
+**Phase 4 is complete and promoted to `main`. Phase 5 has not started.**
 
-The final implementation head before this review passed the production build and **180/180 tests** in Sessions CI run **#184**. This review is intentionally documentation-only; the documentation head must also remain green before promotion to `main`.
+The final implementation head passed the production build and **180/180 tests** in Sessions CI run **#184**. The documentation close-out head also passed Sessions CI run **#185** before PR #8 was promoted to `main`.
 
 Phase 4 implements the operating-company control plane described in the approved `docs/UNIFIED-PLATFORM-IMPLEMENTATION-v1.md`. It does not create a second marketplace, a second booking system, or a second corporate copy of customer/provider/payment/membership records.
 
@@ -182,22 +182,28 @@ The service worker remains intentionally narrow: it only handles the authenticat
 
 ## 10. Verification
 
-Final implementation gate before this documentation commit:
+Pre-promotion gates:
 
 - production `vinext` build: **passed**
 - automated tests: **180 passed / 180 total / 0 failed**
-- CI workflow: **Sessions CI run #184**
+- implementation CI: **Sessions CI run #184**
+- documentation close-out CI: **Sessions CI run #185**
 
 The suite covers earlier marketplace behavior as well as Phase 4 role separation, scoped-authority non-escalation, canonical data use, Access & Security boundaries, provider/legacy-Super-Admin assignment restrictions, mobile/PWA safety, privacy projection and previous phase regressions.
 
 ## 11. Deployment and certification boundary
 
-This repository is bound to the Sessions ChatGPT Sites project through `.openai/hosting.json`, with production D1 `DB` and R2 `BUCKET` bindings.
+PR #8 (`Unified Platform v1 — Phases 0–4 complete`) was merged to `main` after both pre-promotion CI gates passed. The repository remains bound to the Sessions ChatGPT Sites project through `.openai/hosting.json`, with production D1 `DB` and R2 `BUCKET` bindings.
 
-The Phase 1–4 implementation has intentionally remained on `implementation/unified-platform-v1` until this close-out. That explains why the canonical hosted URL could still show the older `main` implementation during review. The release step after this documentation head is green is to promote the verified Phase 1–4 branch to `main` and then verify the canonical hosted mobile and corporate routes.
+Canonical user-facing routes after host synchronization are:
+
+- Mobile/PWA: `https://sessions-music.kudzimusar.chatgpt.site/mobile`
+- Corporate control plane: `https://sessions-music.kudzimusar.chatgpt.site/corporate`
+
+The hosted corporate route remains permission-controlled; a signed-in identity without corporate authority should be denied rather than shown privileged data.
 
 This review does **not** claim that the source-only Supabase migration or a real production AAL2 flow has been certified against the live Sessions Supabase project. That remains an explicit production/UAT certification item rather than a hidden Phase 4 claim.
 
 ## Decision
 
-Phase 4 is accepted as source-complete when this documentation-only head remains green. No Phase 5 workflow implementation should be added to this branch before promotion.
+**Phase 4 is closed.** The Phase 1–4 implementation is on `main`. Phase 5 may begin from this promoted baseline; no Phase 5 workflow implementation was added during the Phase 4 close-out.
