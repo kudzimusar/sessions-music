@@ -4,15 +4,29 @@ export const platformRoles=[
  'provider_manager',
  'provider_staff',
  'support_agent',
+ 'support_manager',
  'trust_safety',
+ 'trust_safety_manager',
  'finance_admin',
+ 'finance_manager',
+ 'provider_operations',
+ 'provider_operations_manager',
+ 'growth_analyst',
+ 'growth_manager',
+ 'data_analyst',
+ 'data_admin',
+ 'product_operations',
+ 'governance_reviewer',
  'operations_admin',
  'corporate_admin',
+ 'super_admin_eligible',
  'super_admin',
 ] as const;
 export type PlatformRole=(typeof platformRoles)[number];
 export type OrganizationRole='owner'|'manager'|'staff';
 export type IdentityMethod='phone_otp'|'email_otp'|'google'|'apple'|'chatgpt_demo';
+export type PlatformScopeType='organization'|'department'|'provider'|'region'|'case'|'team';
+export type ScopedPlatformRole={role:PlatformRole;scopeType:PlatformScopeType;scopeId:string};
 
 export type OrganizationMembership={organizationId:string;role:OrganizationRole;active:boolean};
 export type IdentityPrincipal={
@@ -24,6 +38,7 @@ export type IdentityPrincipal={
  verifiedPhone:string|null;
  verifiedEmail:string|null;
  roles:PlatformRole[];
+ scopedRoles:ScopedPlatformRole[];
  memberships:OrganizationMembership[];
 };
 
