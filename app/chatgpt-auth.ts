@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { env } from "cloudflare:workers";
 import { authenticateSupabase,type AuthenticationAssuranceLevel } from "@/lib/supabase-identity";
 import type {IdentityMethod,OrganizationMembership,PlatformRole,ScopedPlatformRole} from '@/lib/identity-core';
+import {corporateRoles} from '@/lib/access-control';
+import {database} from '@/db/store';
 
 export type ChatGPTUser = {
   displayName: string;
@@ -31,6 +33,7 @@ const SIGN_IN_PATH = "/signin-with-chatgpt";
 const SIGN_OUT_PATH = "/signout-with-chatgpt";
 const CALLBACK_PATH = "/callback";
 const SUPABASE_SESSION_COOKIE='__Host-sessions_access';
+const corporateRoleSet=new Set<PlatformRole>(corporateRoles);
 
 export async function getChatGPTUser(): Promise<ChatGPTUser | null> {
   const requestHeaders = await headers();
@@ -45,6 +48,24 @@ function withInheritedRoles(input:readonly PlatformRole[]):PlatformRole[]{
  const roles=new Set<PlatformRole>(input);
  if(roles.has('corporate_admin')||roles.has('super_admin'))roles.add('operations_admin');
  return [...roles];
+}
+
+async function effectiveProductionAuthority(userId:string,rawRoles:readonly PlatformRole[],scopedRoles:readonly ScopedPlatformRole[]){
+ const roles=withInheritedRoles(rawRoles);
+ if(!roles.some(role=>corporateRoleSet.has(role))&&!scopedRoles.some(value=>corporateRoleSet.has(value.role)))return {roles,scopedRoles:[...scopedRoles]};
+ let activeStaff=false;
+ try{
+  const row=await database().prepare("SELECT 1 ok FROM corporate_staff WHERE user_id=? AND status='active' LIMIT 1").bind(userId).first();
+  activeStaff=!!row;
+ }catch(error){
+  // Production corporate authority fails closed if workforce state cannot be proven.
+  console.error('Corporate employment authority check failed',error instanceof Error?error.message:'Unknown error');
+ }
+ if(activeStaff)return {roles,scopedRoles:[...scopedRoles]};
+ return {
+  roles:roles.filter(role=>!corporateRoleSet.has(role)),
+  scopedRoles:scopedRoles.filter(value=>!corporateRoleSet.has(value.role)),
+ };
 }
 
 function configuredPreviewRoles(email:string):PlatformRole[]{
@@ -84,11 +105,13 @@ export async function getProductionUser():Promise<SessionUser|null>{
       if(token&&token.length<20_000){const derived=new Headers(requestHeaders);derived.set('Authorization',`Bearer ${token}`);authHeaders=derived}
     }
     const principal=await authenticateSupabase(authHeaders);
-    return principal?{
+    if(!principal)return null;
+    const authority=await effectiveProductionAuthority(principal.userId,principal.roles,principal.scopedRoles);
+    return {
       id:principal.userId,displayName:principal.displayName,email:principal.verifiedEmail,phone:principal.verifiedPhone,
-      roles:withInheritedRoles(principal.roles),scopedRoles:principal.scopedRoles,memberships:principal.memberships,
+      roles:authority.roles,scopedRoles:authority.scopedRoles,memberships:principal.memberships,
       method:principal.method,sessionId:principal.sessionId,assuranceLevel:principal.assuranceLevel,
-    }:null;
+    };
   }
   const preview=await getChatGPTUser();
   return preview?{
