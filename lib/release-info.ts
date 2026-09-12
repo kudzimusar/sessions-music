@@ -4,7 +4,7 @@ export const SESSIONS_RELEASE = {
   phaseStatus: 'complete',
   brand: 'black-royal-blue-white',
   brandPrimary: '#4169E1',
-  visualRevision: 'runtime-scope-1',
+  visualRevision: 'canonical-customer-v5-1',
   source: 'github-main',
   deploymentModel: 'chatgpt-sites-versioned',
 } as const;
