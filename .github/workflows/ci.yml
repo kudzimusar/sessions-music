@@ -9,18 +9,82 @@ permissions:
   contents: read
 
 concurrency:
-  group: sessions-ci-${{ github.ref }}
+  group: sessions-ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  verify:
+  verify-head:
+    name: verify exact PR head
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm test
+      - name: Verify immutable source revision
+        run: npm run verify:release
+        env:
+          SESSIONS_EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+
+  verify-merge:
+    name: verify merge candidate
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Verify integration with current base
+        run: npm run verify:release
+
+  release-gate:
+    name: release-gate
+    if: always() && github.event_name == 'pull_request'
+    needs: [verify-head, verify-merge]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require exact-head and merge-candidate success
+        env:
+          HEAD_RESULT: ${{ needs.verify-head.result }}
+          MERGE_RESULT: ${{ needs.verify-merge.result }}
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          if [[ "$HEAD_RESULT" != "success" || "$MERGE_RESULT" != "success" ]]; then
+            echo "Release gate blocked. exact-head=$HEAD_RESULT merge-candidate=$MERGE_RESULT expected-head=$EXPECTED_HEAD" >&2
+            exit 1
+          fi
+          echo "Release gate passed for immutable PR head $EXPECTED_HEAD and its current merge candidate."
+
+  verify-main:
+    name: verify merged main revision
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Verify merged immutable revision
+        run: npm run verify:release
+        env:
+          SESSIONS_EXPECTED_SHA: ${{ github.sha }}
