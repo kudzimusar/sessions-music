@@ -4,6 +4,7 @@ import {readFile} from 'node:fs/promises';
 
 const root=new URL('../',import.meta.url);
 const read=path=>readFile(new URL(path,root),'utf8');
+const activeCss=css=>css.replace(/\/\*[\s\S]*?\*\//g,'');
 
 test('runtime brand layer is loaded last and does not depend on host body attributes',async()=>{
   const [layout,css]=await Promise.all([read('app/layout.tsx'),read('app/brand-runtime.css')]);
@@ -11,11 +12,11 @@ test('runtime brand layer is loaded last and does not depend on host body attrib
   const runtime=layout.indexOf("import './brand-runtime.css';");
   assert.ok(brand>=0);
   assert.ok(runtime>brand,'host-independent brand fallback must be the final CSS layer');
-  assert.doesNotMatch(css,/body\[data-sessions-brand=['"]v1['"]\]/,'runtime fallback must not depend on a body attribute the Sites host may normalize');
+  assert.doesNotMatch(activeCss(css),/body\[data-sessions-brand=['"]v1['"]\]/,'runtime fallback must not depend on a body attribute the Sites host may normalize');
 });
 
 test('production registry primitives are forced to the approved royal-blue visual identity',async()=>{
-  const css=(await read('app/brand-runtime.css')).toLowerCase();
+  const css=activeCss(await read('app/brand-runtime.css')).toLowerCase();
   assert.match(css,/\.registry-app\s*\{[^}]*--r-blue:\s*#4169e1/s);
   assert.match(css,/\.registry-app \.brand-symbol\s*\{[^}]*background:\s*#4169e1\s*!important/s);
   assert.match(css,/\.registry-app \.r-primary[^\{]*\{[^}]*background:\s*#4169e1\s*!important/s);
