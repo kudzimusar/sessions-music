@@ -5,6 +5,7 @@ import './registry.css';
 import './expansion.css';
 import './polish.css';
 import './sessions-v2.css';
+import './corporate-v4.css';
 import './brand-v1.css';
 const siteOrigin='https://sessions-music.kudzimusar.chatgpt.site';
 const description='Find music-ready rehearsal spaces in Zimbabwe by location, equipment, group size and time. Sessions makes music infrastructure searchable, bookable and easier to trust.';
