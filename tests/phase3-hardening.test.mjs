@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {DatabaseSync} from 'node:sqlite';
 import {readFile} from 'node:fs/promises';
 
 const root=new URL('../',import.meta.url);
@@ -29,6 +30,23 @@ test('access review remediation is immutable after success and reconstructable a
  assert.match(route,/authority_source_change_or_verification_failed/);
  assert.match(route,/const safeJson=/);
  assert.match(route,/Access review due date must be in the future/);
+});
+
+test('D1 refuses impossible access-review states even if a future API path is wrong',async()=>{
+ const db=new DatabaseSync(':memory:');
+ const migrations=(await read('drizzle/0015_access_reviews.sql')).replaceAll('--> statement-breakpoint','')+'\n'+(await read('drizzle/0016_access_review_invariants.sql')).replaceAll('--> statement-breakpoint','');
+ db.exec(migrations);
+ const now='2026-09-12T00:00:00.000Z';
+ db.prepare('INSERT INTO corporate_access_reviews(id,title,status,created_by,created_at,snapshot_count,content) VALUES(?,?,?,?,?,?,?)').run('r1','Security review','open','admin-a',now,1,'{}');
+ db.prepare('INSERT INTO corporate_access_review_items(id,review_id,user_id,role,decision,remediation_status,content) VALUES(?,?,?,?,?,?,?)').run('i1','r1','user-a','finance_admin','pending','not_required','{}');
+ assert.throws(()=>db.prepare("UPDATE corporate_access_review_items SET decision='retain',remediation_status='not_required' WHERE id='i1'").run(),/invalid access review item state/);
+ db.prepare("UPDATE corporate_access_review_items SET decision='revoke',remediation_status='pending',reviewer='admin-a',reviewed_at=? WHERE id='i1'").run(now);
+ assert.throws(()=>db.prepare("UPDATE corporate_access_reviews SET status='completed',completed_at=? WHERE id='r1'").run(now),/access review still has unresolved authority/);
+ db.prepare("UPDATE corporate_access_review_items SET remediation_status='completed',remediated_at=? WHERE id='i1'").run(now);
+ assert.throws(()=>db.prepare("UPDATE corporate_access_review_items SET decision='retain',remediation_status='not_required',remediated_at=NULL WHERE id='i1'").run(),/completed remediation decisions are immutable/);
+ db.prepare("UPDATE corporate_access_reviews SET status='completed',completed_at=? WHERE id='r1'").run(now);
+ assert.throws(()=>db.prepare("UPDATE corporate_access_review_items SET content='{}' WHERE id='i1'").run(),/closed access review items are immutable/);
+ db.close();
 });
 
 test('restricted and confidential media are never retained in browser caches',async()=>{
