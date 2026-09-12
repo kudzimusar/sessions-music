@@ -32,7 +32,9 @@ test('module UI exposes ownership without turning department names into authoriz
  assert.match(ui,/Owner:<\/strong> \{definition\.ownerDepartment\}/);
  assert.match(ui,/definition\.supportingDepartments\.join\(' · '\)/);
  assert.match(modules,/contains no authorization grants|permissions still come from access-control/i);
- assert.doesNotMatch(modules,/ownerDepartment.*requiredPermissions.*ownerDepartment/s,'ownership metadata must not be evaluated as RBAC');
+ const authFn=modules.match(/export function canOpenCorporateModule[\s\S]*?\nexport function visibleCorporateModules/)?.[0]||'';
+ assert.match(authFn,/module\.requiredPermissions\.every/);
+ assert.doesNotMatch(authFn,/ownerDepartment|supportingDepartments/,'operating ownership metadata must never participate in RBAC evaluation');
 });
 
 test('PWA registration stays mobile-first and service worker never caches corporate or generic API traffic',async()=>{
