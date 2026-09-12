@@ -20,10 +20,14 @@ test('office queues enforce their own server permissions',async()=>{
 });
 
 test('Finance capabilities are enforced independently of general Operations',async()=>{
- const settlements=await read('app/api/settlements/route.ts'),fees=await read('app/api/fee-policies/route.ts'),loyalty=await read('app/api/loyalty-credit/route.ts'),media=await read('app/api/media/[id]/route.ts');
+ const settlements=await read('app/api/settlements/route.ts'),fees=await read('app/api/fee-policies/route.ts'),loyalty=await read('app/api/loyalty-credit/route.ts'),media=await read('app/api/media/[id]/route.ts'),policy=await read('lib/data-access-policy.ts');
  assert.match(settlements,/hasPermission\(user,'settlements:review'\)/);
  assert.match(fees,/hasPermission\(user,'fees:manage'\)/);
  assert.match(loyalty,/hasPermission\(user,'loyalty:manage'\)/);
- assert.match(media,/hasPermission\(user,'verification:review'\)/);assert.match(media,/hasPermission\(user,'settlements:review'\)/);
- assert.match(media,/access\.role==='operations'/,'corporate authority must not expose private booking-message attachments');
+ assert.match(media,/canReadPrivateMedia\(user,'studio_verification_evidence'/);
+ assert.match(media,/canReadPrivateMedia\(user,'settlement_proof'/);
+ assert.match(policy,/studio_verification_evidence.*hasPermission\(actor,'verification:review'\)/s);
+ assert.match(policy,/settlement_proof.*hasPermission\(actor,'settlements:review'\)/s);
+ assert.match(policy,/booking_message_attachment.*bookingParticipantRole==='musician'.*bookingParticipantRole==='studio'/s,'corporate authority must not expose private booking-message attachments');
+ assert.doesNotMatch(media,/isRegistryUserOperator/,'private media should use the centralized field/scope policy rather than blanket operator access');
 });

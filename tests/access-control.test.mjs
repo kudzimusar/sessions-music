@@ -16,6 +16,8 @@ test('customer accounts cannot enter provider or corporate surfaces',()=>{
  assert.equal(access.canAccessSurface(customer,'customer'),true);
  assert.equal(access.canAccessSurface(customer,'provider'),false);
  assert.equal(access.canAccessSurface(customer,'corporate'),false);
+ assert.equal(access.hasPermission(customer,'organization:read'),false);
+ assert.equal(access.hasPermission(customer,'organization:manage'),false);
  assert.equal(access.canManagePlatformRoles(customer),false);
 });
 
@@ -23,6 +25,15 @@ test('active organization membership grants provider surface without corporate a
  const manager=actor(['musician'],[{organizationId:'studio-a',role:'manager',active:true}]);
  assert.equal(access.canAccessSurface(manager,'provider'),true);
  assert.equal(access.canAccessSurface(manager,'corporate'),false);
+ assert.equal(access.hasPermission(manager,'organization:read'),false);
+});
+
+test('corporate offices can read company hierarchy without inheriting people administration',()=>{
+ for(const role of ['support_agent','trust_safety','finance_admin','operations_admin']){
+  const member=actor([role]);
+  assert.equal(access.hasPermission(member,'organization:read'),true,role);
+  assert.equal(access.hasPermission(member,'organization:manage'),false,role);
+ }
 });
 
 test('finance and trust offices have separated permissions',()=>{
@@ -49,9 +60,11 @@ test('support can resolve support issues without inheriting finance or trust aut
  assert.equal(access.hasPermission(support,'providers:oversight'),false);
 });
 
-test('corporate administrators cannot manage role hierarchy',()=>{
+test('corporate administrators manage organization structure but cannot manage role hierarchy',()=>{
  const corporate=actor(['corporate_admin']);
  assert.equal(access.canAccessSurface(corporate,'corporate'),true);
+ assert.equal(access.hasPermission(corporate,'organization:read'),true);
+ assert.equal(access.hasPermission(corporate,'organization:manage'),true);
  assert.equal(access.canManagePlatformRoles(corporate),false);
  assert.equal(access.hasPermission(corporate,'fees:manage'),true);
  assert.equal(access.hasPermission(corporate,'support:manage'),true);

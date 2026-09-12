@@ -10,6 +10,12 @@ export async function GET(){
   if(!user)return Response.json({error:'Sign in required.'},{status:401,headers:{'Cache-Control':'no-store'}});
   if(!canAccessSurface(user,'corporate'))return Response.json({error:'Corporate authority required.'},{status:403,headers:{'Cache-Control':'no-store'}});
   const db=database();const permissions=permissionsForRoles(user.roles);const overview:any={roles:user.roles,permissions,generatedAt:new Date().toISOString()};
+  const controlPlane:any={};
+  if(hasPermission(user,'bookings:read'))controlPlane.bookings=await scalar(db,'SELECT count(*) n FROM studio_bookings');
+  if(hasPermission(user,'customers:read'))controlPlane.customers=await scalar(db,'SELECT count(DISTINCT customer) n FROM studio_bookings');
+  if(hasPermission(user,'memberships:oversight'))controlPlane.activeMemberships=await scalar(db,"SELECT count(*) n FROM studio_members WHERE json_extract(content,'$.status')='active'");
+  if(hasPermission(user,'incidents:read'))controlPlane.openSignals=(await scalar(db,"SELECT count(*) n FROM studio_issues WHERE json_extract(content,'$.status')='open'"))+(await scalar(db,"SELECT count(*) n FROM booking_notifications WHERE status='failed'"))+(await scalar(db,"SELECT count(*) n FROM studio_settlements WHERE status='disputed'"));
+  if(Object.keys(controlPlane).length)overview.controlPlane=controlPlane;
   if(hasPermission(user,'registry:read'))overview.marketplace={
    studios:await scalar(db,'SELECT count(*) n FROM studio_registry'),
    bookable:await scalar(db,"SELECT count(*) n FROM studio_registry WHERE json_extract(content,'$.status')='bookable' AND COALESCE(json_extract(content,'$.bookingEnabled'),0)=1"),
