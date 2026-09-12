@@ -39,7 +39,7 @@ export default async function Page({params}:Props){
  const snapshot=await readOnboardingSnapshot(actor).catch(()=>null);if(!snapshot||['profile','consent','workspace','restricted'].includes(snapshot.nextStep))return sendToOnboarding(path,actor.id);
  const corporatePath=slug[0]==='corporate'||slug[0]==='registry-admin';
  if(corporatePath&&!hasWorkspaceContext(snapshot,'corporate'))return sendToOnboarding(path,actor.id);
- if(path==='/manage'&&!hasWorkspaceContext(snapshot,'provider'))return sendToOnboarding(path,actor.id);
+ if(path==='/manage'&&!hasWorkspaceContext(snapshot,'provider'))redirect('/onboarding/provider');
  const customerPath=!corporatePath&&path!=='/manage'&&!sandboxSurface&&path!=='/account';
  if(customerPath&&!hasWorkspaceContext(snapshot,'personal'))return sendToOnboarding(path,actor.id);
  if(slug[0]==='studio'&&slug.length===2)return <RegistryApp path={path} initialStudio={await readPublicStudio(slug[1])}/>;
