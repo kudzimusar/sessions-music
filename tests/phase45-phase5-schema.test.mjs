@@ -23,7 +23,8 @@ test('contact model keeps verified phone identity separate from WhatsApp opt-in'
  db.prepare('INSERT INTO sessions_user_profiles(user_id,status,created_at,updated_at) VALUES(?,?,?,?)').run('u1','identity_verified',now,now);
  db.prepare('INSERT INTO sessions_user_contacts(id,user_id,kind,value,is_primary,verified_at,source,consent_status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)').run('phone','u1','phone','+263771234567',1,now,'identity_provider','not_applicable',now,now);
  db.prepare('INSERT INTO sessions_user_contacts(id,user_id,kind,value,is_primary,verified_at,source,consent_status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)').run('wa','u1','whatsapp','+263771234567',0,now,'user','opted_in',now,now);
- assert.deepEqual(db.prepare('SELECT kind,consent_status FROM sessions_user_contacts WHERE user_id=? ORDER BY kind').all('u1'),[{kind:'phone',consent_status:'not_applicable'},{kind:'whatsapp',consent_status:'opted_in'}]);
+ const contacts=db.prepare('SELECT kind,consent_status FROM sessions_user_contacts WHERE user_id=? ORDER BY kind').all('u1').map(row=>({...row}));
+ assert.deepEqual(contacts,[{kind:'phone',consent_status:'not_applicable'},{kind:'whatsapp',consent_status:'opted_in'}]);
  db.close();
 });
 
