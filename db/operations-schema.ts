@@ -57,6 +57,7 @@ export const operationalCases=sqliteTable('operational_cases',{
  classification:text('classification').notNull().default('internal'),
  slaTargetAt:text('sla_target_at'),
  nextActionAt:text('next_action_at'),
+ resolutionCode:text('resolution_code'),
  createdAt:text('created_at').notNull(),
  updatedAt:text('updated_at').notNull(),
  resolvedAt:text('resolved_at'),
@@ -77,6 +78,7 @@ export const operationalCases=sqliteTable('operational_cases',{
  check('operational_case_classification_valid',sql`${t.classification} IN ('internal','restricted','confidential')`),
  check('operational_case_resolved_timestamp',sql`${t.status} NOT IN ('resolved','closed') OR ${t.resolvedAt} IS NOT NULL`),
  check('operational_case_closed_timestamp',sql`${t.status} != 'closed' OR ${t.closedAt} IS NOT NULL`),
+ check('operational_case_resolution_required',sql`${t.status} NOT IN ('resolved','closed') OR (${t.resolutionCode} IS NOT NULL AND length(trim(${t.resolutionCode})) > 0)`),
 ]);
 
 export const operationalCaseEvents=sqliteTable('operational_case_events',{
