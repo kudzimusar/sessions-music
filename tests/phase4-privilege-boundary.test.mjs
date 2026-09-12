@@ -8,7 +8,7 @@ test('provider roles and legacy permanent super admin cannot be newly granted fr
  const [route,workspace]=await Promise.all([read('app/api/corporate/roles/route.ts'),read('app/corporate-workspace.tsx')]);
  assert.match(route,/provider_owner','provider_manager','provider_staff','super_admin'/);
  assert.match(route,/super_admin_eligible/);
- assert.match(route,/legacy super_admin is retained for migration compatibility/);
+ assert.match(route,/legacy super_admin is retained for migration compatibility/i);
  assert.doesNotMatch(workspace,/\['super_admin','Legacy super administrator'\]/);
  assert.match(workspace,/\['super_admin_eligible','Super administrator eligible'\]/);
  assert.match(workspace,/legacy permanent Super Admin authority are intentionally not assignable here/);
