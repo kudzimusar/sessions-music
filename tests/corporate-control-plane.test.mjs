@@ -59,6 +59,25 @@ test('customer references are separately permission-gated and direct PII is excl
  assert.doesNotMatch(api,/json_extract\(content,'\$\.phone'\)|json_extract\(content,'\$\.email'\)|json_extract\(content,'\$\.note'\)/);
 });
 
+test('audit and D1 helpers minimize identifiers and handle zero-bind statements safely',async()=>{
+ const api=await read('app/api/corporate/control-plane/route.ts');
+ assert.match(api,/const statement=.*bindings\.length\?prepared\.bind\(\.\.\.bindings\):prepared/);
+ assert.match(api,/maskedRef\(row\.actor\)/);
+ assert.match(api,/Actor references are masked/);
+ assert.doesNotMatch(api,/values:\['Marketplace',row\.event,row\.studio_id,row\.actor/);
+});
+
+test('corporate overview renders only aggregate values actually returned for this permission set',async()=>{
+ const [overview,workspace]=await Promise.all([read('app/api/corporate/overview/route.ts'),read('app/corporate-workspace.tsx')]);
+ assert.match(overview,/if\(hasPermission\(user,'bookings:read'\)\)controlPlane\.bookings/);
+ assert.match(overview,/if\(hasPermission\(user,'customers:read'\)\)controlPlane\.customers/);
+ assert.match(overview,/if\(hasPermission\(user,'memberships:oversight'\)\)controlPlane\.activeMemberships/);
+ assert.match(overview,/if\(hasPermission\(user,'incidents:read'\)\)controlPlane\.openSignals/);
+ assert.match(workspace,/controlPlane\?:\{bookings\?:number;customers\?:number;activeMemberships\?:number;openSignals\?:number\}/);
+ assert.match(workspace,/data\?\.controlPlane\?\.bookings!==undefined/);
+ assert.match(workspace,/controlPlaneMetrics\.length>0/);
+});
+
 test('Phase 4 adds indexes only and does not duplicate canonical database truth',async()=>{
  const migration=(await read('drizzle/0017_corporate_control_plane_indexes.sql')).replaceAll('--> statement-breakpoint','');
  assert.doesNotMatch(migration,/CREATE TABLE/i);assert.doesNotMatch(migration,/INSERT INTO/i);
