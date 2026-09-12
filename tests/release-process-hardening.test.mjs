@@ -15,6 +15,8 @@ test('CI verifies the immutable PR head and the merge candidate before exposing 
  assert.match(ci,/needs:\s*\[verify-head, verify-merge\]/);
  assert.match(ci,/verify-main:/);
  assert.match(ci,/persist-credentials:\s*false/g);
+ assert.equal((ci.match(/npm ci --include=dev/g)||[]).length,3);
+ assert.match(ci,/node_modules\/tw-animate-css\/dist\/tw-animate\.css/);
 });
 
 test('release CI dependencies are pinned to immutable upstream commit revisions',async()=>{
