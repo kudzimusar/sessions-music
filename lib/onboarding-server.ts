@@ -64,10 +64,14 @@ export async function readOnboardingSnapshot(actor:SessionUser):Promise<Onboardi
  const termsOk=terms?.decision==='granted'&&terms.version===REQUIRED_CONSENTS.terms;
  const privacyOk=privacy?.decision==='granted'&&privacy.version===REQUIRED_CONSENTS.privacy;
  let nextStep:OnboardingSnapshot['nextStep']='ready';
- if(['suspended','terminated','deletion_pending'].includes(status))nextStep='restricted';
- else if(status==='profile_required'||!profile.display_name)nextStep='profile';
+ if(status==='profile_required'||!profile.display_name)nextStep='profile';
  else if(!termsOk||!privacyOk)nextStep='consent';
- else if(contexts.length>1&&!profile.last_context_type)nextStep='workspace';
+ else if(contexts.length===0)nextStep='restricted';
+ else {
+  const lastType=profile.last_context_type?String(profile.last_context_type):'';const lastId=profile.last_context_id?String(profile.last_context_id):'';
+  const lastStillValid=contexts.some(context=>context.type===lastType&&context.id===lastId&&context.status==='active');
+  if(contexts.length>1&&!lastStillValid)nextStep='workspace';
+ }
  return {
   profile:{status,displayName:String(profile.display_name||''),market:String(profile.market||'ZW'),locale:String(profile.locale||'en-ZW'),lastContextType:profile.last_context_type?String(profile.last_context_type):null,lastContextId:profile.last_context_id?String(profile.last_context_id):null},
   identity:{userId:actor.id,email:actor.email,phone:actor.phone,method:actor.method,sessionId:actor.sessionId,assuranceLevel:actor.assuranceLevel},
@@ -76,6 +80,8 @@ export async function readOnboardingSnapshot(actor:SessionUser):Promise<Onboardi
   contexts,nextStep,
  };
 }
+
+export function hasWorkspaceContext(snapshot:OnboardingSnapshot,type:WorkspaceContext['type'],id?:string){return snapshot.contexts.some(context=>context.type===type&&context.status==='active'&&(!id||context.id===id))}
 
 export async function setProfileStatus(userId:string,status:string,actorUserId:string,reasonCode:string,contextType:'customer'|'identity'='customer'){
  const db=database();const at=now();
