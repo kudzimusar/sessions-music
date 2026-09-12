@@ -11,7 +11,7 @@ type Overview={
  providers?:{pendingRegistrations:number;activeStaff:number};
  finance?:{disputed:number;awaitingPayment:number;invoices:number};
  support?:{openRegistryIssues:number;failedNotifications:number};
- controlPlane?:{bookings:number;customers:number;activeMemberships:number;openSignals:number};
+ controlPlane?:{bookings?:number;customers?:number;activeMemberships?:number;openSignals?:number};
  error?:string;
 };
 type PrivilegedSession={id:string;purpose:string;createdAt:string;expiresAt:string};
@@ -30,11 +30,17 @@ export default function CorporateWorkspace(){
  const permissions=new Set(data?.permissions||[]),roles=data?.roles||[],modules=visibleCorporateModules(permissions);
  const canOpenOperations=permissions.has('claims:review')&&permissions.has('settlements:review')&&permissions.has('support:read')&&permissions.has('providers:oversight');
  const privilegedReady=!!privileged?.privileged;
+ const controlPlaneMetrics=[
+  data?.controlPlane?.bookings!==undefined?{label:'Bookings',value:data.controlPlane.bookings,Icon:BookOpenCheck}:null,
+  data?.controlPlane?.customers!==undefined?{label:'Customers',value:data.controlPlane.customers,Icon:UsersRound}:null,
+  data?.controlPlane?.activeMemberships!==undefined?{label:'Active memberships',value:data.controlPlane.activeMemberships,Icon:UsersRound}:null,
+  data?.controlPlane?.openSignals!==undefined?{label:'Open signals',value:data.controlPlane.openSignals,Icon:Activity}:null,
+ ].filter(Boolean) as Array<{label:string;value:number;Icon:typeof ShieldCheck}>;
  const changePrivileged=async(action:'activate'|'revoke',purpose='')=>{setPrivilegedBusy(true);setPrivilegedMessage('');try{const response=await sessionFetch('/api/corporate/privileged',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(action==='activate'?{action,purpose}:{action})});const value=await response.json();if(!response.ok)throw new Error(value.error||'Privileged administration change failed');setPrivilegedMessage(action==='activate'?'Privileged administration is active for this identity session.':'Privileged administration was revoked.');await loadPrivileged()}catch(e){setPrivilegedMessage(e instanceof Error?e.message:'Privileged administration change failed')}finally{setPrivilegedBusy(false)}};
  return <section data-sessions-surface="corporate" className="r-width r-inner">
   <div className="r-workspace-heading"><div><div className="r-eyebrow"><Landmark size={16}/>SESSIONS CORPORATE</div><h1>Platform control centre.</h1><p className="r-intro">One authority plane for the marketplace and the company operating it. Navigation is generated from this account’s assigned permissions; customer, provider and corporate views remain projections of the same production records.</p></div><div className="r-panel"><strong>Signed-in authority</strong><p>{roles.map(role=>role.replaceAll('_',' ')).join(' · ')||'No corporate role'}</p><p className="r-small">{modules.length} corporate modules assigned</p></div></div>
   <div className="r-trust-row"><span><ShieldCheck/>Deny by default</span><span><Users/>Named staff identities</span><span><CheckCircle2/>Org chart ≠ RBAC</span><span><Landmark/>One source of truth</span></div>
-  {data?.controlPlane&&<div className="r-metrics"><div><span>Bookings</span><strong>{data.controlPlane.bookings}</strong><BookOpenCheck/></div><div><span>Customers</span><strong>{data.controlPlane.customers}</strong><UsersRound/></div><div><span>Active memberships</span><strong>{data.controlPlane.activeMemberships}</strong><UsersRound/></div><div><span>Open signals</span><strong>{data.controlPlane.openSignals}</strong><Activity/></div></div>}
+  {controlPlaneMetrics.length>0&&<div className="r-metrics">{controlPlaneMetrics.map(({label,value,Icon})=><div key={label}><span>{label}</span><strong>{value}</strong><Icon/></div>)}</div>}
   {data?.marketplace&&<div className="r-metrics"><div><span>Marketplace studios</span><strong>{data.marketplace.studios}</strong><Building2/></div><div><span>Bookable studios</span><strong>{data.marketplace.bookable}</strong><CheckCircle2/></div><div><span>Pending claims</span><strong>{data.marketplace.pendingClaims}</strong><ShieldCheck/></div><div><span>Verification queue</span><strong>{data.marketplace.pendingVerifications}</strong><ShieldCheck/></div></div>}
   <div className="c4-section-heading"><div><h2>Your corporate modules</h2><p className="r-small">Only modules this account is authorized to open are rendered.</p></div></div><div className="r-studio-grid c4-module-grid">{modules.map(module=>{const Icon=moduleIcons[module.id];return <article className="r-panel" key={module.id}><Icon size={25}/><span className="r-badge claimed">Assigned</span><h3>{module.title}</h3><p>{module.description}</p><a className="r-primary" href={module.href}>Open {module.shortTitle}</a></article>})}</div>
   {canOpenOperations&&<section className="r-panel"><div className="r-eyebrow"><Landmark size={16}/>CROSS-MARKETPLACE OPERATIONS</div><h2>General Operations console</h2><p>This account has the combined Trust, Finance, Support and Provider Operations authority required for cross-marketplace operational handling. This legacy combined view remains available while the control plane is migrated module by module.</p><a className="r-secondary" href="/registry-admin">Open combined Operations console</a></section>}
