@@ -27,15 +27,24 @@ export async function provisionStudioMembership(input:{studioId:string;studioNam
  await request('/rest/v1/organization_memberships?on_conflict=organization_id,user_id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({organization_id:organizationId,user_id:input.userId,role:input.role,active:true,granted_by:input.grantedBy,revoked_at:null})});
 }
 
+export async function platformRoleActive(userId:string,role:PlatformRole){
+ if(!config())throw new Error('Production identity role provisioning is not configured.');
+ const rows=await request<Array<{user_id?:unknown}>>(`/rest/v1/platform_role_assignments?user_id=eq.${encodeURIComponent(userId)}&role=eq.${encodeURIComponent(role)}&revoked_at=is.null&select=user_id&limit=1`,{method:'GET'});
+ return rows.length>0;
+}
+
 export async function setPlatformRole(input:{userId:string;role:PlatformRole;enabled:boolean;grantedBy:string}){
  if(!config())throw new Error('Production identity role provisioning is not configured.');
  if(input.role==='musician')throw new Error('The base customer role is lifecycle-managed by identity sync.');
  const filter=`user_id=eq.${encodeURIComponent(input.userId)}&role=eq.${encodeURIComponent(input.role)}`;
  if(input.enabled){
   await request('/rest/v1/platform_role_assignments?on_conflict=user_id,role',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({user_id:input.userId,role:input.role,granted_by:input.grantedBy,granted_at:new Date().toISOString(),revoked_at:null})});
-  return;
+ }else{
+  await request(`/rest/v1/platform_role_assignments?${filter}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({revoked_at:new Date().toISOString()})});
  }
- await request(`/rest/v1/platform_role_assignments?${filter}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({revoked_at:new Date().toISOString()})});
+ const active=await platformRoleActive(input.userId,input.role);
+ if(active!==input.enabled)throw new Error('Supabase authority verification failed after the platform-role mutation.');
+ return active;
 }
 
 export async function listActivePlatformRoleAssignments():Promise<PlatformRoleAssignmentSnapshot[]>{
