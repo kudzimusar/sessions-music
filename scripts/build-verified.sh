@@ -26,16 +26,22 @@ timeout \
   "${vinext}" build
 
 hosting_artifact="${SITES_PROJECT_ROOT}/dist/.openai/hosting.json"
-latest_migration="${SITES_PROJECT_ROOT}/dist/.openai/drizzle/0017_corporate_control_plane_indexes.sql"
+required_migrations=(
+  "0017_corporate_control_plane_indexes.sql"
+  "0018_phase45_identity_onboarding.sql"
+  "0019_phase5_booking_ops_cases.sql"
+)
 
 if [[ ! -s "${hosting_artifact}" ]]; then
   echo "Sites build is invalid: dist/.openai/hosting.json was not packaged." >&2
   exit 70
 fi
-if [[ ! -s "${latest_migration}" ]]; then
-  echo "Sites build is invalid: Phase 4 D1 migrations were not packaged." >&2
-  exit 70
-fi
+for migration in "${required_migrations[@]}"; do
+  if [[ ! -s "${SITES_PROJECT_ROOT}/dist/.openai/drizzle/${migration}" ]]; then
+    echo "Sites build is invalid: required migration ${migration} was not packaged." >&2
+    exit 70
+  fi
+done
 
 node --input-type=module -e '
   import {readFileSync} from "node:fs";
@@ -57,4 +63,4 @@ node --input-type=module -e '
   if(!/\.registry-app\s+\.brand-symbol\s*\{[^}]*background\s*:\s*#4169e1\s*!important/i.test(css)) throw new Error("Sites build is invalid: compiled CSS lost the Royal Blue brand symbol override");
 ' "${SITES_PROJECT_ROOT}/dist"
 
-echo "Sites deployment artifact verified: hosting linkage, Phase 4 migrations, and runtime Royal Blue CSS are packaged."
+echo "Sites deployment artifact verified: hosting linkage, Phase 4/4.5/5 migrations, and runtime Royal Blue CSS are packaged."
