@@ -28,6 +28,13 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Verify locked build inputs
+        run: |
+          set -euo pipefail
+          test -s node_modules/.bin/vinext
+          test -s node_modules/tw-animate-css/dist/tw-animate.css
+          test -s node_modules/@tailwindcss/postcss/package.json
+          npm ls tw-animate-css tailwindcss vinext --depth=0
       - name: Verify immutable source revision
         run: npm run verify:release
         env:
@@ -58,6 +65,13 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Verify locked build inputs
+        run: |
+          set -euo pipefail
+          test -s node_modules/.bin/vinext
+          test -s node_modules/tw-animate-css/dist/tw-animate.css
+          test -s node_modules/@tailwindcss/postcss/package.json
+          npm ls tw-animate-css tailwindcss vinext --depth=0
       - name: Verify integration with current base
         run: npm run verify:release
 
@@ -66,6 +80,7 @@ jobs:
     if: always() && github.event_name == 'pull_request'
     needs: [verify-head, verify-merge]
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Require exact-head and merge-candidate success
         env:
@@ -95,6 +110,13 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Verify locked build inputs
+        run: |
+          set -euo pipefail
+          test -s node_modules/.bin/vinext
+          test -s node_modules/tw-animate-css/dist/tw-animate.css
+          test -s node_modules/@tailwindcss/postcss/package.json
+          npm ls tw-animate-css tailwindcss vinext --depth=0
       - name: Verify merged immutable revision
         run: npm run verify:release
         env:
