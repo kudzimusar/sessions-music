@@ -30,6 +30,7 @@ required_migrations=(
   "0017_corporate_control_plane_indexes.sql"
   "0018_phase45_identity_onboarding.sql"
   "0019_phase5_booking_ops_cases.sql"
+  "0020_staff_lifecycle_access.sql"
 )
 
 if [[ ! -s "${hosting_artifact}" ]]; then
