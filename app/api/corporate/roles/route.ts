@@ -6,7 +6,9 @@ import {setPlatformRole} from '@/lib/supabase-admin';
 import {requirePrivilegedSession} from '@/lib/privileged-access';
 import {database} from '@/db/store';
 
-const globallyManagedRoles=platformRoles.filter(role=>!['musician','provider_owner','provider_manager','provider_staff'].includes(role));
+// Provider roles are derived from tenant membership. Legacy super_admin is retained for migration compatibility
+// but cannot be newly granted from the application; new privileged staff receive super_admin_eligible instead.
+const globallyManagedRoles=platformRoles.filter(role=>!['musician','provider_owner','provider_manager','provider_staff','super_admin'].includes(role));
 const schema=z.object({
  userId:z.string().uuid(),
  role:z.enum(globallyManagedRoles as [typeof globallyManagedRoles[number],...typeof globallyManagedRoles[number][]]),
@@ -28,7 +30,7 @@ export async function POST(request:Request){
   const privileged=await requirePrivilegedSession(actor).catch(error=>{if(error instanceof Error&&error.message==='PRIVILEGED_SESSION_REQUIRED')return null;throw error});
   if(!privileged)return response({error:'Activate a current AAL2 privileged administration session before changing platform authority.'},403);
   const input=schema.parse(await request.json());
-  if(input.userId===actor.id&&['super_admin','super_admin_eligible'].includes(input.role)&&!input.enabled)return response({error:'A privileged administrator cannot remove their own privileged eligibility from this endpoint.'},409);
+  if(input.userId===actor.id&&input.role==='super_admin_eligible'&&!input.enabled)return response({error:'A privileged administrator cannot remove their own privileged eligibility from this endpoint.'},409);
   const db=database();const requestedAt=new Date().toISOString();const auditContext={role:input.role,enabled:input.enabled,privilegedSessionId:privileged.id};
   await audit(db,actor,'platform_role.change_requested',input.userId,auditContext,requestedAt).run();
   try{await setPlatformRole({...input,grantedBy:actor.id})}catch(error){try{await audit(db,actor,'platform_role.change_failed',input.userId,{...auditContext,error:'authority_source_change_or_verification_failed'}).run()}catch(auditError){console.error('Platform role failure audit could not be recorded',auditError instanceof Error?auditError.message:'Unknown error')}throw error}
