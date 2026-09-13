@@ -112,3 +112,77 @@ end;
 $$;
 
 revoke execute on function sessions_private.sync_auth_identity() from public,anon,authenticated;
+
+-- Corporate onboarding needs a concrete ordinary-session security posture without
+-- incorrectly requiring AAL2 for every employee. The current signed-in session must
+-- be registered through register_current_device(); privileged administration still
+-- applies its separate AAL2 requirement.
+create or replace function public.current_identity()
+returns jsonb
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select jsonb_build_object(
+    'user_id', p.id,
+    'display_name', p.display_name,
+    'session_id', auth.jwt() ->> 'session_id',
+    'session_registered', ds.session_id is not null,
+    'session_revoked', coalesce(ds.revoked_at is not null, false),
+    'roles', coalesce((
+      select jsonb_agg(role_value order by role_value)
+      from (
+        select pra.role as role_value
+        from public.platform_role_assignments pra
+        where pra.user_id = p.id and pra.revoked_at is null
+        union
+        select case
+          when om.role = 'owner' then 'provider_owner'
+          when om.role = 'manager' then 'provider_manager'
+          else 'provider_staff'
+        end
+        from public.organization_memberships om
+        where om.user_id = p.id and om.active and om.revoked_at is null
+      ) roles_for_user
+    ), '[]'::jsonb),
+    'scoped_roles', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'role', psra.role,
+        'scope_type', psra.scope_type,
+        'scope_id', psra.scope_id
+      ) order by psra.scope_type, psra.scope_id, psra.role)
+      from public.platform_scoped_role_assignments psra
+      where psra.user_id = p.id and psra.revoked_at is null
+    ), '[]'::jsonb),
+    'memberships', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'organization_id', om.organization_id,
+        'studio_id', o.studio_id,
+        'role', om.role,
+        'active', om.active and om.revoked_at is null
+      ) order by o.name)
+      from public.organization_memberships om
+      join public.organizations o on o.id = om.organization_id
+      where om.user_id = p.id
+    ), '[]'::jsonb),
+    'verified_phone', (
+      select vc.value_normalized from public.verified_contacts vc
+      where vc.user_id = p.id and vc.kind = 'phone'
+      order by vc.is_primary desc, vc.verified_at desc limit 1
+    ),
+    'verified_email', (
+      select vc.value_normalized from public.verified_contacts vc
+      where vc.user_id = p.id and vc.kind = 'email'
+      order by vc.is_primary desc, vc.verified_at desc limit 1
+    )
+  )
+  from public.profiles p
+  left join public.device_sessions ds
+    on ds.user_id = p.id
+   and ds.session_id = nullif(auth.jwt() ->> 'session_id', '')::uuid
+  where p.id = auth.uid();
+$$;
+
+revoke all on function public.current_identity() from public,anon;
+grant execute on function public.current_identity() to authenticated;
