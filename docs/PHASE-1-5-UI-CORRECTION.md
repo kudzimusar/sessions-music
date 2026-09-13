@@ -20,14 +20,16 @@ The `/mobile` family is now a dedicated app-style interaction tree rather than a
 - `/mobile` — native home/discovery;
 - `/mobile/search` — full-screen search and filter flow;
 - `/mobile/sessions` — customer booking/session list;
+- `/mobile/session/:id` — native booking/session detail and bounded cancellation;
+- `/mobile/notifications` — native booking/service update list;
 - `/mobile/saved` — honest saved-state placeholder until canonical favourites storage exists;
 - `/mobile/profile` — mobile profile/settings gateway;
 - `/mobile/studio/:id` — native studio detail;
 - `/mobile/studio/:id/book` — native booking task.
 
-The mobile studio and booking flows remain inside `/mobile/...`; they no longer deliberately hand the customer into the desktop registry after the first tap.
+The mobile studio, booking, session and notification flows remain inside `/mobile/...`; they no longer deliberately hand the customer into the desktop registry after the first tap.
 
-The booking screen reuses `BookingRequestV3` and the existing quote/inventory APIs. The correction changes composition, not booking authority. Real server quotes, inventory validation, recurrence rules, add-ons and booking mutations remain canonical.
+The booking screen reuses `BookingRequestV3` and the existing quote/inventory APIs. The correction changes composition, not booking authority. Real server quotes, inventory validation, recurrence rules, add-ons and booking mutations remain canonical. Session cancellation uses the existing authorized `bookingStatus` mutation and server validation; the native UI does not manufacture a parallel cancellation rule.
 
 Native interaction characteristics now include:
 
@@ -39,7 +41,8 @@ Native interaction characteristics now include:
 - native list rows rather than dashboard-card grids;
 - sticky booking CTA on studio detail;
 - app-style loading and empty states;
-- no desktop sidebar/table dependency.
+- no desktop sidebar/table dependency;
+- no fake favourite or room-live controls where canonical backend state does not yet exist.
 
 ### Provider native-mobile prototype
 
@@ -66,6 +69,8 @@ Dense configuration intentionally remains on the PWA:
 The authenticated root `/` is now explicitly the desktop/browser registry/PWA rather than rendering the mobile customer composition.
 
 Existing desktop routes such as `/studios`, `/studio/:id`, `/map`, `/requests`, `/manage`, provider configuration and account/security continue as browser/PWA surfaces over the same backend.
+
+The legacy responsive `sessions-phone-view` session flag is cleared by the production route guard so desktop/PWA cannot silently inherit the old phone-mode composition.
 
 ### Corporate
 
@@ -126,6 +131,8 @@ A new private ChatGPT Sites version must be created from the exact green merged 
 - `/mobile/studio/<known-studio-id>`
 - `/mobile/studio/<bookable-studio-id>/book`
 - `/mobile/sessions`
+- `/mobile/session/<known-booking-id>`
+- `/mobile/notifications`
 - `/mobile/saved`
 - `/mobile/profile`
 
