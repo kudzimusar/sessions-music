@@ -23,6 +23,7 @@ export type SessionUser={
   method:IdentityMethod;
   sessionId:string;
   assuranceLevel:AuthenticationAssuranceLevel;
+  deviceRegistered:boolean;
 };
 
 const USER_EMAIL_HEADER = "oai-authenticated-user-email";
@@ -110,13 +111,13 @@ export async function getProductionUser():Promise<SessionUser|null>{
     return {
       id:principal.userId,displayName:principal.displayName,email:principal.verifiedEmail,phone:principal.verifiedPhone,
       roles:authority.roles,scopedRoles:authority.scopedRoles,memberships:principal.memberships,
-      method:principal.method,sessionId:principal.sessionId,assuranceLevel:principal.assuranceLevel,
+      method:principal.method,sessionId:principal.sessionId,assuranceLevel:principal.assuranceLevel,deviceRegistered:principal.deviceRegistered,
     };
   }
   const preview=await getChatGPTUser();
   return preview?{
     id:preview.email.toLowerCase(),displayName:preview.displayName,email:preview.email.toLowerCase(),phone:null,
-    roles:configuredPreviewRoles(preview.email),scopedRoles:[],memberships:[],method:'chatgpt_demo',sessionId:'chatgpt-dispatch',assuranceLevel:null,
+    roles:configuredPreviewRoles(preview.email),scopedRoles:[],memberships:[],method:'chatgpt_demo',sessionId:'chatgpt-dispatch',assuranceLevel:null,deviceRegistered:true,
   }:null;
 }
 
