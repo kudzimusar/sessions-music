@@ -19,7 +19,7 @@ test('production registry primitives use the approved palette and canonical Sess
   const css=activeCss(await read('app/brand-runtime.css')).toLowerCase();
   assert.match(css,/\.registry-app\s*\{[^}]*--r-blue:\s*#4169e1/s);
   assert.match(css,/\.registry-app \.brand-symbol\s*\{[^}]*background:\s*#4169e1\s*!important/s);
-  assert.match(css,/\.registry-app \.brand-symbol\s*\{[^}]*background-image:\s*url\('\/favicon\.svg'\)\s*!important/s);
+  assert.match(css,/\.registry-app \.brand-symbol::after\s*\{[^}]*background:\s*url\('\/favicon\.svg'\) center \/ cover no-repeat/s);
   assert.match(css,/\.registry-app \.brand-symbol svg\s*\{[^}]*opacity:\s*0\s*!important/s);
   assert.match(css,/\.registry-app \.r-primary[^\{]*\{[^}]*background:\s*#4169e1\s*!important/s);
   assert.match(css,/\.registry-app \.r-bottom-nav a\.active[^\{]*\{[^}]*color:\s*#4169e1\s*!important/s);
