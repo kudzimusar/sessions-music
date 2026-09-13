@@ -63,6 +63,6 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
   return new Response(object.body,{headers});
  }catch(error){
   console.error('Media read failed',error instanceof Error?error.message:'Unknown error');
-  return new Response('Media unavailable',{status:503,headers:privateHeaders});
+  return new Response('Media unavailable',{status:503,headers:{'Cache-Control':'private, no-store, max-age=0','Pragma':'no-cache'}});
  }
 }

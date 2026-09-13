@@ -32,6 +32,7 @@ required_migrations=(
   "0019_phase5_booking_ops_cases.sql"
   "0020_staff_lifecycle_access.sql"
   "0021_phase1_5_integrity_hardening.sql"
+  "0022_identity_mirror_hardening.sql"
 )
 
 if [[ ! -s "${hosting_artifact}" ]]; then
@@ -65,4 +66,4 @@ node --input-type=module -e '
   if(!/\.registry-app\s+\.brand-symbol\s*\{[^}]*background\s*:\s*#4169e1\s*!important/i.test(css)) throw new Error("Sites build is invalid: compiled CSS lost the Royal Blue brand symbol override");
 ' "${SITES_PROJECT_ROOT}/dist"
 
-echo "Sites deployment artifact verified: hosting linkage, Phase 4/4.5/5 and cross-phase integrity migrations, and runtime Royal Blue CSS are packaged."
+echo "Sites deployment artifact verified: hosting linkage, Phase 4/4.5/5 and cross-phase integrity migrations through 0022, and runtime Royal Blue CSS are packaged."

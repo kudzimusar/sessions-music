@@ -22,6 +22,7 @@ const response=(data:unknown,status=200)=>Response.json(data,{status,headers:{'C
 const safeJson=(value:unknown)=>{try{return typeof value==='string'?JSON.parse(value):{}}catch{return {}}};
 const newId=(prefix:string)=>`${prefix}_${crypto.randomUUID()}`;
 const now=()=>new Date().toISOString();
+const authorityNote='Restricted workforce identity fields and delegation reasons require organization administration authority. Organization hierarchy and delegation do not grant platform roles or permissions. New staff begin as identity-bound invitations; onboarding and trusted authority are completed separately.';
 
 async function exists(db:any,table:string,key:string,value:string){return !!(await db.prepare(`SELECT 1 ok FROM ${table} WHERE ${key} = ? LIMIT 1`).bind(value).first())}
 async function activeStaff(db:any,staffId:string){return !!(await db.prepare("SELECT 1 ok FROM corporate_staff WHERE id = ? AND status = 'active' LIMIT 1").bind(staffId).first())}
@@ -48,7 +49,7 @@ export async function GET(){
   const staff=(staffResult.results as Row[]).map(row=>{const content=safeJson(row.content);return {id:row.id,staffCode:row.staff_code,positionId:row.position_id,status:row.status,displayName:content.displayName||'Unnamed staff member',location:content.location||'',startedAt:row.started_at,plannedStartAt:content.plannedStartAt||null,...(canReadIdentity?{identityUserId:row.user_id,workEmail:content.workEmail||'',employmentType:content.employmentType||'employee'}:{})}});
   const reporting=(reportingResult.results as Row[]).map(row=>({id:row.id,staffId:row.staff_id,managerStaffId:row.manager_staff_id,kind:row.kind,effectiveFrom:row.effective_from}));
   const delegations=(delegationsResult.results as Row[]).map(row=>{const content=safeJson(row.content);return {id:row.id,principalStaffId:row.principal_staff_id,delegateStaffId:row.delegate_staff_id,scope:row.scope,status:row.status,startsAt:row.starts_at,endsAt:row.ends_at,...(canManage?{reason:content.reason||''}:{})}});
-  return response({departments,positions,staff,reporting,delegations,canManage,generatedAt:now(),authorityNote:'Organization hierarchy and delegation do not grant platform roles or permissions. New staff begin as identity-bound invitations; onboarding and trusted authority are completed separately.'});
+  return response({departments,positions,staff,reporting,delegations,canManage,generatedAt:now(),authorityNote});
  }catch(error){console.error('Corporate organization read failed',error instanceof Error?error.message:'Unknown error');return response({error:'Corporate organization data is unavailable. The workforce schema may not be provisioned yet.'},503)}
 }
 

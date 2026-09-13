@@ -55,7 +55,7 @@ begin
 
     if contact_owner is null then
       insert into public.verified_contacts (user_id, kind, value_normalized, verified_at, is_primary)
-      values (new.id, 'phone', normalized_contact, new.phone_confirmed_at, true)
+      values (new.id, 'phone', normalized_contact, new.phone_confirmed_at, false)
       on conflict (kind, value_normalized) do nothing;
       select vc.user_id into contact_owner
         from public.verified_contacts vc
@@ -86,7 +86,7 @@ begin
 
     if contact_owner is null then
       insert into public.verified_contacts (user_id, kind, value_normalized, verified_at, is_primary)
-      values (new.id, 'email', normalized_contact, new.email_confirmed_at, true)
+      values (new.id, 'email', normalized_contact, new.email_confirmed_at, false)
       on conflict (kind, value_normalized) do nothing;
       select vc.user_id into contact_owner
         from public.verified_contacts vc

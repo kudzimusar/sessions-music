@@ -20,6 +20,7 @@ test('production build fails closed if Sites metadata or Phase 4/4.5/5 hardening
  assert.match(script,/0019_phase5_booking_ops_cases\.sql/);
  assert.match(script,/0020_staff_lifecycle_access\.sql/);
  assert.match(script,/0021_phase1_5_integrity_hardening\.sql/);
+ assert.match(script,/0022_identity_mirror_hardening\.sql/);
  assert.match(script,/Unexpected Sites project_id/);
  assert.match(script,/Expected DB\/R2 Sites bindings/);
 });

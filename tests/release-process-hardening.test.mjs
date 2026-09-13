@@ -40,6 +40,7 @@ test('successful exact revisions publish machine-readable immutable release evid
  assert.match(evidence,/0019_phase5_booking_ops_cases\.sql/);
  assert.match(evidence,/0020_staff_lifecycle_access\.sql/);
  assert.match(evidence,/0021_phase1_5_integrity_hardening\.sql/);
+ assert.match(evidence,/0022_identity_mirror_hardening\.sql/);
  assert.match(evidence,/supabaseMigrations/);
  assert.match(evidence,/202609130001_identity_contact_hardening\.sql/);
  assert.match(evidence,/contains no credentials/);
@@ -54,6 +55,7 @@ test('release preflight fails closed on wrong revision, wrong hosting, stale pha
  assert.match(gate,/0019_phase5_booking_ops_cases\.sql/);
  assert.match(gate,/0020_staff_lifecycle_access\.sql/);
  assert.match(gate,/0021_phase1_5_integrity_hardening\.sql/);
+ assert.match(gate,/0022_identity_mirror_hardening\.sql/);
  assert.match(gate,/202609130001_identity_contact_hardening\.sql/);
  assert.match(gate,/verified_contact_conflict/);
  assert.match(gate,/session_registered/);
@@ -67,6 +69,6 @@ test('release preflight fails closed on wrong revision, wrong hosting, stale pha
 
 test('production build packages every D1 migration required by the Phase 5 runtime',async()=>{
  const build=await read('scripts/build-verified.sh');
- for(const migration of ['0017_corporate_control_plane_indexes.sql','0018_phase45_identity_onboarding.sql','0019_phase5_booking_ops_cases.sql','0020_staff_lifecycle_access.sql','0021_phase1_5_integrity_hardening.sql'])assert.match(build,new RegExp(migration.replaceAll('.','\\.')));
+ for(const migration of ['0017_corporate_control_plane_indexes.sql','0018_phase45_identity_onboarding.sql','0019_phase5_booking_ops_cases.sql','0020_staff_lifecycle_access.sql','0021_phase1_5_integrity_hardening.sql','0022_identity_mirror_hardening.sql'])assert.match(build,new RegExp(migration.replaceAll('.','\\.')));
  assert.match(build,/required migration/);
 });

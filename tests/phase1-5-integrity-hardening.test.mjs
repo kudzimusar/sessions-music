@@ -16,6 +16,7 @@ const migrationPaths=[
  'drizzle/0019_phase5_booking_ops_cases.sql',
  'drizzle/0020_staff_lifecycle_access.sql',
  'drizzle/0021_phase1_5_integrity_hardening.sql',
+ 'drizzle/0022_identity_mirror_hardening.sql',
 ];
 const migrations=(await Promise.all(migrationPaths.map(read))).map(value=>value.replaceAll('--> statement-breakpoint','')).join('\n');
 const now='2026-09-13T12:00:00.000Z';
@@ -110,6 +111,16 @@ test('verified contacts cannot be reassigned between Supabase identities and dev
  assert.match(migration,/verified_contacts_one_primary_kind_idx/);
  assert.match(migration,/'session_registered'/);
  assert.match(migration,/ds\.session_id is not null/);
+});
+
+test('D1 identity mirrors require trusted provider contacts and unique primary contacts',()=>{
+ const db=database();
+ db.prepare('INSERT INTO sessions_user_profiles(user_id,status,created_at,updated_at) VALUES(?,?,?,?)').run('u2','identity_verified',now,now);
+ db.prepare('INSERT INTO sessions_user_contacts(id,user_id,kind,value,is_primary,verified_at,source,consent_status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)').run('contact-1','u1','phone','+263771234567',1,now,'identity_provider','not_applicable',now,now);
+ assert.throws(()=>db.prepare('INSERT INTO sessions_user_contacts(id,user_id,kind,value,is_primary,verified_at,source,consent_status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)').run('contact-2','u2','phone','+263771234567',0,now,'identity_provider','not_applicable',now,now),/UNIQUE/);
+ assert.throws(()=>db.prepare('INSERT INTO sessions_user_contacts(id,user_id,kind,value,is_primary,verified_at,source,consent_status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)').run('contact-3','u1','email','identity@example.test',1,null,'user','not_applicable',now,now),/identity provider/);
+ assert.throws(()=>db.prepare('INSERT INTO sessions_user_contacts(id,user_id,kind,value,is_primary,verified_at,source,consent_status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)').run('contact-4','u1','phone','+263771234568',1,now,'identity_provider','not_applicable',now,now),/UNIQUE/);
+ db.close();
 });
 
 test('corporate onboarding is invitation-bound, policy-versioned and device-gated before workspace context',async()=>{
