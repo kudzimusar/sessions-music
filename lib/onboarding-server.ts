@@ -6,7 +6,7 @@ export const REQUIRED_CONSENTS={terms:'2026-09-13-v1',privacy:'2026-09-13-v1',co
 export type WorkspaceContext={type:'personal'|'provider'|'corporate';id:string;label:string;status:'active'|'restricted'};
 export type OnboardingSnapshot={
  profile:{status:string;displayName:string;market:string;locale:string;lastContextType:string|null;lastContextId:string|null};
- identity:{userId:string;email:string|null;phone:string|null;method:string;sessionId:string;assuranceLevel:string|null};
+ identity:{userId:string;email:string|null;phone:string|null;method:string;sessionId:string;assuranceLevel:string|null;deviceRegistered:boolean};
  consents:{terms:boolean;privacy:boolean;marketing:boolean;whatsapp:boolean;corporateAccess:boolean};
  journeys:{id:string;journey:string;contextKey:string;status:string;currentStep:string}[];
  contexts:WorkspaceContext[];
@@ -87,7 +87,7 @@ export async function readOnboardingSnapshot(actor:SessionUser):Promise<Onboardi
  }
  return {
   profile:{status,displayName:String(profile.display_name||''),market:String(profile.market||'ZW'),locale:String(profile.locale||'en-ZW'),lastContextType:profile.last_context_type?String(profile.last_context_type):null,lastContextId:profile.last_context_id?String(profile.last_context_id):null},
-  identity:{userId:actor.id,email:actor.email,phone:actor.phone,method:actor.method,sessionId:actor.sessionId,assuranceLevel:actor.assuranceLevel},
+  identity:{userId:actor.id,email:actor.email,phone:actor.phone,method:actor.method,sessionId:actor.sessionId,assuranceLevel:actor.assuranceLevel,deviceRegistered:actor.deviceRegistered},
   consents:{terms:termsOk,privacy:privacyOk,marketing:marketing?.decision==='granted',whatsapp:whatsapp?.decision==='granted',corporateAccess:corporateAccessOk},
   journeys:journeyRows.map(row=>({id:String(row.id),journey:String(row.journey),contextKey:String(row.context_key),status:String(row.status),currentStep:String(row.current_step)})),
   contexts,nextStep,
