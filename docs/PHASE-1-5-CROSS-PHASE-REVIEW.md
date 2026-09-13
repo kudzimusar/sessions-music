@@ -1,173 +1,166 @@
 # Sessions Unified Platform v1 — Phase 1–5 Cross-Phase Review
 
-**Review date:** 2026-09-13  
+**Review date:** 13 September 2026  
+**Post-deployment UAT amendment:** 13 September 2026  
 **Scope:** Phase 1 brand foundation through Phase 5 Booking Operations & Cases  
-**Status:** Source review / pre-merge release gate. This document does not certify live D1 migrations, Supabase provider configuration, or a deployed ChatGPT Sites version.
+**Status:** Phase 1–5 backend/security foundation accepted; product-surface corrections required before Phase 6.
 
 ## 1. Review objective
 
-This review treats Sessions as one production marketplace with customer, provider and corporate projections over shared canonical records. It explicitly rejects three independently-authored applications, self-selected administrative roles, duplicated booking ledgers, inferred citizenship, shared staff identities, and analytics or operations views that bypass data classification.
+This review treats Sessions as one production marketplace with customer, provider and corporate projections over shared canonical records. It rejects independently-authored data systems, self-selected administrative authority, duplicated booking ledgers, inferred citizenship, shared staff identities and operational views that bypass data classification.
 
-The review covers desktop and mobile interaction, authentication and onboarding, staff lifecycle, provider authority, Booking Operations, Cases, privacy boundaries, migration compatibility, auditability and the release/deployment boundary.
+Post-deployment UAT of Version 17 identified a separate product-design issue that source/security review did not fully capture: customer/provider mobile had drifted toward responsive/PWA composition, and Corporate onboarding appeared too close to the public customer/provider journey.
+
+Those findings do not invalidate the Phase 1–5 backend, identity or authorization work. They do require a binding surface-separation correction before Phase 6. The governing correction is `docs/PHASE-1-5-SURFACE-SEPARATION-AMENDMENT.md`.
 
 ## 2. Phase 1 — brand and interaction foundation
 
-### Result
+### Accepted
 
-The source uses the approved production primitives Black `#000000`, Royal Blue `#4169E1`, and White `#FFFFFF`, with green/amber/red reserved for semantic state. The global token layer remains the governing palette and later onboarding/operations styles use those same primitives rather than reintroducing the legacy teal/slate product identity.
+The approved production palette is Black `#000000`, Royal Blue `#4169E1`, and White `#FFFFFF`, with semantic colours for status. Shared design tokens remain valid across surfaces.
 
-### Desktop
+### Correction required
 
-Corporate and operational workspaces support higher information density, tabular scanning, sticky detail regions and wide filter/tool bars. Focus remains on one page hierarchy rather than dashboard-card proliferation.
+The original Phase 1 implementation treated mobile too much as a responsive adaptation of web/PWA composition. From this review onward:
 
-### Mobile
-
-New Phase 4.5/5 controls use minimum 44–48 px action heights, single-column fallbacks, card queues instead of horizontally-dependent tables, safe-area-aware floating workspace switching and reduced-motion rules.
-
-### Residual release check
-
-A saved Sites build still needs visual inspection at `/mobile`, `/account`, `/onboarding/provider`, `/corporate`, `/corporate/bookings`, and `/corporate/incidents`; GitHub source review cannot prove the deployed CSS bundle.
+- shared tokens do not imply shared page composition;
+- customer/provider mobile is `customer-native` / `provider-native` first;
+- corporate/provider web may use desktop/PWA patterns;
+- mobile acceptance requires app-style navigation stacks, touch-first controls, safe areas and full-screen task flows;
+- a narrow desktop viewport is not sufficient evidence of a native-mobile product.
 
 ## 3. Phase 2 — organization/workforce
 
-### Result
+### Accepted
 
-Organizational hierarchy remains non-authoritative. Departments, positions, reporting lines and delegations do not contain role or permission grants. A new additive `corporate_staff_access_state` overlay represents `active`, `suspended`, `departed`, and `terminated` without rewriting the historical workforce migration constraint.
+Organizational hierarchy remains non-authoritative. Departments, positions, reporting lines and delegations do not grant roles or permissions. Staff lifecycle and access-state overlays preserve attributable workforce history.
 
-### Lifecycle invariants
+### Correction required
 
-- Suspension removes corporate execution authority while preserving the human identity and independently-authorized personal/provider contexts.
-- Departure and termination end active reporting relationships.
-- Non-active lifecycle changes revoke active/scheduled organizational delegations.
-- Non-active lifecycle changes revoke active privileged-administration elevation for the affected identity.
-- Terminated staff cannot be reactivated through the lifecycle endpoint; a return requires a newly-reviewed employment record.
-- Lifecycle reason and actor are audit facts, not permission grants.
+Internal workforce concepts are Corporate-only. They must not appear in public customer/provider onboarding. A workforce record may create an identity-bound invitation journey, but not public discoverability or self-selection of Corporate.
 
 ## 4. Phase 3 — IAM, RBAC and privileged administration
 
-### Result
+### Accepted
 
-Production corporate roles now fail closed against D1 employment/access state. A valid Supabase corporate role assignment is insufficient if Sessions cannot prove an active `corporate_staff` record with active staff access state. If the workforce check fails, corporate roles/scoped corporate roles are removed from the effective principal before API authorization.
+Production corporate roles fail closed against workforce/access state. Privileged administration remains a separate AAL2 elevation tied to the exact identity session. Recovery restores identity, not organization authority.
 
-Privileged administration remains a separate AAL2 elevation tied to the exact identity session, with one active privileged elevation per identity and 15-minute expiry.
+### Correction required
 
-### MFA
+Private product-owner/UAT access to Corporate must use a real attributable reviewer/staff assignment or an isolated demo surface. Review convenience must never become a hard-coded bypass, shared admin account or owner-is-super-admin shortcut.
 
-The account-security source now supports TOTP enrollment, QR setup, challenge-and-verify, AAL2 session refresh and factor removal. Sessions does not persist MFA seeds, OTPs, passwords or refresh tokens in D1. Sensitive recovery-identity changes require current AAL2 when a verified factor exists.
+## 5. Phase 4 — Corporate control plane
 
-### Recovery
+### Accepted
 
-Email/phone recovery changes use Supabase verification. Matching contact data never auto-merges two identities and never copies provider/corporate authority. Loss of all factors is explicitly a support-reviewed recovery scenario rather than an automatic recreation of roles.
+Corporate remains a permission-generated internal operating console for organization, booking operations, provider/customer oversight, cases, finance, analytics and audit.
 
-## 5. Phase 4.5 — identity, onboarding and workspace gateway
+### Corrected surface rule
 
-### Identity model
+Corporate is now explicitly `corporate-desktop` / tablet first. Dense queues, tables, filters, audit panels and master-detail workflows are appropriate.
 
-One trusted user ID can hold verified email/phone identities and multiple independently-authorized contexts. A Zimbabwe `+263` telephone number is a contact identity and market signal only; it is not proof of citizenship. WhatsApp is a separately consented communication preference and not an authentication/MFA factor.
+Corporate mobile is intentionally bounded to `corporate-critical-mobile` actions such as urgent review, acknowledgement, assignment, escalation, quick lookup and concise case updates. The complete desktop control plane must not be reproduced on mobile by stacking every section vertically.
 
-### Onboarding state
+## 6. Phase 4.5 — identity, onboarding and workspace gateway
 
-Customer, provider and corporate journeys are distinct state machines over one identity. Required Terms/Privacy decisions are versioned and append-only; marketing and WhatsApp remain optional and separately withdrawable.
+### Accepted
 
-### Deep links
+One trusted identity can hold personal, provider and corporate contexts. Verified contact, consent, lifecycle, deep-link continuation, recovery, session/device posture and workspace derivation remain valid.
 
-Protected-route continuation uses opaque random tokens. D1 stores only a SHA-256 digest and a validated internal return path. Continuations are short-lived, identity-bindable and single-consumption. Protocol-relative/external return paths are rejected by the database constraint and server validation.
+### Correction required
 
-### Returning users
+Public onboarding must no longer expose Corporate/Sessions-team as a peer self-selection option.
 
-The application derives Personal, Studio and Corporate contexts from server authority. The workspace switcher displays only active contexts returned by the server, persists only a context that the onboarding API revalidates, and routes to `/mobile`, `/manage`, or `/corporate` after authorization.
+Public path:
 
-### Provider onboarding
+`identity -> customer profile/consent -> personal workspace`
 
-Provider onboarding is now an explicit five-gate journey: identity/agreements → studio application → independent provider verification → organization membership → marketplace readiness. Claim/registration/verification state is read from canonical registry records. Application intent never writes a platform role or organization membership.
+Optional provider path:
 
-## 6. Phase 5 — Booking Operations
+`identity -> provider intention -> claim/register -> verification -> provider membership`
 
-### Canonical-data rule
+Corporate path:
 
-`studio_bookings` remains the booking record. `booking_operation_state` is an operational overlay and intentionally contains no customer identity, quoted price, gross amount, currency or settlement arithmetic. Booking Operations therefore cannot silently become a second booking ledger.
+`trusted invitation/staff relationship -> identity match -> policy acceptance -> device/security setup -> active corporate context`
 
-### Mutation controls
+An already-authorized multi-context user may still see Corporate in the workspace switcher because authority already exists. A normal marketplace user must not be invited to choose Corporate.
 
-Operational state, priority, assignment and SLA mutations require `bookings:manage`, use optimistic revision checks and append immutable `booking_operation_events`. Internal notes append events without rewriting canonical booking content. Customer references are omitted unless the principal separately has customer-reference authority.
+## 7. Phase 5 — Booking Operations
 
-### Desktop/mobile
+### Accepted
 
-Desktop provides filterable dense queues and a sticky detail/control panel. Mobile replaces the table with touch-size booking cards and moves the detail workflow into a single-column flow.
+`studio_bookings` remains canonical. `booking_operation_state` is an operational overlay and does not become a second booking ledger. Mutations require explicit permission, revision control and audit events.
 
-## 7. Phase 5 — Cases
+### Corrected surface rule
 
-### Authorization
+Booking Operations is primarily a `corporate-desktop` product. Dense queue/filter/detail composition is appropriate there.
 
-`cases:read` is necessary but not sufficient. Case visibility and management are category-scoped:
+A mobile implementation must be a separately designed critical subset, not a responsive collapse of the desktop table/detail page.
 
-- Customer Support requires Support authority.
-- Booking Operations requires Booking Operations authority.
-- Provider Operations requires provider oversight.
-- Trust & Safety requires claim/verification or restricted-case authority.
-- Finance requires settlement-review authority.
-- General incidents require incident/operations authority.
+## 8. Phase 5 — Cases
 
-Restricted/confidential case data additionally requires `cases:restricted.read`.
+### Accepted
 
-### Workflow
+Cases remain category-scoped, classification-aware and separately authorized from linked booking/studio/customer/settlement/media objects. Restricted evidence remains case-bound and permission-gated.
 
-Normal transitions are server-controlled. Resolved/closed cases require durable resolution facts. Reopening is an explicit separate action with a reason and returns the case to `in_progress`. Assignment requires `cases:assign`. Notes have explicit visibility and classification. Evidence is an R2 media reference linked from the immutable case event stream; the case table does not copy evidence blobs or private booking-message content.
+### Corrected surface rule
 
-### Desktop/mobile
+Cases remain desktop-dense in Corporate. Mobile may support urgent queue, summary, assignment, status/next-action, escalation, concise note capture and permitted communication handoff. It must not simply stack the entire desktop case workspace into a long phone page.
 
-Desktop uses a queue/detail layout with timeline, linked records, assignment, SLA and workflow controls. Mobile renders cases as cards with single-column details and 48 px actions. Restricted evidence remains an explicitly labeled section.
+## 9. PWA/web versus native mobile
 
-## 8. Anonymous surface review
+The PWA/web product remains supported and useful. It is not being removed.
 
-The intended initial production policy is authenticated marketplace access. Page routing sends unauthenticated protected paths through the Sessions welcome/onboarding continuation flow. Legacy registry reads now fail closed when no Sessions identity is supplied. Quote and saved-state endpoints require production identity. Public exceptions are limited to authentication/onboarding support, Terms/Privacy/help, non-secret release/readiness metadata, and signed provider webhooks where applicable.
+Its intended role is browser/desktop continuity, provider web management, Corporate operations, selected account/security workflows, internal review and fallback access.
 
-A 401 status is preferred for direct anonymous API attempts; source paths that fail closed through a lower-level identity invariant must still be checked during the final integration test to ensure they return no marketplace data.
+The native customer/provider product remains a separate interaction system over the same backend. During current web/Sites prototyping, `/mobile` must approximate the intended native architecture rather than behave like a generic responsive website.
 
-## 9. Privacy and classification review
+## 10. Corporate reviewer access
 
-- D1 onboarding tables contain no password, OTP, refresh-token, MFA-secret or citizenship columns.
-- Required/optional consent is separated and append-only.
-- Customer references are masked/omitted unless field-level authority permits them.
-- Workforce identity fields and lifecycle reasons require elevated organization authority.
-- Case classification is evaluated separately from category authorization.
-- Restricted case evidence requires restricted-case authority both at upload and at case linkage/read time.
-- Private booking-message attachments do not become generally-readable operational evidence.
-- Recovery does not infer identity equivalence from a matching email/phone.
+Corporate remains invitation/assignment-bound, but private UAT must be reviewable.
 
-## 10. Database and migration review
+Preferred method:
 
-Phases 4.5/5 are additive migrations:
+- create/seed a legitimate staff/reviewer record for the product owner or designated reviewer;
+- assign explicit bounded permissions;
+- complete normal invitation/policy/device/security steps;
+- preserve auditability;
+- revoke/adjust access when no longer required.
 
-- `0018_phase45_identity_onboarding.sql`
-- `0019_phase5_booking_ops_cases.sql`
-- `0020_staff_lifecycle_access.sql`
+An isolated `/demo/corporate` may supplement visual review only if it uses fixture data, is clearly marked demo and cannot write production state or grant authority.
 
-The lifecycle overlay was selected specifically to avoid rewriting the already-shipped `corporate_staff` status constraint. New audit/event ledgers use no-update/no-delete triggers. Case closure constraints enforce resolution metadata. Operational booking state remains separate from canonical booking/settlement arithmetic.
+## 11. Privacy and classification review
 
-Before a production Sites release, all unapplied D1 migrations must be applied in order to the intended environment and verified against a backup/restore plan. Source CI proves migration syntax in Node SQLite; it does not prove the hosted D1 database has been migrated.
+The Phase 1–5 security conclusions remain valid:
 
-## 11. Supabase / identity deployment review
+- no passwords, OTP secrets, refresh tokens or MFA secrets belong in D1/R2;
+- required/optional consent remains separated and versioned;
+- customer/workforce/restricted fields require field-level authority;
+- restricted case evidence remains separately gated;
+- recovery never manufactures organization authority;
+- provider/corporate context remains independent from personal context.
 
-Source now models phone, email, Google, Apple, device sessions and TOTP MFA. Public launch still requires the actual Sessions Supabase project to be configured and live-tested for:
+## 12. Database and migration review
 
-- Zimbabwe SMS delivery and abuse controls;
-- email magic-link delivery;
-- OAuth redirect credentials;
-- allowed redirect URLs including `/auth/complete`;
-- TOTP MFA;
-- individual staff accounts;
-- access-token lifetime/session policy;
-- production role/membership records and RLS/migration state.
+Phase 4.5/5 D1 migrations remain additive and canonical-data preserving, including identity/onboarding, booking operations, cases, staff lifecycle access and Phase 1–5 hardening through `0022_identity_mirror_hardening.sql`.
 
-The connected environment available during this implementation does not expose the Sessions Supabase project, so these are deployment certification items rather than source-complete claims.
+The product-surface correction does not require a second booking/customer/provider/case database and must not introduce one.
 
-## 12. Release gate
+## 13. Supabase / identity deployment review
 
-Phase 4.5/5 source may merge only when the exact PR head completes the repository `npm test` gate successfully after all hardening tests are present. A green earlier commit is not sufficient.
+The source models phone/email/social identity, device/session posture and MFA boundaries. Live Sessions Supabase configuration remains a deployment certification item where the actual Sessions project is not connected. The unrelated `church-os-dev` project must not be used.
 
-Merge is still not deployment. The saved ChatGPT Sites build must be generated from that reviewed merge commit, inspected, and only then deployed to the existing Sessions Sites project. The deployment must verify release provenance, authentication/onboarding, customer/provider/corporate context switching, Booking Operations, Cases, D1 reads/migrations and R2 authorization.
+## 14. Release/UAT conclusion
 
-## 13. Review conclusion
+Version 17 is a valid Phase 5 source/security deployment baseline, but it is not the final product-surface standard for future implementation.
 
-The Phase 1–5 architecture remains one platform with a single canonical marketplace data model. Phase 4.5 adds an identity/onboarding/lifecycle gateway without creating a second account authority; Phase 5 adds operational overlays and cases without creating a second booking system. The remaining certification boundary is environmental: exact-head CI, hosted D1 migration state, live Supabase provider/MFA configuration, and a saved/deployed Sites version from the reviewed commit.
+Before Phase 6 work expands the UI, the following rules are binding:
+
+- native mobile interaction architecture starts from Phase 1, not Phase 10;
+- PWA/web remains, but does not define customer/provider mobile composition;
+- Corporate is internal and absent from public onboarding;
+- Corporate remains desktop/tablet-first with a bounded critical-mobile subset;
+- UAT reviewers receive legitimate attributable Corporate access rather than an authorization bypass;
+- future PRs must declare their target surface and pass separate mobile-vs-desktop interaction review.
+
+Phase 10 remains the native runtime/device-integration and production mobile migration milestone. It must consume a native interaction model already established in earlier phases rather than trigger a wholesale redesign of a PWA.
