@@ -195,5 +195,10 @@ BEGIN SELECT RAISE(ABORT,'case evidence must be bound to an existing case'); END
 --> statement-breakpoint
 CREATE TRIGGER IF NOT EXISTS uploads_non_case_evidence_scope_insert
 BEFORE INSERT ON uploads
-WHEN NEW.purpose!='case_evidence' AND NEW.case_id IS NOT NULL
+WHEN (NEW.purpose IS NULL OR NEW.purpose!='case_evidence') AND NEW.case_id IS NOT NULL
+BEGIN SELECT RAISE(ABORT,'non-case uploads cannot carry a case scope'); END;
+--> statement-breakpoint
+CREATE TRIGGER IF NOT EXISTS uploads_non_case_evidence_scope_update
+BEFORE UPDATE OF purpose,case_id ON uploads
+WHEN (NEW.purpose IS NULL OR NEW.purpose!='case_evidence') AND NEW.case_id IS NOT NULL
 BEGIN SELECT RAISE(ABORT,'non-case uploads cannot carry a case scope'); END;
