@@ -8,6 +8,8 @@ Before changing product architecture or UI, read:
 2. `docs/PHASE-1-5-SURFACE-SEPARATION-AMENDMENT.md`
 3. the phase-specific implementation document relevant to the task.
 
+Before any Phase 6 finance/monetization implementation, also read `docs/PHASE-6-PROVIDER-MONETIZATION-REQUIREMENTS.md`. That document captures provider-funded featured/service promotion requirements but does not authorize Phase 6 work while the project is still closing Phase 1–5 UAT.
+
 If older documentation conflicts with these files on mobile-vs-web composition, corporate onboarding, brand, identity authority or Phase 1–5 surface rules, the Unified Platform document plus the Surface Separation Amendment take precedence.
 
 ## Required surface declaration
