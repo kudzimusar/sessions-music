@@ -1,1 +1,0 @@
-Provider paid featuring/services is requirement capture only. No Phase 6 runtime behavior is included in this correction.
