@@ -7,7 +7,7 @@ const read=path=>fs.readFileSync(new URL(`../${path}`,import.meta.url),'utf8');
 test('Version 18 UAT corrections keep one identity and one canonical resource model',()=>{
   const native=read('app/customer-native.tsx');
   const onboarding=read('lib/onboarding-server.ts');
-  assert.match(onboarding,/One human has one Sessions identity|contexts:WorkspaceContext\[\]/i);
+  assert.match(onboarding,/contexts:WorkspaceContext\[\]/);
   assert.match(native,/One account, authorized contexts/);
   assert.match(native,/Same resources, different composition\./);
   assert.match(native,/studio\.rooms\.flatMap\(room=>room\.photos\|\|\[\]\)/);
@@ -30,4 +30,11 @@ test('Version 18 UAT follow-up requires both iOS and Android simulator review',(
   assert.match(findings,/Customer bottom navigation must persist/);
   assert.match(findings,/canonical stored studio\/room media/);
   assert.match(findings,/crossOrigin="use-credentials"/);
+});
+
+test('UAT correction remains Phase 5 and is separately identifiable from Version 18',()=>{
+  const release=read('lib/release-info.ts');
+  assert.match(release,/id: 'unified-platform-v1-phase5'/);
+  assert.match(release,/phase: 5/);
+  assert.match(release,/visualRevision: 'phase1-5-native-desktop-v2'/);
 });
