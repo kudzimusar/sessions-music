@@ -15,6 +15,9 @@ function productionTarget(value:string|URL|null|undefined){
 
 export default function ProductionRouteGuard(){
  useEffect(()=>{
+  // `/mobile` is now its own native interaction tree. Retire the old registry
+  // session flag so the desktop/PWA cannot inherit a stale "phone mode".
+  try{sessionStorage.removeItem('sessions-phone-view')}catch{}
   const history=window.history;
   const push=history.pushState.bind(history),replace=history.replaceState.bind(history);
   history.pushState=((data:unknown,unused:string,url?:string|URL|null)=>{const target=productionTarget(url);if(target){window.location.assign(target);return}return push(data,unused,url)}) as History['pushState'];
