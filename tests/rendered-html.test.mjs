@@ -66,8 +66,8 @@ test('authenticated identities must finish profile and consent onboarding before
  assert.doesNotMatch(html,/data-sessions-surface="customer-v5"/);
 });
 
-test('activated production Worker opens on canonical Sessions customer home while sourced inventory remains canonical',async()=>{
- const response=await runtime.dispatchFetch('https://sessions.test/',{headers:authHeaders});assert.equal(response.status,200);assert.match(response.headers.get('content-type')??'',/^text\/html/);const html=await response.text();assert.match(html,/<title>Sessions<\/title>/);assert.match(html,/data-sessions-surface="customer-v5"/);assert.match(html,/cv5-mobile-hero/);assert.match(html,/Rehearsal space,/);assert.doesNotMatch(html,/name="codex-preview"/);assert.doesNotMatch(html,/The Live Room/);
+test('activated production Worker opens on desktop PWA customer home while sourced inventory remains canonical',async()=>{
+ const response=await runtime.dispatchFetch('https://sessions.test/',{headers:authHeaders});assert.equal(response.status,200);assert.match(response.headers.get('content-type')??'',/^text\/html/);const html=await response.text();assert.match(html,/<title>Sessions<\/title>/);assert.match(html,/class="registry-app/);assert.match(html,/Find your sound/);assert.match(html,/OneVibe Studiox/);assert.doesNotMatch(html,/data-sessions-surface="customer-native"/);assert.doesNotMatch(html,/name="codex-preview"/);assert.doesNotMatch(html,/The Live Room/);
  const directory=await runtime.dispatchFetch('https://sessions.test/studios',{headers:authHeaders});assert.equal(directory.status,200);const directoryHtml=await directory.text();assert.match(directoryHtml,/OneVibe Studiox/);assert.match(directoryHtml,/Unclaimed profile/);assert.doesNotMatch(directoryHtml,/The Live Room/);
 });
 
@@ -84,8 +84,8 @@ test('production API enforces identity and persists reservations in D1',async()=
  const other=await(await runtime.dispatchFetch('https://sessions.test/api/state',{headers:{...headers,'oai-authenticated-user-email':'other-worker-fixture@example.test'}})).json();assert.equal(other.bookings.length,0);
 });
 
-test('activated production Worker renders canonical mobile home, map and real studio details',async()=>{
- const mobile=await runtime.dispatchFetch('https://sessions.test/mobile',{headers:authHeaders});assert.equal(mobile.status,200);const phone=await mobile.text();assert.match(phone,/data-sessions-surface="customer-v5"/);assert.match(phone,/cv5-mobile-hero/);assert.match(phone,/Rehearsal space,/);assert.match(phone,/cv5-bottom-nav/);assert.doesNotMatch(phone,/phone-mode/);
+test('activated production Worker renders native mobile home while desktop map and studio detail remain available',async()=>{
+ const mobile=await runtime.dispatchFetch('https://sessions.test/mobile',{headers:authHeaders});assert.equal(mobile.status,200);const phone=await mobile.text();assert.match(phone,/data-sessions-surface="customer-native"/);assert.match(phone,/cn-home-screen/);assert.match(phone,/Spaces for your sound/);assert.match(phone,/cn-tabbar/);assert.doesNotMatch(phone,/phone-mode/);
  for(const [path,pattern]of [['/map',/Approximate building location · entrance unconfirmed/],['/studio/onevibe-studiox',/Where this profile comes from/],['/demo',/Fictional rehearsal inventory/]]){const r=await runtime.dispatchFetch('https://sessions.test'+path,{headers:authHeaders});assert.equal(r.status,200);assert.match(await r.text(),pattern);}
 });
 
