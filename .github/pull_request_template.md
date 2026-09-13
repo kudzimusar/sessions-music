@@ -2,6 +2,28 @@
 
 Describe the user/business behavior changed and the canonical data/authority boundary touched.
 
+## Product surface declaration
+
+Select every surface changed by this PR. UI PRs without a declared surface are incomplete.
+
+- [ ] `customer-native`
+- [ ] `provider-native`
+- [ ] `provider-web`
+- [ ] `corporate-desktop`
+- [ ] `corporate-critical-mobile`
+- [ ] `shared-backend`
+
+Before implementation/review, read `AGENTS.md`, `docs/UNIFIED-PLATFORM-IMPLEMENTATION-v1.md`, and `docs/PHASE-1-5-SURFACE-SEPARATION-AMENDMENT.md`.
+
+## Surface architecture checks
+
+- [ ] Customer/provider native-mobile work is designed from an app interaction model, not a narrowed desktop/PWA page.
+- [ ] Native-mobile work does not mechanically stack desktop tables/cards or depend on desktop sidebars/hover.
+- [ ] Desktop/PWA composition is used only where appropriate for web/provider/corporate workflows.
+- [ ] Corporate is not exposed as a public customer/provider onboarding role choice.
+- [ ] Corporate mobile work is an explicitly bounded critical subset rather than forced desktop parity.
+- [ ] Owner/UAT Corporate access, if touched, remains attributable and authorization-correct; no global bypass/shared admin identity was introduced.
+
 ## Architecture checks
 
 - [ ] No parallel customer/provider/booking/case source of truth was introduced.
@@ -10,7 +32,7 @@ Describe the user/business behavior changed and the canonical data/authority bou
 - [ ] Corporate access remains deny-by-default and workforce-gated.
 - [ ] Restricted/private data classification was reviewed for new fields, APIs and media.
 - [ ] Mutations are authorized server-side and leave the required audit trail.
-- [ ] Mobile critical workflows remain usable with 44px+ targets and safe-area handling.
+- [ ] Native/critical-mobile workflows use 44px+ targets and safe-area handling where applicable.
 
 ## Database and migration checks
 
@@ -24,6 +46,7 @@ Describe the user/business behavior changed and the canonical data/authority bou
 - [ ] Negative authorization/lifecycle tests cover the change.
 - [ ] Existing failures were fixed by aligning tests/implementation to the intended contract, not by weakening security.
 - [ ] `npm run verify:release` passes locally or the reason it cannot be run locally is documented.
+- [ ] Visual/interaction UAT criteria are stated separately from automated build success for any UI change.
 
 ## Merge and release evidence
 
