@@ -10,6 +10,7 @@ const requiredFiles=[
   'drizzle/0019_phase5_booking_ops_cases.sql',
   'drizzle/0020_staff_lifecycle_access.sql',
   'drizzle/0021_phase1_5_integrity_hardening.sql',
+  'drizzle/0022_identity_mirror_hardening.sql',
   'supabase/migrations/202609130001_identity_contact_hardening.sql',
   'app/api/corporate/booking-ops/route.ts',
   'app/api/corporate/cases/route.ts',
@@ -26,7 +27,11 @@ if(hosting.d1!=='DB'||hosting.r2!=='BUCKET')fail('canonical D1/R2 bindings are m
 const migrationFiles=readdirSync(resolve(root,'drizzle')).filter(name=>/^\d{4}_.+\.sql$/.test(name)).sort();
 const migrationNumbers=migrationFiles.map(name=>name.slice(0,4));
 if(new Set(migrationNumbers).size!==migrationNumbers.length)fail('duplicate numeric migration prefixes detected');
-for(const required of ['0018_phase45_identity_onboarding.sql','0019_phase5_booking_ops_cases.sql','0020_staff_lifecycle_access.sql','0021_phase1_5_integrity_hardening.sql'])if(!migrationFiles.includes(required))fail(`required migration is missing: ${required}`);
+for(const required of ['0018_phase45_identity_onboarding.sql','0019_phase5_booking_ops_cases.sql','0020_staff_lifecycle_access.sql','0021_phase1_5_integrity_hardening.sql','0022_identity_mirror_hardening.sql'])if(!migrationFiles.includes(required))fail(`required migration is missing: ${required}`);
+
+const d1IdentityHardening=readFileSync(resolve(root,'drizzle/0022_identity_mirror_hardening.sql'),'utf8');
+if(!d1IdentityHardening.includes('sessions_verified_identity_contact_unique'))fail('D1 verified identity contact uniqueness is missing');
+if(!d1IdentityHardening.includes('sessions_contact_one_primary_kind'))fail('D1 primary contact uniqueness is missing');
 
 const identityHardening=readFileSync(resolve(root,'supabase/migrations/202609130001_identity_contact_hardening.sql'),'utf8');
 if(/ON CONFLICT\s*\(kind,\s*value_normalized\)\s*DO UPDATE\s+SET\s+user_id\s*=\s*excluded\.user_id/is.test(identityHardening))fail('identity hardening must never transfer a verified contact to another user');
