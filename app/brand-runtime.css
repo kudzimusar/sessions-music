@@ -45,9 +45,13 @@
 }
 
 .registry-app .brand-symbol {
-  background: #4169e1 !important;
-  color: #ffffff !important;
-  border: 1px solid #4169e1 !important;
+  background: url('/favicon.svg') center / cover no-repeat !important;
+  color: transparent !important;
+  border: 0 !important;
+}
+
+.registry-app .brand-symbol svg {
+  opacity: 0 !important;
 }
 
 .registry-app .brand-period,
