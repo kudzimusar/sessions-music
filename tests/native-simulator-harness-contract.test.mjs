@@ -9,7 +9,8 @@ test('native Phase 1-5 harness is an actual React Native runtime, not a WebView/
   const app=read('native/sessions-native/App.js');
   assert.match(pkg.dependencies.expo,/^~57\./);
   assert.match(pkg.dependencies['react-native'],/^0\.86\./);
-  assert.doesNotMatch(app,/WebView|react-native-webview|<iframe/i);
+  assert.equal(pkg.dependencies['react-native-webview'],undefined);
+  assert.doesNotMatch(app,/from\s+['"]react-native-webview['"]|require\(['"]react-native-webview['"]\)|<WebView\b|<iframe\b/i);
   assert.match(app,/Platform\.OS/);
   assert.match(app,/\/api\/release/);
 });
