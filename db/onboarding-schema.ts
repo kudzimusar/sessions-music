@@ -32,6 +32,8 @@ export const sessionsUserContacts=sqliteTable('sessions_user_contacts',{
  content:text('content').notNull().default('{}'),
 },t=>[
  uniqueIndex('sessions_contact_user_kind_value').on(t.userId,t.kind,t.value),
+ uniqueIndex('sessions_contact_one_primary_kind').on(t.userId,t.kind).where(sql`${t.isPrimary} = 1`),
+ uniqueIndex('sessions_verified_identity_contact_unique').on(t.kind,t.value).where(sql`${t.source} = 'identity_provider' AND ${t.kind} IN ('email','phone')`),
  index('sessions_contact_user_kind').on(t.userId,t.kind),
  check('sessions_contact_kind_valid',sql`${t.kind} IN ('email','phone','whatsapp')`),
  check('sessions_contact_source_valid',sql`${t.source} IN ('identity_provider','user')`),
