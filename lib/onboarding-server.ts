@@ -23,8 +23,9 @@ const parse=(value:unknown)=>{try{return typeof value==='string'?JSON.parse(valu
 
 async function syncContact(db:any,actor:SessionUser,kind:'email'|'phone',value:string|null){
  if(!value)return;
- const existing=await db.prepare('SELECT id FROM sessions_user_contacts WHERE user_id=? AND kind=? AND value=? LIMIT 1').bind(actor.id,kind,value).first();
  const at=now();
+ await db.prepare('UPDATE sessions_user_contacts SET is_primary=0,updated_at=? WHERE user_id=? AND kind=? AND value<>? AND is_primary=1').bind(at,actor.id,kind,value).run();
+ const existing=await db.prepare('SELECT id FROM sessions_user_contacts WHERE user_id=? AND kind=? AND value=? LIMIT 1').bind(actor.id,kind,value).first();
  if(existing)await db.prepare('UPDATE sessions_user_contacts SET is_primary=1,verified_at=COALESCE(verified_at,?),source=?,updated_at=? WHERE id=?').bind(at,'identity_provider',at,String(existing.id)).run();
  else await db.prepare('INSERT INTO sessions_user_contacts(id,user_id,kind,value,is_primary,verified_at,source,consent_status,created_at,updated_at,content) VALUES(?,?,?,?,?,?,?,?,?,?,?)').bind(`contact_${crypto.randomUUID()}`,actor.id,kind,value,1,at,'identity_provider','not_applicable',at,at,'{}').run();
 }
