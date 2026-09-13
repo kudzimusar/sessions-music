@@ -1,0 +1,15 @@
+node_modules/
+.expo/
+.env
+.env.local
+
+# Expo Continuous Native Generation output. Generate locally for Xcode/Android Studio.
+ios/
+android/
+
+# Native build products
+*.xcworkspace/xcuserdata/
+*.xcuserstate
+DerivedData/
+.gradle/
+local.properties
