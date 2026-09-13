@@ -18,13 +18,17 @@ test('desktop root and mobile app use separate compositions',()=>{
  assert.match(routes,/return <CustomerNative path=\{path\}\/>/);
 });
 
-test('customer mobile keeps discovery studio and booking inside native navigation stack',()=>{
+test('customer mobile keeps discovery booking sessions and notifications inside native navigation stack',()=>{
  const native=read('app/customer-native.tsx');
  const css=read('app/customer-native.css');
  assert.match(native,/data-sessions-surface="customer-native"/);
  assert.match(native,/href=\{'\/mobile\/studio\/'\+studio\.id\}/);
  assert.match(native,/href=\{'\/mobile\/studio\/'\+studio\.id\+'\/book'\}/);
  assert.match(native,/<BookingRequestV3 studio=\{studio\}/);
+ assert.match(native,/href=\{'\/mobile\/session\/'\+item\.id\}/);
+ assert.match(native,/path==='\/mobile\/notifications'/);
+ assert.match(native,/href="\/mobile\/notifications"/);
+ assert.doesNotMatch(native,/href="\/requests"/);
  assert.match(native,/\['\/mobile','Home',Home\]/);
  assert.match(native,/\['\/mobile\/search','Search',Search\]/);
  assert.match(native,/\['\/mobile\/sessions','Sessions',CalendarDays\]/);
@@ -34,13 +38,20 @@ test('customer mobile keeps discovery studio and booking inside native navigatio
  assert.match(css,/\.cn-book-screen \.r-panel\{border:0!important/);
 });
 
+test('native customer actions remain backed by existing booking and notification state',()=>{
+ const native=read('app/customer-native.tsx');
+ assert.match(native,/type:'bookingStatus',studioId:booking\.studioId,id:booking\.id,status:'cancelled'/);
+ assert.match(native,/const items=\[\.\.\.\(data\.notifications\|\|\[\]\)\]/);
+ assert.doesNotMatch(native,/aria-label="Save studio"/);
+});
+
 test('provider native is bounded daily operations over the same registry backend',()=>{
  const native=read('app/provider-native.tsx');
  assert.match(native,/data-sessions-surface="provider-native"/);
  assert.match(native,/sessionFetch\('\/api\/registry'/);
  assert.match(native,/type:'bookingStatus'/);
- assert.match(native,/status:'confirmed'/);
- assert.match(native,/status:'declined'/);
+ assert.match(native,/status\(booking,'confirmed'\)/);
+ assert.match(native,/status\(booking,'declined'\)/);
  assert.match(native,/href=\{studio\?'\/manage\/'\+studio\.id:'\/manage'\}/);
  assert.match(native,/Full administration remains intentionally desktop\/PWA/);
 });
