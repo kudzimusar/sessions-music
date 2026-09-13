@@ -3,10 +3,10 @@ import {platformRoles,type IdentityMethod,type IdentityPrincipal,type Organizati
 
 type SupabaseRuntimeEnv={SUPABASE_URL?:string;SUPABASE_PUBLISHABLE_KEY?:string};
 type AuthUser={id?:unknown;email?:unknown;phone?:unknown;app_metadata?:{provider?:unknown;providers?:unknown}};
-type IdentityContext={user_id?:unknown;display_name?:unknown;session_id?:unknown;session_revoked?:unknown;roles?:unknown;scoped_roles?:unknown;memberships?:unknown;verified_phone?:unknown;verified_email?:unknown};
+type IdentityContext={user_id?:unknown;display_name?:unknown;session_id?:unknown;session_registered?:unknown;session_revoked?:unknown;roles?:unknown;scoped_roles?:unknown;memberships?:unknown;verified_phone?:unknown;verified_email?:unknown};
 type TokenClaims={exp?:unknown;aal?:unknown};
 export type AuthenticationAssuranceLevel='aal1'|'aal2'|null;
-export type SupabaseIdentityPrincipal=IdentityPrincipal&{displayName:string;assuranceLevel:AuthenticationAssuranceLevel};
+export type SupabaseIdentityPrincipal=IdentityPrincipal&{displayName:string;assuranceLevel:AuthenticationAssuranceLevel;deviceRegistered:boolean};
 
 function runtimeConfig(){
  const values=env as unknown as SupabaseRuntimeEnv;const url=(values.SUPABASE_URL||'').trim().replace(/\/$/,'');const publishableKey=(values.SUPABASE_PUBLISHABLE_KEY||'').trim();
@@ -33,5 +33,5 @@ export async function authenticateSupabase(headers:Headers):Promise<SupabaseIden
  const authValue=await supabaseJson(`${url}/auth/v1/user`,{headers:{Authorization:`Bearer ${accessToken}`}},publishableKey);if(!authValue||typeof authValue!=='object')return null;const authUser=authValue as AuthUser;const userId=stringOrNull(authUser.id);if(!userId)return null;
  const contextValue=await supabaseJson(`${url}/rest/v1/rpc/current_identity`,{method:'POST',headers:{Authorization:`Bearer ${accessToken}`},body:'{}'},publishableKey);if(!contextValue||typeof contextValue!=='object')return null;const context=contextValue as IdentityContext;if(stringOrNull(context.user_id)!==userId||context.session_revoked===true)return null;
  const claims=tokenClaims(accessToken);const expiresAt=tokenExpiry(claims);if(!expiresAt||expiresAt<=Date.now())return null;const sessionId=stringOrNull(context.session_id);if(!sessionId)return null;const verifiedPhone=stringOrNull(context.verified_phone)||stringOrNull(authUser.phone);const verifiedEmail=stringOrNull(context.verified_email)||stringOrNull(authUser.email);
- return {userId,sessionId,expiresAt,revoked:false,method:methodFor(authUser),verifiedPhone,verifiedEmail,displayName:stringOrNull(context.display_name)||verifiedPhone||verifiedEmail||'Sessions member',roles:rolesFrom(context.roles),scopedRoles:scopedRolesFrom(context.scoped_roles),memberships:membershipsFrom(context.memberships),assuranceLevel:assuranceLevel(claims)};
+ return {userId,sessionId,expiresAt,revoked:false,method:methodFor(authUser),verifiedPhone,verifiedEmail,displayName:stringOrNull(context.display_name)||verifiedPhone||verifiedEmail||'Sessions member',roles:rolesFrom(context.roles),scopedRoles:scopedRolesFrom(context.scoped_roles),memberships:membershipsFrom(context.memberships),assuranceLevel:assuranceLevel(claims),deviceRegistered:context.session_registered===true};
 }
