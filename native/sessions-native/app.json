@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "Sessions UAT",
+    "slug": "sessions-native-uat",
+    "scheme": "sessions-uat",
+    "version": "0.5.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": {
+      "bundleIdentifier": "com.sessionstech.sessions.uat",
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.sessionstech.sessions.uat",
+      "edgeToEdgeEnabled": true
+    },
+    "extra": {
+      "sessionsPhase": 5,
+      "sessionsReleaseId": "unified-platform-v1-phase5",
+      "sessionsVisualRevision": "phase1-5-native-desktop-v2",
+      "sessionsUatOrigin": "https://sessions-music.kudzimusar.chatgpt.site"
+    }
+  }
+}
