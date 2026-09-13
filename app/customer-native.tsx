@@ -2,7 +2,7 @@
 
 import {useCallback,useEffect,useMemo,useState} from 'react';
 import {
-  ArrowLeft,ArrowRight,AudioLines,Bell,Building2,CalendarDays,CheckCircle2,
+  ArrowLeft,ArrowRight,Bell,Building2,CalendarDays,CheckCircle2,
   ChevronRight,Compass,Headphones,Heart,Home,MapPin,Search,ShieldCheck,UserRound
 } from 'lucide-react';
 import BookingRequestV3 from './booking-request-v3';
@@ -10,6 +10,7 @@ import {sessionFetch} from '@/lib/supabase-browser';
 import {money,prettyDate,timeLabel} from '@/lib/domain';
 import type {RegistryAction} from './registry-ui';
 import type {RegistryState,Studio,StudioBooking} from '@/lib/registry';
+import type {OnboardingSnapshot,WorkspaceContext} from '@/lib/onboarding-server';
 
 const emptyState:RegistryState={
   studios:[],staff:[],claims:[],bookings:[],issues:[],managedIds:[],ownerIds:[],
@@ -22,13 +23,10 @@ type Filter='all'|'rehearsal'|'recording'|'bookable';
 const studioLabel=(studio:Studio)=>studio.status==='bookable'&&studio.bookingEnabled?'Bookable now':studio.status==='verified'?'Verified studio':studio.status==='pending_verification'?'Verification pending':studio.status==='claimed'?'Claimed profile':'Sourced profile';
 const isBookable=(studio:Studio)=>studio.status==='bookable'&&studio.bookingEnabled&&studio.rooms.length>0;
 const lowestRate=(studio:Studio)=>studio.rooms.filter(room=>room.price>0).sort((a,b)=>a.price-b.price)[0]?.price;
-const imageFor=(studio:Studio,large=false)=>{
-  const rehearsal=studio.services.some(service=>service.toLowerCase().includes('rehearsal'));
-  const intimate=studio.services.some(service=>service.toLowerCase().includes('recording'))&&!rehearsal;
-  if(intimate)return large?'/images/intimate.webp':'/images/intimate-card.webp';
-  if(rehearsal)return large?'/images/hall.webp':'/images/hall-card.webp';
-  return large?'/images/studio.webp':'/images/studio-card.webp';
-};
+const studioMedia=(studio:Studio)=>studio.rooms.flatMap(room=>room.photos||[]).find(Boolean)||null;
+const studioInitials=(studio:Studio)=>studio.name.split(/\s+/).filter(Boolean).slice(0,2).map(part=>part[0]).join('').toUpperCase();
+const contextTarget=(type:WorkspaceContext['type'])=>type==='personal'?'/mobile':type==='provider'?'/mobile/provider':'/corporate';
+const contextDescription=(type:WorkspaceContext['type'])=>type==='personal'?'Personal marketplace':type==='provider'?'Studio operations':'Sessions company';
 
 export default function CustomerNative({path}:Props){
   const[data,setData]=useState<RegistryState>(emptyState);
@@ -68,7 +66,6 @@ export default function CustomerNative({path}:Props){
   const sessionId=segments[0]==='mobile'&&segments[1]==='session'?segments[2]:undefined;
   const studio=studioId?data.studios.find(item=>item.id===studioId):undefined;
   const booking=segments[3]==='book';
-  const tabs=['/mobile','/mobile/search','/mobile/sessions','/mobile/saved','/mobile/profile'].includes(path);
   let screen:React.ReactNode;
 
   if(studioId){
@@ -84,12 +81,12 @@ export default function CustomerNative({path}:Props){
   return <div className="cn-app" data-sessions-surface="customer-native" data-native-prototype="true">
     {error?<div className="cn-error" role="alert"><span>{error}</span><button onClick={()=>void refresh()}>Retry</button></div>:null}
     {screen}
-    {tabs?<NativeTabBar path={path}/>:null}
+    <NativeTabBar path={path}/>
   </div>;
 }
 
 function NativeTopBar({title,action}:{title?:string;action?:React.ReactNode}){
-  return <header className="cn-topbar"><div className="cn-wordmark"><span><AudioLines size={18}/></span>{title?<strong>{title}</strong>:<><strong>SESSIONS</strong><i>.</i></>}</div>{action}</header>;
+  return <header className="cn-topbar"><div className="cn-wordmark"><img className="cn-brand-mark" src="/favicon.svg" alt=""/>{title?<strong>{title}</strong>:<><strong>SESSIONS</strong><i>.</i></>}</div>{action}</header>;
 }
 
 function HomeScreen({data,loading}:{data:RegistryState;loading:boolean}){
@@ -126,21 +123,26 @@ function SearchScreen({data,loading}:{data:RegistryState;loading:boolean}){
   return <main className="cn-screen cn-search-screen"><NativeTopBar title="Search"/><div className="cn-sticky-search"><div className="cn-search-field"><Search size={19}/><input autoFocus value={query} onChange={event=>setQuery(event.target.value)} placeholder="Studio, area or service" aria-label="Search studios"/></div><div className="cn-chip-scroll">{([['all','All'],['rehearsal','Rehearsal'],['recording','Recording'],['bookable','Bookable']] as const).map(([value,label])=><button key={value} className={filter===value?'active':''} onClick={()=>setFilter(value)}>{label}</button>)}</div></div><section className="cn-result-list"><div className="cn-result-count"><strong>{loading?'Searching…':`${visible.length} ${visible.length===1?'space':'spaces'}`}</strong><span>Harare</span></div>{loading?<NativeSkeleton/>:visible.length?visible.map(studio=><StudioResult key={studio.id} studio={studio}/>):<NativeEmpty icon={<Headphones/>} title="No matching spaces">Try another area, studio name or filter.</NativeEmpty>}</section></main>;
 }
 
+function StudioMedia({studio,large=false}:{studio:Studio;large?:boolean}){
+  const media=studioMedia(studio);
+  return media?<img src={media} alt={`${studio.name} ${large?'studio':'space'}`}/>:<div className={'cn-media-fallback '+(large?'large':'')} role="img" aria-label={`${studio.name} profile image not supplied`}><span>{studioInitials(studio)}</span><small>{studio.category}</small></div>;
+}
+
 function StudioPoster({studio}:{studio:Studio}){
   const rate=lowestRate(studio);
-  return <a className="cn-poster" href={'/mobile/studio/'+studio.id}><div className="cn-photo"><img src={imageFor(studio)} alt=""/><span className={isBookable(studio)?'live':''}>{isBookable(studio)?'Bookable':'Profile'}</span></div><strong>{studio.name}</strong><small><MapPin size={12}/>{studio.area}</small><b>{rate?`from ${money(rate)}/hr`:'Rates not published'}</b></a>;
+  return <a className="cn-poster" href={'/mobile/studio/'+studio.id}><div className="cn-photo"><StudioMedia studio={studio}/><span className={isBookable(studio)?'live':''}>{isBookable(studio)?'Bookable':'Profile'}</span></div><strong>{studio.name}</strong><small><MapPin size={12}/>{studio.area}</small><b>{rate?`from ${money(rate)}/hr`:'Rates not published'}</b></a>;
 }
 
 function StudioResult({studio}:{studio:Studio}){
   const rate=lowestRate(studio);
-  return <a className="cn-result-row" href={'/mobile/studio/'+studio.id}><img src={imageFor(studio)} alt=""/><div><span className="cn-status-text">{studioLabel(studio)}</span><h3>{studio.name}</h3><p><MapPin size={13}/>{studio.area}</p><div className="cn-tag-line">{studio.services.slice(0,3).map(service=><span key={service}>{service}</span>)}</div><strong>{rate?`from ${money(rate)}/hr`:'Rates not published'}</strong></div><ChevronRight size={19}/></a>;
+  return <a className="cn-result-row" href={'/mobile/studio/'+studio.id}><div className="cn-result-media"><StudioMedia studio={studio}/></div><div><span className="cn-status-text">{studioLabel(studio)}</span><h3>{studio.name}</h3><p><MapPin size={13}/>{studio.area}</p><div className="cn-tag-line">{studio.services.slice(0,3).map(service=><span key={service}>{service}</span>)}</div><strong>{rate?`from ${money(rate)}/hr`:'Rates not published'}</strong></div><ChevronRight size={19}/></a>;
 }
 
 function StudioDetail({studio,loading}:{studio?:Studio;loading:boolean}){
   if(loading)return <main className="cn-screen"><NativeSkeleton/></main>;
   if(!studio)return <main className="cn-screen"><NativeBack href="/mobile/search"/><NativeEmpty icon={<Headphones/>} title="Studio unavailable">This profile is not available right now.</NativeEmpty></main>;
   const rate=lowestRate(studio);
-  return <main className="cn-screen cn-detail-screen"><section className="cn-detail-hero"><img src={imageFor(studio,true)} alt=""/><div className="cn-detail-overlay"><NativeBack href="/mobile/search" light/></div></section><section className="cn-detail-body"><span className="cn-detail-status"><ShieldCheck size={14}/>{studioLabel(studio)}</span><h1>{studio.name}</h1><p className="cn-detail-location"><MapPin size={15}/>{studio.area}, Harare</p><div className="cn-detail-summary"><div><small>From</small><strong>{rate?`${money(rate)}/hr`:'—'}</strong></div><div><small>Rooms</small><strong>{studio.rooms.length||'—'}</strong></div><div><small>Type</small><strong>{studio.category}</strong></div></div><div className="cn-native-section"><h2>About this space</h2><p>{studio.description}</p></div><div className="cn-native-section"><h2>What you can do here</h2><div className="cn-feature-list">{studio.services.map(service=><span key={service}><CheckCircle2 size={17}/>{service}</span>)}</div></div>{studio.equipment?<div className="cn-native-section"><h2>Equipment</h2><p>{studio.equipment}</p></div>:null}{studio.rooms.length?<div className="cn-native-section"><h2>Rooms</h2><div className="cn-room-list">{studio.rooms.map(room=><div key={room.id}><span><strong>{room.name}</strong><small>Up to {room.capacity} people · minimum {room.minimum} min</small></span><b>{money(room.price)}/hr</b></div>)}</div></div>:null}<div className="cn-native-section"><h2>Before you go</h2><div className="cn-info-rows"><div><span>Address</span><strong>{studio.address}</strong></div><div><span>Booking</span><strong>{isBookable(studio)?'Available through Sessions':'Not enabled yet'}</strong></div>{studio.rules?<div><span>Studio rules</span><strong>{studio.rules}</strong></div>:null}</div></div></section><div className="cn-sticky-cta"><div><small>{rate?'FROM':'BOOKING'}</small><strong>{rate?`${money(rate)}/hr`:(isBookable(studio)?'Choose a room':'Unavailable')}</strong></div>{isBookable(studio)?<a href={'/mobile/studio/'+studio.id+'/book'}>Choose a time</a>:<button disabled>Not bookable yet</button>}</div></main>;
+  return <main className="cn-screen cn-detail-screen"><section className="cn-detail-hero"><StudioMedia studio={studio} large/><div className="cn-detail-overlay"><NativeBack href="/mobile/search" light/></div></section><section className="cn-detail-body"><span className="cn-detail-status"><ShieldCheck size={14}/>{studioLabel(studio)}</span><h1>{studio.name}</h1><p className="cn-detail-location"><MapPin size={15}/>{studio.area}, Harare</p><div className="cn-detail-summary"><div><small>From</small><strong>{rate?`${money(rate)}/hr`:'—'}</strong></div><div><small>Rooms</small><strong>{studio.rooms.length||'—'}</strong></div><div><small>Type</small><strong>{studio.category}</strong></div></div><div className="cn-native-section"><h2>About this space</h2><p>{studio.description}</p></div><div className="cn-native-section"><h2>What you can do here</h2><div className="cn-feature-list">{studio.services.map(service=><span key={service}><CheckCircle2 size={17}/>{service}</span>)}</div></div>{studio.equipment?<div className="cn-native-section"><h2>Equipment</h2><p>{studio.equipment}</p></div>:null}{studio.rooms.length?<div className="cn-native-section"><h2>Rooms</h2><div className="cn-room-list">{studio.rooms.map(room=><div key={room.id}><span><strong>{room.name}</strong><small>Up to {room.capacity} people · minimum {room.minimum} min</small></span><b>{money(room.price)}/hr</b></div>)}</div></div>:null}<div className="cn-native-section"><h2>Before you go</h2><div className="cn-info-rows"><div><span>Address</span><strong>{studio.address}</strong></div><div><span>Booking</span><strong>{isBookable(studio)?'Available through Sessions':'Not enabled yet'}</strong></div>{studio.rules?<div><span>Studio rules</span><strong>{studio.rules}</strong></div>:null}</div></div></section><div className="cn-sticky-cta"><div><small>{rate?'FROM':'BOOKING'}</small><strong>{rate?`${money(rate)}/hr`:(isBookable(studio)?'Choose a room':'Unavailable')}</strong></div>{isBookable(studio)?<a href={'/mobile/studio/'+studio.id+'/book'}>Choose a time</a>:<button disabled>Not bookable yet</button>}</div></main>;
 }
 
 function NativeBooking({studio,data,loading,busy,mutate}:{studio?:Studio;data:RegistryState;loading:boolean;busy:boolean;mutate:RegistryAction}){
@@ -172,14 +174,18 @@ function NotificationsScreen({data,loading}:{data:RegistryState;loading:boolean}
 function SavedScreen(){return <main className="cn-screen"><NativeTopBar title="Saved"/><div className="cn-centered-state"><NativeEmpty icon={<Heart/>} title="Keep your shortlist here">Saved studios are part of the native product direction. This Phase 1–5 correction does not invent favourites that are not yet stored by the backend.</NativeEmpty><a className="cn-primary-link" href="/mobile/search">Explore studios</a></div></main>}
 
 function ProfileScreen({data,loading}:{data:RegistryState;loading:boolean}){
+  const[snapshot,setSnapshot]=useState<OnboardingSnapshot|null>(null);
+  useEffect(()=>{let alive=true;void sessionFetch('/api/onboarding',{cache:'no-store'}).then(async response=>response.ok?await response.json() as OnboardingSnapshot:null).then(value=>{if(alive&&value)setSnapshot(value)}).catch(()=>undefined);return()=>{alive=false}},[]);
   if(loading)return <main className="cn-screen"><NativeSkeleton/></main>;
   const user=data.user;
-  return <main className="cn-screen"><NativeTopBar title="Profile"/><section className="cn-profile-head"><span className="cn-profile-avatar"><UserRound size={26}/></span><div><h1>{user?.displayName||'Sessions account'}</h1><p>{user?.email||user?.phone||'Verified identity'}</p></div></section><section className="cn-settings-list"><a href="/account"><span><ShieldCheck size={20}/><span><strong>Account & security</strong><small>Identity, MFA and sessions</small></span></span><ChevronRight size={18}/></a><a href="/mobile/notifications"><span><Bell size={20}/><span><strong>Notifications</strong><small>Booking and service updates</small></span></span><ChevronRight size={18}/></a>{data.managedIds.length?<a href="/mobile/provider"><span><Building2 size={20}/><span><strong>Switch to provider mode</strong><small>Today’s studio operations</small></span></span><ChevronRight size={18}/></a>:<a href="/onboarding/provider"><span><Building2 size={20}/><span><strong>Manage a studio</strong><small>Claim or register a provider</small></span></span><ChevronRight size={18}/></a>}<a href="/help"><span><Headphones size={20}/><span><strong>Help & support</strong><small>Get assistance</small></span></span><ChevronRight size={18}/></a></section><section className="cn-web-note"><strong>Desktop/PWA still exists.</strong><p>Advanced account and provider administration can open in the browser surface without changing this mobile app structure.</p></section></main>;
+  const contexts=snapshot?.contexts.filter(context=>context.status==='active')||[];
+  return <main className="cn-screen"><NativeTopBar title="Profile"/><section className="cn-profile-head"><span className="cn-profile-avatar"><UserRound size={26}/></span><div><small>YOUR SESSIONS IDENTITY</small><h1>{user?.displayName||'Sessions account'}</h1><p>{user?.email||user?.phone||'Verified identity'}</p></div></section>{contexts.length?<section className="cn-workspace-section"><div className="cn-section-title"><div><small>WORKSPACES</small><h2>One account, authorized contexts</h2></div></div><div className="cn-workspace-list">{contexts.map(context=><a key={`${context.type}:${context.id}`} href={contextTarget(context.type)}><span className={'cn-workspace-icon '+context.type}>{context.type==='personal'?<UserRound size={19}/>:context.type==='provider'?<Building2 size={19}/>:<ShieldCheck size={19}/>}</span><span><strong>{context.label}</strong><small>{contextDescription(context.type)}</small></span><ChevronRight size={18}/></a>)}</div></section>:null}<section className="cn-settings-list"><a href="/account"><span><ShieldCheck size={20}/><span><strong>Account & security</strong><small>Same identity, contacts, MFA and sessions on every surface</small></span></span><ChevronRight size={18}/></a><a href="/mobile/notifications"><span><Bell size={20}/><span><strong>Notifications</strong><small>Booking and service updates</small></span></span><ChevronRight size={18}/></a>{data.managedIds.length?<a href="/mobile/provider"><span><Building2 size={20}/><span><strong>Switch to provider mode</strong><small>Today’s studio operations</small></span></span><ChevronRight size={18}/></a>:<a href="/onboarding/provider"><span><Building2 size={20}/><span><strong>Manage a studio</strong><small>Claim or register a provider</small></span></span><ChevronRight size={18}/></a>}<a href="/help"><span><Headphones size={20}/><span><strong>Help & support</strong><small>Get assistance</small></span></span><ChevronRight size={18}/></a></section><section className="cn-web-note"><strong>Same resources, different composition.</strong><p>Your identity, authorized workspaces, studio records, media, pricing, bookings and security state are shared. Native mobile and desktop/PWA change navigation, density and styling—not the underlying truth.</p></section></main>;
 }
 
 function NativeTabBar({path}:{path:string}){
   const tabs=[['/mobile','Home',Home],['/mobile/search','Search',Search],['/mobile/sessions','Sessions',CalendarDays],['/mobile/saved','Saved',Heart],['/mobile/profile','Profile',UserRound]] as const;
-  return <nav className="cn-tabbar" aria-label="Mobile app navigation">{tabs.map(([href,label,Icon])=><a key={href} className={path===href?'active':''} href={href}><Icon size={21}/><span>{label}</span></a>)}</nav>;
+  const active=path.startsWith('/mobile/studio/')?'/mobile/search':path.startsWith('/mobile/session/')?'/mobile/sessions':path==='/mobile/notifications'?'/mobile/profile':tabs.some(([href])=>href===path)?path:'/mobile';
+  return <nav className="cn-tabbar" aria-label="Mobile app navigation">{tabs.map(([href,label,Icon])=><a key={href} className={active===href?'active':''} href={href}><Icon size={21}/><span>{label}</span></a>)}</nav>;
 }
 
 function NativeBack({href,light=false}:{href:string;light?:boolean}){return <a className={'cn-back '+(light?'light':'')} href={href} aria-label="Go back"><ArrowLeft size={21}/></a>}
