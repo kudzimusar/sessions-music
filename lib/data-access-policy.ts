@@ -6,6 +6,7 @@ export type SensitiveResource='workforce_directory'|'workforce_identity'|'custom
 export type WorkforceField='directory'|'identity_user_id'|'work_email'|'employment_type';
 export type CustomerField='reference'|'activity'|'contact';
 export type CaseCategory='customer_support'|'booking_operations'|'provider_operations'|'trust_safety'|'finance'|'general_incident';
+export type CaseLinkedObjectType='booking'|'studio'|'customer'|'settlement'|'media';
 
 type PrincipalLike={id?:string;roles:readonly PlatformRole[];memberships?:readonly OrganizationMembership[]}|null|undefined;
 export type PrivateMediaContext={uploadOwner?:boolean;studioOwner?:boolean;studioManager?:boolean;bookingCustomer?:boolean;bookingParticipantRole?:'musician'|'studio'|'operations'|null;caseAuthorized?:boolean};
@@ -44,6 +45,15 @@ export function canManageCaseCategory(actor:PrincipalLike,category:CaseCategory)
  if(category==='trust_safety')return hasPermission(actor,'verification:review')||hasPermission(actor,'claims:review');
  if(category==='finance')return hasPermission(actor,'settlements:review');
  return hasPermission(actor,'incidents:read')&&hasPermission(actor,'bookings:manage');
+}
+
+export function canReadCaseLinkedObject(actor:PrincipalLike,type:CaseLinkedObjectType){
+ if(!actor)return false;
+ if(type==='booking')return hasPermission(actor,'bookings:read');
+ if(type==='studio')return hasPermission(actor,'registry:read')||hasPermission(actor,'providers:oversight');
+ if(type==='customer')return canReadCustomerField(actor,'reference');
+ if(type==='settlement')return hasPermission(actor,'settlements:review');
+ return hasPermission(actor,'cases:restricted.read');
 }
 
 export function studioMembershipRole(actor:PrincipalLike,studioId:string){if(!actor)return null;return actor.memberships?.find(value=>value.organizationId===studioId&&value.active)?.role||null}

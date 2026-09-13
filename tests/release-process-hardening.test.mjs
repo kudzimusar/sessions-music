@@ -34,14 +34,19 @@ test('successful exact revisions publish machine-readable immutable release evid
  assert.match(ci,/sessions-release-evidence-\$\{\{ github\.event\.pull_request\.head\.sha \}\}/);
  assert.match(ci,/sessions-release-evidence-main-\$\{\{ github\.sha \}\}/);
  assert.match(evidence,/SESSIONS_EXPECTED_SHA/);
+ assert.match(evidence,/schemaVersion:2/);
  assert.match(evidence,/sha256/);
  assert.match(evidence,/packageLockSha256/);
  assert.match(evidence,/0019_phase5_booking_ops_cases\.sql/);
  assert.match(evidence,/0020_staff_lifecycle_access\.sql/);
+ assert.match(evidence,/0021_phase1_5_integrity_hardening\.sql/);
+ assert.match(evidence,/0022_identity_mirror_hardening\.sql/);
+ assert.match(evidence,/supabaseMigrations/);
+ assert.match(evidence,/202609130001_identity_contact_hardening\.sql/);
  assert.match(evidence,/contains no credentials/);
 });
 
-test('release preflight fails closed on wrong revision, wrong hosting, stale phase provenance or missing Phase 5 contract files',async()=>{
+test('release preflight fails closed on wrong revision, wrong hosting, stale phase provenance or missing hardening contracts',async()=>{
  const gate=await read('scripts/release-gate.mjs');
  assert.match(gate,/SESSIONS_EXPECTED_SHA/);
  assert.match(gate,/git.*rev-parse.*HEAD/s);
@@ -49,6 +54,11 @@ test('release preflight fails closed on wrong revision, wrong hosting, stale pha
  assert.match(gate,/0018_phase45_identity_onboarding\.sql/);
  assert.match(gate,/0019_phase5_booking_ops_cases\.sql/);
  assert.match(gate,/0020_staff_lifecycle_access\.sql/);
+ assert.match(gate,/0021_phase1_5_integrity_hardening\.sql/);
+ assert.match(gate,/0022_identity_mirror_hardening\.sql/);
+ assert.match(gate,/202609130001_identity_contact_hardening\.sql/);
+ assert.match(gate,/verified_contact_conflict/);
+ assert.match(gate,/session_registered/);
  assert.match(gate,/app\/api\/corporate\/booking-ops\/route\.ts/);
  assert.match(gate,/app\/api\/corporate\/cases\/route\.ts/);
  assert.match(gate,/PHASE-1-5-CROSS-PHASE-REVIEW\.md/);
@@ -57,8 +67,8 @@ test('release preflight fails closed on wrong revision, wrong hosting, stale pha
  assert.match(gate,/phaseStatus: 'complete'/);
 });
 
-test('production build packages every migration required by the Phase 5 runtime',async()=>{
+test('production build packages every D1 migration required by the Phase 5 runtime',async()=>{
  const build=await read('scripts/build-verified.sh');
- for(const migration of ['0017_corporate_control_plane_indexes.sql','0018_phase45_identity_onboarding.sql','0019_phase5_booking_ops_cases.sql','0020_staff_lifecycle_access.sql'])assert.match(build,new RegExp(migration.replaceAll('.','\\.')));
+ for(const migration of ['0017_corporate_control_plane_indexes.sql','0018_phase45_identity_onboarding.sql','0019_phase5_booking_ops_cases.sql','0020_staff_lifecycle_access.sql','0021_phase1_5_integrity_hardening.sql','0022_identity_mirror_hardening.sql'])assert.match(build,new RegExp(migration.replaceAll('.','\\.')));
  assert.match(build,/required migration/);
 });
