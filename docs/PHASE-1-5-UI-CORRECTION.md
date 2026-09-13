@@ -154,8 +154,8 @@ A new private ChatGPT Sites version must be created from the exact green merged 
 ### Corporate desktop
 
 - `/corporate`
-- `/corporate/bookings`
-- `/corporate/incidents`
+- `/corporate/booking-ops`
+- `/corporate/cases`
 
 The mobile and desktop surfaces must be reviewed independently. A correct desktop screen cannot certify native-mobile quality and vice versa.
 
