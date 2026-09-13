@@ -1,6 +1,8 @@
 import SessionsApp from '../sessions-v2';
 import RegistryApp from '../registry';
 import CustomerV5 from '../customer-v5';
+import CustomerNative from '../customer-native';
+import ProviderNative from '../provider-native';
 import CorporateWorkspace from '../corporate-workspace';
 import CorporateOffice from '../corporate-office';
 import CorporateOrganization from '../corporate-organization';
@@ -39,11 +41,16 @@ export default async function Page({params}:Props){
  const snapshot=await readOnboardingSnapshot(actor).catch(()=>null);if(!snapshot||['profile','consent','workspace','restricted'].includes(snapshot.nextStep))return sendToOnboarding(path,actor.id);
  const corporatePath=slug[0]==='corporate'||slug[0]==='registry-admin';
  if(corporatePath&&!hasWorkspaceContext(snapshot,'corporate'))return sendToOnboarding(path,actor.id);
+ const providerNativePath=slug[0]==='mobile'&&slug[1]==='provider';
+ if(providerNativePath&&!hasWorkspaceContext(snapshot,'provider'))redirect('/onboarding/provider');
  if(path==='/manage'&&!hasWorkspaceContext(snapshot,'provider'))redirect('/onboarding/provider');
+ const customerNativePath=slug[0]==='mobile'&&!providerNativePath;
+ if(customerNativePath&&!hasWorkspaceContext(snapshot,'personal'))return sendToOnboarding(path,actor.id);
+ if(providerNativePath)return <ProviderNative path={path}/>;
+ if(customerNativePath)return <CustomerNative path={path}/>;
  const customerPath=!corporatePath&&path!=='/manage'&&!sandboxSurface&&path!=='/account';
  if(customerPath&&!hasWorkspaceContext(snapshot,'personal'))return sendToOnboarding(path,actor.id);
  if(slug[0]==='studio'&&slug.length===2)return <RegistryApp path={path} initialStudio={await readPublicStudio(slug[1])}/>;
- if(path==='/mobile')return <CustomerV5 path="/mobile"/>;
  if(path==='/account')return <CustomerV5 path="/account"/>;
  if(slug[0]==='corporate'){
   if(slug.length===1)return corporateSurface(<AccessBoundary surface="corporate" returnTo="/corporate"><CorporateWorkspace/></AccessBoundary>);

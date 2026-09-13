@@ -24,9 +24,9 @@ test('production registry primitives are forced to the approved royal-blue visua
   assert.doesNotMatch(css,/#245c78|#163c50|#162b35|#6cb3a3/,'runtime production layer must not reintroduce the legacy teal/slate palette');
 });
 
-test('release endpoint exposes the canonical customer visual revision separately from the phase marker',async()=>{
+test('release endpoint exposes the Phase 1–5 native/desktop visual revision separately from the phase marker',async()=>{
   const [release,route]=await Promise.all([read('lib/release-info.ts'),read('app/api/release/route.ts')]);
-  assert.match(release,/visualRevision:\s*'canonical-customer-v5-2'/);
+  assert.match(release,/visualRevision:\s*'phase1-5-native-desktop-v1'/);
   assert.match(release,/brandPrimary:\s*'#4169E1'/);
   assert.match(route,/Response\.json\(SESSIONS_RELEASE/);
 });
