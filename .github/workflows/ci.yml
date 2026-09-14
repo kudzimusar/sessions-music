@@ -88,9 +88,9 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
-      - name: Install native UAT dependencies
+      - name: Install locked native UAT dependencies
         working-directory: native/sessions-native
-        run: npm install --include=dev --no-fund
+        run: npm ci --include=dev --no-fund
       - name: Audit shipped native dependency graph
         working-directory: native/sessions-native
         run: npm audit --omit=dev --audit-level=high
