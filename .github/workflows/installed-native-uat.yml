@@ -43,7 +43,7 @@ jobs:
         run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
 
       - name: Set up Java 17
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
         with:
           distribution: temurin
           java-version: '17'
@@ -79,15 +79,13 @@ jobs:
           disable-animations: true
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           script: |
-            set -eu
-            cd native/sessions-native
-            npx expo prebuild --clean --platform android
-            npx expo run:android --variant release --no-bundler
+            cd native/sessions-native && npx expo prebuild --clean --platform android
+            cd native/sessions-native && npx expo run:android --variant release --no-bundler
             adb shell pm path com.sessionstech.sessions.uat | grep '^package:'
-            maestro test .maestro/phase1-5-smoke.yml
-            maestro test .maestro/native-diagnostics.yml
-            maestro test .maestro/phase5-operations.yml
-            adb exec-out screencap -p > android-installed-uat.png
+            cd native/sessions-native && maestro test .maestro/phase1-5-smoke.yml
+            cd native/sessions-native && maestro test .maestro/native-diagnostics.yml
+            cd native/sessions-native && maestro test .maestro/phase5-operations.yml
+            cd native/sessions-native && adb exec-out screencap -p > android-installed-uat.png
 
       - name: Assert generated Android project is native
         working-directory: native/sessions-native
