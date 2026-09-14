@@ -5,7 +5,7 @@ const c=DESIGN_TOKENS.color;
 export const MIN_TOUCH=Platform.OS==='ios'?DESIGN_TOKENS.touchTarget.ios:DESIGN_TOKENS.touchTarget.android;
 
 export const styles=StyleSheet.create({
-  safe:{flex:1,backgroundColor:c.white,paddingTop:Platform.OS==='android'?24:0},
+  safe:{flex:1,backgroundColor:c.white},
   app:{flex:1,backgroundColor:c.canvas},
   screen:{flex:1,backgroundColor:c.canvas},
   scroll:{paddingHorizontal:18,paddingTop:14,paddingBottom:112},
