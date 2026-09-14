@@ -23,63 +23,6 @@ env:
   EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
 
 jobs:
-  native-lock-candidate:
-    name: Generate native dependency lock candidate
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout exact revision
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-        with:
-          ref: ${{ env.EXPECTED_SHA }}
-          persist-credentials: false
-
-      - name: Set up Node 22
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
-        with:
-          node-version: '22'
-
-      - name: Verify immutable source revision
-        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
-
-      - name: Generate deterministic lock candidate
-        working-directory: native/sessions-native
-        run: |
-          set -euo pipefail
-          npm install --package-lock-only --include=dev --ignore-scripts
-          test -f package-lock.json
-          node -e "const p=require('./package.json'); if(p.dependencies['@supabase/supabase-js']!=='2.116.0') process.exit(1)"
-          sha256sum package-lock.json
-
-      - name: Commit generated lockfile to same-repository PR branch
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        env:
-          GH_TOKEN: ${{ github.token }}
-          HEAD_REF: ${{ github.head_ref }}
-        run: |
-          set -euo pipefail
-          LOCK_PATH='native/sessions-native/package-lock.json'
-          if git ls-files --error-unmatch "$LOCK_PATH" >/dev/null 2>&1; then
-            git diff --exit-code -- "$LOCK_PATH"
-            echo 'Committed native lockfile already matches the pinned manifest.'
-            exit 0
-          fi
-          base64 -w 0 "$LOCK_PATH" > /tmp/native-lock.b64
-          jq -Rs --arg branch "$HEAD_REF" '{message:"Commit native dependency lockfile",content:.,branch:$branch}' /tmp/native-lock.b64 > /tmp/native-lock-payload.json
-          gh api --method PUT "/repos/${GITHUB_REPOSITORY}/contents/${LOCK_PATH}" --input /tmp/native-lock-payload.json >/tmp/native-lock-commit.json
-          echo 'Committed CI-generated native dependency lockfile to the PR branch.'
-
-      - name: Upload native lock candidate
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
-        with:
-          name: native-package-lock-${{ env.EXPECTED_SHA }}
-          path: native/sessions-native/package-lock.json
-          if-no-files-found: warn
-          retention-days: 7
-
   android-installed:
     name: Android Emulator installed UAT
     runs-on: ubuntu-24.04
@@ -105,10 +48,10 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Install native dependencies
+      - name: Install locked native dependencies
         working-directory: native/sessions-native
         run: |
-          npm install --include=dev
+          npm ci --include=dev
           npm ls --depth=0
 
       - name: Validate Expo project contract
@@ -183,10 +126,10 @@ jobs:
             exit 1
           fi
 
-      - name: Install native dependencies
+      - name: Install locked native dependencies
         working-directory: native/sessions-native
         run: |
-          npm install --include=dev
+          npm ci --include=dev
           npm ls --depth=0
 
       - name: Validate Expo project contract
