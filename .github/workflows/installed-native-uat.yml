@@ -66,19 +66,18 @@ jobs:
             echo 'Committed native lockfile already matches the pinned manifest.'
             exit 0
           fi
-          CONTENT="$(base64 < "$LOCK_PATH" | tr -d '\n')"
-          gh api --method PUT "/repos/${GITHUB_REPOSITORY}/contents/${LOCK_PATH}" \
-            -f message='Commit native dependency lockfile' \
-            -f content="$CONTENT" \
-            -f branch="$HEAD_REF" >/tmp/native-lock-commit.json
+          base64 -w 0 "$LOCK_PATH" > /tmp/native-lock.b64
+          jq -Rs --arg branch "$HEAD_REF" '{message:"Commit native dependency lockfile",content:.,branch:$branch}' /tmp/native-lock.b64 > /tmp/native-lock-payload.json
+          gh api --method PUT "/repos/${GITHUB_REPOSITORY}/contents/${LOCK_PATH}" --input /tmp/native-lock-payload.json >/tmp/native-lock-commit.json
           echo 'Committed CI-generated native dependency lockfile to the PR branch.'
 
       - name: Upload native lock candidate
+        if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: native-package-lock-${{ env.EXPECTED_SHA }}
           path: native/sessions-native/package-lock.json
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 7
 
   android-installed:
@@ -136,20 +135,7 @@ jobs:
           profile: pixel_7
           disable-animations: true
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          script: |
-            cd native/sessions-native
-            npx expo prebuild --clean --platform android
-            npx expo run:android --variant release --no-bundler
-            adb shell pm path com.sessionstech.sessions.uat | grep '^package:'
-            UAT_STATUS=0
-            maestro test .maestro/phase1-5-smoke.yml || UAT_STATUS=$?
-            if [ "$UAT_STATUS" -eq 0 ]; then maestro test .maestro/native-diagnostics.yml || UAT_STATUS=$?; fi
-            if [ "$UAT_STATUS" -eq 0 ]; then maestro test .maestro/phase5-operations.yml || UAT_STATUS=$?; fi
-            mkdir -p uat-evidence/android-maestro
-            cp -R "$HOME/.maestro/tests/." uat-evidence/android-maestro/ 2>/dev/null || true
-            adb logcat -d -v threadtime > uat-evidence/android-logcat.txt 2>&1 || true
-            adb exec-out screencap -p > uat-evidence/android-installed-uat.png 2>/dev/null || true
-            exit "$UAT_STATUS"
+          script: bash native/sessions-native/scripts/run-android-installed-uat.sh
 
       - name: Assert generated Android project is native
         working-directory: native/sessions-native
