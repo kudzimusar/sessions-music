@@ -9,7 +9,8 @@
     "prebuild": "expo prebuild --clean",
     "ios": "expo run:ios",
     "android": "expo run:android",
-    "web:export": "expo export --platform web"
+    "web:export": "expo export --platform web",
+    "test:chromium": "playwright test"
   },
   "dependencies": {
     "@sessions/product-core": "file:../../packages/product-core",
@@ -30,6 +31,7 @@
     "react-native-web": "~0.21.0"
   },
   "devDependencies": {
+    "@playwright/test": "1.63.0",
     "expo-doctor": "^1.17.0"
   },
   "engines": {
