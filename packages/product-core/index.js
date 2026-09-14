@@ -59,6 +59,28 @@ export const WORKSPACE_CONTEXTS=Object.freeze([
   Object.freeze({type:'corporate',label:'Sessions company',description:'Authorized corporate operations',access:'authorized-only'}),
 ]);
 
+export const AI_DISCOVERY_CONTRACT=Object.freeze({
+  role:'intent-interpreter',
+  endpoint:'/api/planner',
+  editable:true,
+  requiresExplicitConsent:true,
+  mayBook:false,
+  mayInventMarketplaceFacts:false,
+  canonicalFactsAfterInterpretation:true,
+  fields:Object.freeze(['date','start','duration','size','budget','area','service','flexDays']),
+  prohibitedFacts:Object.freeze(['price','availability','verification','equipment','provider identity','booking confirmation']),
+  privacy:Object.freeze({sendAccount:false,sendPreciseLocation:false,sendBookingHistory:false}),
+});
+
+export const NATIVE_PHASE_REQUIREMENTS=Object.freeze({
+  1:Object.freeze(['native-stack','bottom-tabs','safe-areas','single-purpose-screens','offline-state','accessible-touch-targets']),
+  2:Object.freeze(['one-identity','context-projection','no-workforce-leakage']),
+  3:Object.freeze(['deny-by-default','tenant-scope','no-public-corporate-selection','privileged-step-up-boundary']),
+  4:Object.freeze(['provider-today','provider-requests','room-status','availability-quick-action','critical-corporate-mobile-subset']),
+  4.5:Object.freeze(['sessions-gateway','customer-onboarding','provider-intent','trusted-corporate-invite','safe-continuation','recovery','device-session-management']),
+  5:Object.freeze(['booking-time-inventory','booking-summary','rebook','critical-case-queue','case-summary','assignment-status-next-action','escalation-note']),
+});
+
 export const REGISTRY_BOOKING_STATES=Object.freeze([
   'requested','confirmed','completed','declined','cancelled',
 ]);
@@ -79,17 +101,18 @@ export const NATIVE_AUTH_BOUNDARY=Object.freeze({
   provider:'supabase-auth',
   audienceGateIsNativeAuth:false,
   browserCookieImportAllowed:false,
+  secureDeviceStorage:'expo-secure-store',
   status:'blocked-until-sessions-supabase-identified',
   forbiddenProject:'svhxjfearcuqxikzvlyb',
 });
 
 export const PHASE_1_5_PARITY=Object.freeze({
-  1:Object.freeze({name:'Foundation and product UI',ios:'testing',android:'testing',pwa:'passed',desktop:'passed'}),
+  1:Object.freeze({name:'Foundation, native navigation and product UI',ios:'testing',android:'testing',pwa:'passed',desktop:'passed'}),
   2:Object.freeze({name:'Identity projection',ios:'testing',android:'testing',pwa:'passed',desktop:'passed'}),
-  3:Object.freeze({name:'Workspace projection',ios:'testing',android:'testing',pwa:'passed',desktop:'passed'}),
-  4:Object.freeze({name:'Bounded corporate/mobile operations',ios:'testing',android:'testing',pwa:'passed',desktop:'passed'}),
-  4.5:Object.freeze({name:'Production authentication',ios:'blocked',android:'blocked',pwa:'testing',desktop:'testing'}),
-  5:Object.freeze({name:'Booking/provider operations',ios:'testing',android:'testing',pwa:'passed',desktop:'passed'}),
+  3:Object.freeze({name:'Workspace and authority projection',ios:'testing',android:'testing',pwa:'passed',desktop:'passed'}),
+  4:Object.freeze({name:'Provider daily operations and corporate critical-mobile subset',ios:'testing',android:'testing',pwa:'passed',desktop:'passed'}),
+  4.5:Object.freeze({name:'Native identity, onboarding, continuation and session posture',ios:'blocked',android:'blocked',pwa:'testing',desktop:'testing'}),
+  5:Object.freeze({name:'Booking operations and critical case workflows',ios:'testing',android:'testing',pwa:'passed',desktop:'passed'}),
 });
 
 export function releaseMatchesPhase5(value){
