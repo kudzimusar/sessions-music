@@ -3,9 +3,11 @@ import {createClient} from '@supabase/supabase-js';
 import {NATIVE_AUTH_BOUNDARY} from '@sessions/product-core';
 import {readAuthConfig} from './api';
 import {secureSupabaseStorage} from './supabase-storage';
+import {clearNativeSession,persistVerifiedSupabaseSession} from './session-store';
 
 let clientPromise=null;
 let appStateSubscription=null;
+let authSubscription=null;
 
 function projectRefFromUrl(url){
   try{return new URL(url).hostname.split('.')[0]||'';}catch{return '';}
@@ -30,6 +32,27 @@ function attachNativeRefresh(client){
   });
 }
 
+function attachBearerSynchronization(client){
+  if(Platform.OS==='web'||authSubscription)return;
+  const listener=client.auth.onAuthStateChange((_event,session)=>{
+    queueMicrotask(async()=>{
+      try{
+        if(!session){await clearNativeSession();return;}
+        const verification=await client.auth.getUser(session.access_token);
+        if(verification.error||!verification.data.user||verification.data.user.id!==session.user?.id){await clearNativeSession();return;}
+        await persistVerifiedSupabaseSession({
+          accessToken:session.access_token,
+          userId:verification.data.user.id,
+          expiresAt:session.expires_at||null,
+          provider:'supabase-auth',
+          projectRef:NATIVE_AUTH_BOUNDARY.projectRef,
+        });
+      }catch{await clearNativeSession();}
+    });
+  });
+  authSubscription=listener.data.subscription;
+}
+
 export async function getSessionsSupabase(){
   if(!clientPromise){
     clientPromise=(async()=>{
@@ -43,6 +66,7 @@ export async function getSessionsSupabase(){
         },
       });
       attachNativeRefresh(client);
+      attachBearerSynchronization(client);
       return client;
     })().catch(error=>{clientPromise=null;throw error;});
   }
@@ -65,4 +89,5 @@ export async function signOutSessionsSupabase(){
   const client=await getSessionsSupabase();
   const {error}=await client.auth.signOut({scope:'local'});
   if(error)throw error;
+  await clearNativeSession();
 }
