@@ -23,7 +23,7 @@ export const UAT_CRITICAL_CASES=[
 
 export const UAT_IDENTITY={
   displayName:'Sessions UAT reviewer',
-  contact:'Native production identity not connected',
+  contact:'Verified Sessions Supabase project identified; live native auth awaits project activation and publishable configuration',
   onboardingState:'active-preview-only',
   contexts:[
     {type:'personal',label:'Personal',detail:'Marketplace and bookings',authorized:true},
@@ -33,10 +33,10 @@ export const UAT_IDENTITY={
 };
 
 export const UAT_ONBOARDING_STEPS=[
-  {key:'identity',label:'Verify phone, email, Google or Apple',status:'blocked',detail:'Requires the genuine Sessions Supabase project.'},
+  {key:'identity',label:'Verify phone, email, Google or Apple',status:'blocked',detail:'Verified Sessions Supabase project is currently inactive; native auth stays fail-closed until activation and publishable configuration are verified.'},
   {key:'profile',label:'Customer profile',status:'preview',detail:'Display name, market and required consent only.'},
   {key:'provider',label:'Manage a studio',status:'optional',detail:'Claim or register, submit evidence, remain a customer while pending.'},
   {key:'corporate',label:'Corporate invitation',status:'trusted-only',detail:'Never public self-selection; identity-bound invitation and security setup are required.'},
 ];
 
-export const UAT_DATA_NOTICE='UAT projection only — not a second source of truth. Live authenticated data replaces this preview after Sessions Supabase Auth is positively identified.';
+export const UAT_DATA_NOTICE='UAT projection only — not a second source of truth. Live authenticated data replaces this preview after the verified Sessions Supabase project is active and native authentication is certified.';
