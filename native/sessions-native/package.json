@@ -8,7 +8,8 @@
     "doctor": "expo-doctor",
     "prebuild": "expo prebuild --clean",
     "ios": "expo run:ios",
-    "android": "expo run:android"
+    "android": "expo run:android",
+    "web:export": "expo export --platform web"
   },
   "dependencies": {
     "@sessions/product-core": "file:../../packages/product-core",
@@ -22,9 +23,11 @@
     "expo-secure-store": "~57.0.4",
     "expo-status-bar": "~57.0.1",
     "react": "19.2.3",
+    "react-dom": "19.2.3",
     "react-native": "0.86.3",
     "react-native-safe-area-context": "~5.7.0",
-    "react-native-screens": "~4.26.0"
+    "react-native-screens": "~4.26.0",
+    "react-native-web": "~0.21.0"
   },
   "devDependencies": {
     "expo-doctor": "^1.17.0"
