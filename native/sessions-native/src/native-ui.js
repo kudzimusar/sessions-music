@@ -6,7 +6,7 @@ import * as Haptics from 'expo-haptics';
 import {DESIGN_TOKENS} from '@sessions/product-core';
 
 const c=DESIGN_TOKENS.color;
-export const MIN_TOUCH=Platform.OS==='ios'?DESIGN_TOKENS.touchTarget.ios:DESIGN_TOKENS.touchTarget.android;
+export const MIN_TOUCH=Platform.OS==='ios'?DESIGN_TOKENS.touchTarget.ios:Platform.OS==='android'?DESIGN_TOKENS.touchTarget.android:DESIGN_TOKENS.touchTarget.web;
 
 async function feedback(kind='selection'){
   try{
@@ -31,7 +31,7 @@ export function Card({children,style}){return <View style={[styles.card,style]}>
 export function Row({children,style}){return <View style={[styles.row,style]}>{children}</View>}
 export function Between({children,style}){return <View style={[styles.between,style]}>{children}</View>}
 export function Pill({children,tone='info'}){return <View style={[styles.pill,tone==='success'&&styles.pillSuccess,tone==='danger'&&styles.pillDanger]}><Text style={[styles.pillText,tone==='success'&&styles.pillSuccessText,tone==='danger'&&styles.pillDangerText]}>{children}</Text></View>}
-export function Notice({children,tone='warning'}){return <View accessibilityRole="summary" style={[styles.notice,tone==='danger'&&styles.noticeDanger]}><Text style={[styles.noticeText,tone==='danger'&&styles.noticeDangerText]}>{children}</Text></View>}
+export function Notice({children,tone='warning'}){return <View accessible accessibilityLiveRegion={tone==='danger'?'assertive':'polite'} style={[styles.notice,tone==='danger'&&styles.noticeDanger]}><Text style={[styles.noticeText,tone==='danger'&&styles.noticeDangerText]}>{children}</Text></View>}
 export function Divider(){return <View style={styles.divider}/>}
 
 export function PrimaryButton({children,onPress,disabled=false,accessibilityLabel}){
@@ -45,8 +45,8 @@ export function DestructiveButton({children,onPress,disabled=false}){
 }
 export function LinkButton({children,onPress}){return <Pressable accessibilityRole="button" hitSlop={8} onPress={onPress} style={styles.linkButton}><Text style={styles.link}>{children}</Text></Pressable>}
 
-export function Field({label,hint,...props}){
-  return <View style={styles.fieldWrap}><Text style={styles.fieldLabel}>{label}</Text><TextInput placeholderTextColor={c.subtle} style={styles.field} {...props}/>{hint?<Small>{hint}</Small>:null}</View>;
+export function Field({label,hint,style,...props}){
+  return <View style={styles.fieldWrap}><Text style={styles.fieldLabel}>{label}</Text><TextInput placeholderTextColor={c.subtle} style={[styles.field,style]} {...props}/>{hint?<Small>{hint}</Small>:null}</View>;
 }
 
 export function LoadingState({label='Loading…'}){return <View accessibilityRole="progressbar" style={styles.state}><ActivityIndicator/><Body>{label}</Body></View>}
@@ -61,7 +61,7 @@ export const styles=StyleSheet.create({
   section:{marginTop:30},sectionHead:{flexDirection:'row',alignItems:'flex-end',justifyContent:'space-between',gap:12,marginBottom:13},sectionTitle:{fontSize:21,lineHeight:25,fontWeight:'850',letterSpacing:-0.45,color:c.ink,marginTop:2},
   card:{backgroundColor:c.white,borderWidth:1,borderColor:c.line,borderRadius:20,padding:16,marginBottom:10},row:{flexDirection:'row',alignItems:'center',gap:10},between:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:12},
   pill:{alignSelf:'flex-start',borderRadius:999,paddingHorizontal:9,paddingVertical:5,backgroundColor:'#EEF2FF'},pillText:{fontSize:10,fontWeight:'850',textTransform:'uppercase',color:c.royal},pillSuccess:{backgroundColor:c.successSurface},pillSuccessText:{color:c.success},pillDanger:{backgroundColor:c.dangerSurface},pillDangerText:{color:c.danger},
-  notice:{padding:14,borderRadius:16,backgroundColor:c.warningSurface,borderWidth:1,borderColor:'#F7DDAA'},noticeText:{fontSize:12,lineHeight:18,color:'#6E4A00'},noticeDanger:{backgroundColor:c.dangerSurface,borderColor:'#F7C6C0'},noticeDangerText:{color:c.danger},divider:{height:StyleSheet.hairlineWidth,backgroundColor:c.line,marginVertical:14},
+  notice:{padding:14,borderRadius:16,backgroundColor:c.warningSurface,borderWidth:1,borderColor:'#F7DDAA',marginTop:10},noticeText:{fontSize:12,lineHeight:18,color:'#6E4A00'},noticeDanger:{backgroundColor:c.dangerSurface,borderColor:'#F7C6C0'},noticeDangerText:{color:c.danger},divider:{height:StyleSheet.hairlineWidth,backgroundColor:c.line,marginVertical:14},
   primary:{minHeight:Math.max(52,MIN_TOUCH),borderRadius:16,backgroundColor:c.royal,alignItems:'center',justifyContent:'center',paddingHorizontal:18},primaryPressed:{backgroundColor:c.royalDark},primaryText:{fontSize:15,fontWeight:'850',color:c.white},
   secondary:{minHeight:MIN_TOUCH,borderRadius:15,borderWidth:1,borderColor:c.line,backgroundColor:c.white,alignItems:'center',justifyContent:'center',paddingHorizontal:14},secondaryPressed:{backgroundColor:'#F9FAFB'},secondaryText:{fontSize:14,fontWeight:'800',color:c.ink},
   destructive:{minHeight:MIN_TOUCH,borderRadius:15,borderWidth:1,borderColor:'#F7C6C0',backgroundColor:c.dangerSurface,alignItems:'center',justifyContent:'center',paddingHorizontal:14},destructiveText:{fontSize:14,fontWeight:'800',color:c.danger},disabled:{opacity:.45},
