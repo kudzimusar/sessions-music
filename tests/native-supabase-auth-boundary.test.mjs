@@ -38,8 +38,13 @@ test('secure native Supabase storage is writable only after the shared auth boun
   assert.match(source,/WHEN_UNLOCKED_THIS_DEVICE_ONLY/);
 });
 
-test('native package uses the same exact Supabase JS generation as the web runtime',()=>{
-  const root=JSON.parse(read('package.json'));
+test('native package and committed lock use the same exact Supabase JS generation as the locked web runtime',()=>{
+  const rootLock=JSON.parse(read('package-lock.json'));
   const native=JSON.parse(read('native/sessions-native/package.json'));
-  assert.equal(native.dependencies['@supabase/supabase-js'],root.dependencies['@supabase/supabase-js']);
+  const nativeLock=JSON.parse(read('native/sessions-native/package-lock.json'));
+  const exact='2.116.0';
+  assert.equal(native.dependencies['@supabase/supabase-js'],exact);
+  assert.equal(nativeLock.packages[''].dependencies['@supabase/supabase-js'],exact);
+  assert.equal(nativeLock.packages['node_modules/@supabase/supabase-js'].version,exact);
+  assert.equal(rootLock.packages['node_modules/@supabase/supabase-js'].version,exact);
 });
