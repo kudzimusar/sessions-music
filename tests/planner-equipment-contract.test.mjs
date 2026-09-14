@@ -14,8 +14,8 @@ const discovery=await import(pathToFileURL(bundle));
 after(()=>rmSync(temp,{recursive:true,force:true}));
 const read=path=>readFileSync(path,'utf8');
 
-const room={id:'room',name:'Live Room',price:2000,capacity:8,open:600,close:900,days:[0,1,2,3,4,5,6],buffer:0,minimum:60};
-const studio={id:'studio',name:'Published Rehearsal Room',area:'Borrowdale',address:'Borrowdale, Harare',category:'Rehearsal studio',services:['Rehearsal'],description:'Test',website:'',phone:'',email:'',sources:[],status:'bookable',bookingEnabled:true,rooms:[room],equipment:'Pearl drum kit, PA speakers and mixer, vocal microphones, bass amp combo and guitar amps',rules:'',location:null,revision:1};
+const room={id:'room',name:'Live Room',price:2000,capacity:8,open:600,close:900,days:[0,1,2,3,4,5,6],buffer:0,minimum:60,equipment:['drums','pa','vocal microphones','bass amp','guitar amps']};
+const studio={id:'studio',name:'Published Rehearsal Room',area:'Borrowdale',address:'Borrowdale, Harare',category:'Rehearsal studio',services:['Rehearsal'],description:'Test',website:'',phone:'',email:'',sources:[],status:'bookable',bookingEnabled:true,rooms:[room],equipment:'Legacy studio text claims piano and every possible item; this is display metadata only.',rules:'',location:null,revision:1};
 const future=new Date(Date.now()+2*86400000).toLocaleDateString('en-CA',{timeZone:'Africa/Harare'});
 const input={date:future,start:null,duration:60,size:4,budget:5000,area:'Borrowdale',service:'Rehearsal',equipment:['drums','pa'],flexDays:0};
 
@@ -28,12 +28,20 @@ test('shared AI contract explicitly preserves editable music-equipment requireme
   assert.equal(AI_DISCOVERY_CONTRACT.mayInventMarketplaceFacts,false);
 });
 
-test('canonical planner rejects studios whose published equipment does not satisfy the interpreted requirements',()=>{
-  assert.equal(discovery.studioMeetsEquipment(studio,['drums','pa']),true);
-  assert.equal(discovery.studioMeetsEquipment(studio,['piano']),false);
+test('canonical planner matches equipment at room level and ignores generic studio claims',()=>{
+  assert.equal(discovery.roomMeetsEquipment(room,['drums','pa']),true);
+  assert.equal(discovery.roomMeetsEquipment(room,['piano']),false);
+  assert.equal(discovery.studioMeetsEquipment(studio,['piano']),true,'legacy studio text remains readable but is not booking proof');
   const matching=discovery.planSessions([studio],[],[],input);
   assert.ok(matching.length>0);
-  assert.deepEqual(discovery.planSessions([studio],[],[],{...input,equipment:['piano']}),[]);
+  assert.deepEqual(discovery.planSessions([studio],[],[],{...input,equipment:['piano']}),[],'studio-level piano text must not certify the room');
+});
+
+test('canonical planner fails closed when room equipment has not been confirmed',()=>{
+  const unconfirmedRoom={...room,equipment:undefined};
+  const unconfirmedStudio={...studio,rooms:[unconfirmedRoom],equipment:'Pearl drums, PA, piano, everything'};
+  assert.equal(discovery.roomMeetsEquipment(unconfirmedRoom,['drums']),false);
+  assert.deepEqual(discovery.planSessions([unconfirmedStudio],[],[],input),[]);
 });
 
 test('planner API extracts bounded equipment without breaking older guided clients',()=>{
@@ -42,6 +50,13 @@ test('planner API extracts bounded equipment without breaking older guided clien
   assert.match(route,/equipment:\{type:\['array','null'\]/);
   assert.match(route,/enum:\[\.\.\.PLANNER_EQUIPMENT\]/);
   assert.match(route,/Never invent prices, capacities, equipment availability, verification/);
+});
+
+test('registry room contract validates the same bounded equipment vocabulary',()=>{
+  const route=read('app/api/registry/route.ts');
+  assert.match(route,/PLANNER_EQUIPMENT/);
+  assert.match(route,/equipment:z\.array\(z\.enum\(PLANNER_EQUIPMENT\)\)/);
+  assert.match(route,/Each room equipment item can only be added once/);
 });
 
 test('web and native planners both expose equipment as editable user-visible constraints',()=>{
