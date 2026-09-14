@@ -21,7 +21,8 @@ test('CI verifies immutable head, merge candidate and Chromium projection before
  assert.match(ci,/CHROMIUM_RESULT:\s*\$\{\{ needs\.native-chromium\.result \}\}/);
  assert.match(ci,/verify-main:/);
  assert.match(ci,/persist-credentials:\s*false/g);
- assert.equal((ci.match(/npm ci --include=dev/g)||[]).length,3);
+ assert.equal((ci.match(/npm ci --include=dev/g)||[]).length,4);
+ assert.match(ci,/Install locked native UAT dependencies/);
  assert.match(ci,/node_modules\/tw-animate-css\/dist\/tw-animate\.css/);
 });
 
