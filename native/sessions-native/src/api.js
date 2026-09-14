@@ -45,7 +45,8 @@ export async function readNativeSession(){
 }
 
 export async function planSession({mode,prompt,consent,input}){
-  if(mode==='ai'&&!AI_DISCOVERY_CONTRACT.requiresExplicitConsent)throw new Error('AI consent contract is invalid.');
+  if(mode==='ai'&&AI_DISCOVERY_CONTRACT.requiresExplicitConsent&&consent!==true)throw new Error('Explicit consent is required before an AI brief can be sent.');
+  if(mode==='ai'&&(!prompt||!prompt.trim()))throw new Error('Describe the session you need before using AI interpretation.');
   const {body}=await sessionsFetch(AI_DISCOVERY_CONTRACT.endpoint,{
     auth:true,
     method:'POST',
