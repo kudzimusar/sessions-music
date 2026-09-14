@@ -96,7 +96,7 @@ jobs:
 
   ios-installed:
     name: iOS Simulator installed UAT
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 45
     steps:
       - name: Checkout exact revision
@@ -112,6 +112,18 @@ jobs:
 
       - name: Verify immutable source revision
         run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+
+      - name: Verify Expo SDK 57 Xcode floor
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          XCODE_MAJOR="$(xcodebuild -version | awk '/Xcode/{split($2,v,"."); print v[1]}')"
+          XCODE_MINOR="$(xcodebuild -version | awk '/Xcode/{split($2,v,"."); print v[2]}')"
+          if [ "$XCODE_MAJOR" -lt 26 ] || { [ "$XCODE_MAJOR" -eq 26 ] && [ "$XCODE_MINOR" -lt 4 ]; }; then
+            echo "Expo SDK 57 requires Xcode 26.4 or newer; runner has $(xcodebuild -version | head -1)." >&2
+            exit 1
+          fi
 
       - name: Install native dependencies
         working-directory: native/sessions-native
