@@ -8,7 +8,7 @@ import {localDate,addDays} from '@/lib/domain';
 const config=()=>env as unknown as Record<string,string|undefined>;
 const reply=(data:unknown,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store'}});
 const equipmentSchema=z.array(z.enum(PLANNER_EQUIPMENT)).max(PLANNER_EQUIPMENT.length);
-const inputSchema=z.object({date:z.string().regex(/^\d{4}-\d{2}-\d{2}$/),start:z.number().int().min(0).max(1410).multipleOf(30).nullable(),duration:z.number().int().min(30).max(480).multipleOf(30),size:z.number().int().min(1).max(200),budget:z.number().int().min(100).max(10000000).nullable(),area:z.string().trim().max(80),service:z.string().trim().max(50),equipment:equipmentSchema,flexDays:z.number().int().min(0).max(7)});
+const inputSchema=z.object({date:z.string().regex(/^\d{4}-\d{2}-\d{2}$/),start:z.number().int().min(0).max(1410).multipleOf(30).nullable(),duration:z.number().int().min(30).max(480).multipleOf(30),size:z.number().int().min(1).max(200),budget:z.number().int().min(100).max(10000000).nullable(),area:z.string().trim().max(80),service:z.string().trim().max(50),equipment:equipmentSchema.default([]),flexDays:z.number().int().min(0).max(7)});
 export async function GET(){return reply({aiReady:!!(config().OPENAI_API_KEY&&config().OPENAI_MODEL),timezone:'Africa/Harare',currency:'USD',equipment:[...PLANNER_EQUIPMENT]});}
 export async function POST(req:Request){
  try{
