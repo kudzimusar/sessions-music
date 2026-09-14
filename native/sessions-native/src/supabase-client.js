@@ -55,8 +55,9 @@ export async function readVerifiedNativeSupabaseSession(){
   if(error)throw error;
   const session=data.session;
   if(!session)return null;
-  const issuer=String(session.access_token?JSON.parse(atob(session.access_token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).iss||'':'');
-  if(issuer&&!issuer.startsWith(NATIVE_AUTH_BOUNDARY.projectUrl))throw new Error('Refusing a session issued by a different Supabase project.');
+  const verification=await client.auth.getUser(session.access_token);
+  if(verification.error||!verification.data.user)throw verification.error||new Error('Sessions Auth could not verify the native session.');
+  if(verification.data.user.id!==session.user?.id)throw new Error('Native session identity does not match Sessions Auth.');
   return session;
 }
 
