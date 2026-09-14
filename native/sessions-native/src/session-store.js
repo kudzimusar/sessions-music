@@ -14,13 +14,15 @@ export async function readNativeSessionMeta(){
   try{return JSON.parse(raw)}catch{return null}
 }
 
-export async function persistVerifiedSupabaseSession({accessToken,userId,expiresAt,provider}){
-  if(NATIVE_AUTH_BOUNDARY.status!=='ready')throw new Error('Native production authentication is not certified for this build.');
+export async function persistVerifiedSupabaseSession({accessToken,userId,expiresAt,provider,projectRef}){
   if(provider!=='supabase-auth')throw new Error('Only a verified Supabase Auth session may be persisted.');
+  if(projectRef!==NATIVE_AUTH_BOUNDARY.projectRef||projectRef===NATIVE_AUTH_BOUNDARY.forbiddenProject){
+    throw new Error('Refusing to persist a session from an unverified Supabase project.');
+  }
   if(typeof accessToken!=='string'||accessToken.length<32)throw new Error('Refusing to store an invalid native access token.');
   if(typeof userId!=='string'||!userId)throw new Error('A trusted user id is required.');
   await SecureStore.setItemAsync(ACCESS_TOKEN_KEY,accessToken,{keychainAccessible:SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY});
-  await SecureStore.setItemAsync(SESSION_META_KEY,JSON.stringify({userId,expiresAt,provider}),{keychainAccessible:SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY});
+  await SecureStore.setItemAsync(SESSION_META_KEY,JSON.stringify({userId,expiresAt,provider,projectRef}),{keychainAccessible:SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY});
 }
 
 export async function clearNativeSession(){
