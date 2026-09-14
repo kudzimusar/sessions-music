@@ -17,6 +17,7 @@ const requiredFiles=[
   'app/api/corporate/staff-lifecycle/route.ts',
   'docs/PHASE-1-5-CROSS-PHASE-REVIEW.md',
   'docs/SITES-DEPLOYMENT-RUNBOOK.md',
+  'packages/product-core/index.js',
 ];
 for(const file of requiredFiles)if(!existsSync(resolve(root,file)))fail(`required release file is missing: ${file}`);
 
@@ -38,12 +39,16 @@ if(/ON CONFLICT\s*\(kind,\s*value_normalized\)\s*DO UPDATE\s+SET\s+user_id\s*=\s
 if(!identityHardening.includes('verified_contact_conflict'))fail('identity hardening no longer records contact ownership conflicts');
 if(!identityHardening.includes("'session_registered'"))fail('trusted device registration posture is missing from current_identity');
 
-const releaseInfo=readFileSync(resolve(root,'lib/release-info.ts'),'utf8');
-if(!releaseInfo.includes("id: 'unified-platform-v1-phase5'"))fail('release provenance is stale: expected Phase 5 release id');
+// Release provenance is canonical in packages/product-core and is consumed by both
+// web/PWA and the installed native client. Keep the gate pointed at that one source.
+const releaseInfo=readFileSync(resolve(root,'packages/product-core/index.js'),'utf8');
+if(!/id:\s*['"]unified-platform-v1-phase5['"]/.test(releaseInfo))fail('release provenance is stale: expected Phase 5 release id');
 if(!/phase:\s*5\b/.test(releaseInfo))fail('release provenance is stale: expected phase 5');
-if(!releaseInfo.includes("phaseStatus: 'complete'"))fail('release provenance does not declare Phase 5 complete');
-if(!releaseInfo.includes("brandPrimary: '#4169E1'"))fail('release provenance no longer declares canonical Royal Blue');
-if(!releaseInfo.includes("deploymentModel: 'chatgpt-sites-versioned'"))fail('release provenance no longer declares versioned Sites deployment');
+if(!/phaseStatus:\s*['"]complete['"]/.test(releaseInfo))fail('release provenance does not declare Phase 5 complete');
+if(!/brandPrimary:\s*['"]#4169E1['"]/.test(releaseInfo))fail('release provenance no longer declares canonical Royal Blue');
+if(!/deploymentModel:\s*['"]chatgpt-sites-versioned['"]/.test(releaseInfo))fail('release provenance no longer declares versioned Sites deployment');
+const webReleaseAdapter=readFileSync(resolve(root,'lib/release-info.ts'),'utf8');
+if(!webReleaseAdapter.includes('SHARED_SESSIONS_RELEASE'))fail('web release metadata is no longer sourced from the shared product core');
 
 const expectedSha=(process.env.SESSIONS_EXPECTED_SHA||'').trim();
 if(expectedSha){
@@ -52,4 +57,4 @@ if(expectedSha){
 }
 
 if(process.exitCode)process.exit(process.exitCode);
-console.log(`Release preflight passed for ${expectedSha||'local revision'}: canonical hosting, Phase 4.5/5 and cross-phase integrity migrations, identity hardening, review docs, and Phase 5 provenance are present.`);
+console.log(`Release preflight passed for ${expectedSha||'local revision'}: canonical hosting, Phase 4.5/5 and cross-phase integrity migrations, identity hardening, review docs, shared cross-platform product core, and Phase 5 provenance are present.`);
