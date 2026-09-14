@@ -44,6 +44,21 @@ export async function readNativeSession(){
   return body;
 }
 
+export async function readNativeOnboarding(){
+  const {body}=await sessionsFetch('/api/onboarding',{auth:true});
+  return body;
+}
+
+export async function updateNativeOnboarding(action){
+  const {body}=await sessionsFetch('/api/onboarding',{
+    auth:true,
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(action),
+  });
+  return body;
+}
+
 export async function readPlannerCapabilities(){
   const {body}=await sessionsFetch(AI_DISCOVERY_CONTRACT.endpoint);
   const supported=new Set(AI_DISCOVERY_EQUIPMENT);
