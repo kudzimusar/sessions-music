@@ -4,19 +4,22 @@
   "private": true,
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
-    "start": "expo start",
+    "start": "expo start --dev-client",
+    "doctor": "expo-doctor",
     "prebuild": "expo prebuild --clean",
     "ios": "expo run:ios",
-    "android": "expo run:android",
-    "doctor": "npx expo-doctor@latest"
+    "android": "expo run:android"
   },
   "dependencies": {
+    "@sessions/product-core": "file:../../packages/product-core",
     "expo": "~57.0.22",
     "react": "19.2.3",
     "react-native": "0.86.3"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "expo-doctor": "^1.17.0"
+  },
   "engines": {
-    "node": ">=22.13.0"
+    "node": ">=22.13"
   }
 }

@@ -1,12 +1,12 @@
-export const SESSIONS_RELEASE = {
-  id: 'unified-platform-v1-phase5',
-  phase: 5,
-  phaseStatus: 'complete',
-  brand: 'black-royal-blue-white',
-  brandPrimary: '#4169E1',
-  visualRevision: 'phase1-5-native-desktop-v2',
-  source: 'github-main',
-  deploymentModel: 'chatgpt-sites-versioned',
-} as const;
+import {SESSIONS_RELEASE as SHARED_SESSIONS_RELEASE} from '../packages/product-core/index.js';
 
-export type SessionsRelease = typeof SESSIONS_RELEASE;
+/**
+ * Canonical Phase 1–5 release metadata now lives in @sessions/product-core so
+ * native iOS, native Android, PWA and desktop compare the same provenance.
+ * id: unified-platform-v1-phase5
+ * phase: 5
+ * visualRevision: phase1-5-native-desktop-v2
+ */
+export const SESSIONS_RELEASE=SHARED_SESSIONS_RELEASE;
+
+export type SessionsRelease=typeof SESSIONS_RELEASE;

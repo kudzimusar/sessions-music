@@ -2,9 +2,21 @@
 
 Describe the user/business behavior changed and the canonical data/authority boundary touched.
 
+## Four-client impact (required for Phase 1–5)
+
+State what this PR changes or deliberately does not change for every row. `N/A` needs a product/architecture reason.
+
+| Surface | Impact / evidence |
+| --- | --- |
+| Native iOS | |
+| Native Android | |
+| PWA / mobile browser | |
+| Desktop / web | |
+| Shared product core / backend | |
+
 ## Product surface declaration
 
-Select every surface changed by this PR. UI PRs without a declared surface are incomplete.
+Select every composition changed by this PR. UI PRs without a declared surface are incomplete.
 
 - [ ] `customer-native`
 - [ ] `provider-native`
@@ -13,26 +25,32 @@ Select every surface changed by this PR. UI PRs without a declared surface are i
 - [ ] `corporate-critical-mobile`
 - [ ] `shared-backend`
 
-Before implementation/review, read `AGENTS.md`, `docs/UNIFIED-PLATFORM-IMPLEMENTATION-v1.md`, and `docs/PHASE-1-5-SURFACE-SEPARATION-AMENDMENT.md`.
+Before implementation/review, read `AGENTS.md`, `docs/UNIFIED-PLATFORM-IMPLEMENTATION-v1.md`, `docs/PHASE-1-5-SURFACE-SEPARATION-AMENDMENT.md`, and `docs/PHASE-1-5-CROSS-PLATFORM-EXECUTION.md`.
 
 ## Surface architecture checks
 
 - [ ] Customer/provider native-mobile work is designed from an app interaction model, not a narrowed desktop/PWA page.
+- [ ] Installed iOS/Android remains a genuine React Native runtime; no WebView/PWA application shell was introduced.
 - [ ] Native-mobile work does not mechanically stack desktop tables/cards or depend on desktop sidebars/hover.
-- [ ] Desktop/PWA composition is used only where appropriate for web/provider/corporate workflows.
+- [ ] Primary native actions have appropriate CTA hierarchy and practical 44pt iOS / 48dp Android targets.
+- [ ] PWA/mobile-browser behavior was reviewed when shared resources changed.
+- [ ] Desktop composition was reviewed when shared resources changed.
 - [ ] Corporate is not exposed as a public customer/provider onboarding role choice.
 - [ ] Corporate mobile work is an explicitly bounded critical subset rather than forced desktop parity.
 - [ ] Owner/UAT Corporate access, if touched, remains attributable and authorization-correct; no global bypass/shared admin identity was introduced.
 
 ## Architecture checks
 
+- [ ] Portable logic/tokens/contracts were considered for `packages/product-core` instead of being duplicated.
 - [ ] No parallel customer/provider/booking/case source of truth was introduced.
 - [ ] Organization hierarchy was not used as authorization.
 - [ ] Provider access remains tenant-scoped.
 - [ ] Corporate access remains deny-by-default and workforce-gated.
 - [ ] Restricted/private data classification was reviewed for new fields, APIs and media.
 - [ ] Mutations are authorized server-side and leave the required audit trail.
-- [ ] Native/critical-mobile workflows use 44px+ targets and safe-area handling where applicable.
+- [ ] Native/critical-mobile workflows use safe-area handling where applicable.
+- [ ] ChatGPT Sites audience cookies were not repurposed as native authentication.
+- [ ] `church-os-dev` / `svhxjfearcuqxikzvlyb` was not used for Sessions.
 
 ## Database and migration checks
 
@@ -46,7 +64,10 @@ Before implementation/review, read `AGENTS.md`, `docs/UNIFIED-PLATFORM-IMPLEMENT
 - [ ] Negative authorization/lifecycle tests cover the change.
 - [ ] Existing failures were fixed by aligning tests/implementation to the intended contract, not by weakening security.
 - [ ] `npm run verify:release` passes locally or the reason it cannot be run locally is documented.
-- [ ] Visual/interaction UAT criteria are stated separately from automated build success for any UI change.
+- [ ] Native iOS simulator/device result is documented for the exact commit, or explicitly marked pending Work/Desktop execution.
+- [ ] Native Android emulator/device result is documented for the exact commit, or explicitly marked pending Work/Desktop execution.
+- [ ] PWA responsive/mobile-browser behavior is tested or explicitly unaffected with reason.
+- [ ] Desktop behavior is tested or explicitly unaffected with reason.
 
 ## Merge and release evidence
 

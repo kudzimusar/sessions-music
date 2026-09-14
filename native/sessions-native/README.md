@@ -1,76 +1,55 @@
-# Sessions Native UAT Runtime
+# Sessions UAT — native iOS + Android
 
-This directory is the native simulator harness for Phase 1–5 verification. It is **not** the desktop/PWA and does not embed the hosted site in a WebView.
+This package is the installed React Native/Expo client for Phase 1–5 UAT. It is not the `/mobile` PWA and must never be replaced by a WebView wrapper.
 
-## Runtime baseline
+## Product architecture
 
-- Expo SDK 57
-- React Native 0.86.3
-- React 19.2.3
-- Node.js 22.13+
-- iOS simulator target supported by Expo SDK 57: iOS 16.4+
-- Android emulator target supported by Expo SDK 57: Android 7+; compile/target SDK 36
-- UAT backend: `https://sessions-music.kudzimusar.chatgpt.site`
-- Expected Sessions release: `unified-platform-v1-phase5`
-- Expected visual revision: `phase1-5-native-desktop-v2`
+The native app consumes portable resources from `../../packages/product-core` through the local `@sessions/product-core` package. PWA and desktop remain separate clients over the same Sessions product semantics/backend.
 
-The package identifiers are intentionally UAT-only for now:
+Current native implementation includes:
 
-- iOS bundle ID: `com.sessionstech.sessions.uat`
-- Android application ID: `com.sessionstech.sessions.uat`
-- URL scheme: `sessions-uat`
+- Phase 1: native app shell, customer bottom tabs, drill-down/back stack, touch-first CTAs, forms, modal confirmation, loading/error/empty patterns and platform system handling;
+- Phase 2: identity projection without creating a second authority;
+- Phase 3: personal/provider/corporate workspace projection with corporate locked to trusted authorization;
+- Phase 4: bounded provider/mobile operations (`Today`, `Requests`, `Rooms`, `More`) while dense administration remains PWA/desktop;
+- Phase 4.5: explicit blocked production-auth adapter boundary until the genuine Sessions Supabase project is identified;
+- Phase 5: booking/session/provider interaction flows over canonical booking semantics, with authenticated mutations deliberately blocked until Phase 4.5 is legitimate;
+- N0 diagnostics: platform label, `/api/release` verification and an anonymous protected-endpoint probe.
 
-Do not use these as final App Store / Play Store identifiers without explicit approval.
+The local UAT fixture module is presentation-only and is explicitly labelled as not being an authority/source of truth. It lets simulator UAT review the Phase 1–5 UI before production native auth is available.
 
-## Generate the actual Xcode and Android Studio projects
+## Local machine execution
 
-From this directory:
+Use the Mac that has Xcode and Android Studio installed:
 
 ```bash
+cd native/sessions-native
 npm install
 npm run doctor
 npm run prebuild
-```
-
-`npm run prebuild` generates real `ios/` and `android/` native projects from `app.json`.
-
-### iOS
-
-```bash
 npm run ios
-```
-
-This generates/builds the Xcode project if needed and installs the app into an available iOS simulator. You can then open the generated `ios/` workspace/project in Xcode for native debugging.
-
-### Android
-
-```bash
 npm run android
 ```
 
-This generates/builds the Gradle project if needed and installs the app into an available Android emulator. You can then open the generated `android/` directory in Android Studio for native debugging.
+`prebuild` generates real `ios/` and `android/` projects. `expo run:ios` / `expo run:android` must compile and install real native applications.
 
-## First acceptance checkpoint
+## N0 security checks
 
-Before moving Phase 1–5 screens into this runtime, both platforms must prove all of the following:
+From the installed app open **Profile → Native diagnostics** and verify:
 
-1. The simulator/emulator installs a binary named **Sessions UAT**.
-2. The screen identifies the actual runtime as `ios` or `android`.
-3. The app is visibly React Native UI and contains no WebView/PWA shell.
-4. `GET /api/release` succeeds against the Version 19 UAT backend.
-5. The returned release is Phase 5 with visual revision `phase1-5-native-desktop-v2`.
-6. A protected hosted endpoint remains protected; native test setup must not introduce an auth bypass.
+1. platform is `ios` on the iOS Simulator and `android` on the Android emulator;
+2. `/api/release` matches `unified-platform-v1-phase5`, Phase 5 and `phase1-5-native-desktop-v2`;
+3. anonymous `GET /api/corporate/overview` remains protected with HTTP 401/403;
+4. no browser/PWA/WebView application shell is present.
 
-## Authentication limitation
+## Identity boundary
 
-The current private ChatGPT Sites `/welcome` session is a browser/hosting audience gate, not a native production authentication protocol. The approved platform architecture requires Supabase Auth to be authoritative for native production identities, factors and sessions.
+ChatGPT Sites `/welcome` is a private audience gate, not a production native authentication API. Do not import browser cookies or embed `/welcome` in a WebView.
 
-The real Sessions Supabase project has not yet been positively identified. Therefore:
+Production native identity is intended to use Sessions Supabase Auth. Until the genuine Sessions project is positively identified, do not enable Phase 4.5 authenticated native integration and do not fake Phase 5 privileged mutations.
 
-- Phase 1 native visual/navigation runtime can be tested immediately.
-- Connectivity and anonymous/fail-closed API behavior can be tested immediately.
-- Phase 2–4 native projections can be exercised with non-authoritative fixture/contract data where necessary for UI validation.
-- Full signed-in Phase 4.5 identity/device/MFA/session integration cannot be certified until the correct Sessions Supabase environment exists.
-- Full authenticated Phase 5 booking mutations cannot be certified through a fake simulator identity or hard-coded bypass.
+Never use or modify `church-os-dev` / `svhxjfearcuqxikzvlyb` for Sessions testing.
 
-This boundary must remain explicit in UAT results.
+## Cross-platform completion rule
+
+Read `../../docs/PHASE-1-5-CROSS-PLATFORM-EXECUTION.md`. Every feature must account for iOS, Android, PWA, desktop and the shared core. Native simulator/device checks are recorded against the exact Git commit and remain a Work/Desktop execution step.

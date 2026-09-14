@@ -3,16 +3,42 @@ import fs from 'node:fs';
 import test from 'node:test';
 
 const read=path=>fs.readFileSync(new URL(`../${path}`,import.meta.url),'utf8');
+const nativeSource=()=>[
+ read('native/sessions-native/App.js'),
+ read('native/sessions-native/src/api.js'),
+ read('native/sessions-native/src/styles.js'),
+ read('native/sessions-native/src/uat-data.js'),
+].join('\n');
 
-test('native Phase 1-5 harness is an actual React Native runtime, not a WebView/PWA wrapper',()=>{
+test('native Phase 1-5 client is an actual React Native runtime, not a WebView/PWA wrapper',()=>{
   const pkg=JSON.parse(read('native/sessions-native/package.json'));
   const app=read('native/sessions-native/App.js');
+  const source=nativeSource();
   assert.match(pkg.dependencies.expo,/^~57\./);
   assert.match(pkg.dependencies['react-native'],/^0\.86\./);
   assert.equal(pkg.dependencies['react-native-webview'],undefined);
-  assert.doesNotMatch(app,/from\s+['"]react-native-webview['"]|require\(['"]react-native-webview['"]\)|<WebView\b|<iframe\b/i);
+  assert.doesNotMatch(source,/from\s+['"]react-native-webview['"]|require\(['"]react-native-webview['"]\)|<WebView\b|<iframe\b/i);
   assert.match(app,/Platform\.OS/);
-  assert.match(app,/\/api\/release/);
+  assert.match(source,/\/api\/release/);
+  assert.match(app,/BackHandler/);
+  assert.match(app,/KeyboardAvoidingView/);
+  assert.match(app,/RefreshControl/);
+  assert.match(app,/Modal/);
+  assert.match(app,/TextInput/);
+});
+
+test('native client consumes the shared Sessions product core and mobile interaction contracts',()=>{
+  const pkg=JSON.parse(read('native/sessions-native/package.json'));
+  const app=read('native/sessions-native/App.js');
+  const styles=read('native/sessions-native/src/styles.js');
+  assert.equal(pkg.dependencies['@sessions/product-core'],'file:../../packages/product-core');
+  assert.match(app,/from '@sessions\/product-core'/);
+  assert.match(app,/CUSTOMER_TABS/);
+  assert.match(app,/PROVIDER_TABS/);
+  assert.match(styles,/touchTarget\.ios/);
+  assert.match(styles,/touchTarget\.android/);
+  assert.match(app,/Corporate is never public self-selection/);
+  assert.match(app,/will not send a privileged mutation without Sessions native authentication/);
 });
 
 test('native UAT identifiers and Phase 5 provenance are explicit',()=>{
@@ -24,12 +50,27 @@ test('native UAT identifiers and Phase 5 provenance are explicit',()=>{
   assert.equal(config.extra.sessionsVisualRevision,'phase1-5-native-desktop-v2');
 });
 
+test('native diagnostics verify release provenance and protected endpoint without auth bypass',()=>{
+  const api=read('native/sessions-native/src/api.js');
+  const app=read('native/sessions-native/App.js');
+  assert.match(api,/\/api\/corporate\/overview/);
+  assert.match(api,/response\.status===401\|\|response\.status===403/);
+  assert.match(api,/Never attach browser audience cookies or synthetic credentials/);
+  assert.doesNotMatch(api,/Cookie|Authorization/);
+  assert.match(app,/probeProtectedEndpoint/);
+  assert.match(app,/ChatGPT Sites audience cookies are not native authentication/);
+});
+
 test('native harness documentation preserves the authentication boundary',()=>{
   const doc=read('docs/NATIVE-PHASE1-5-SIMULATOR-HARNESS.md');
+  const cross=read('docs/PHASE-1-5-CROSS-PLATFORM-EXECUTION.md');
+  const nativeReadme=read('native/sessions-native/README.md');
   assert.match(doc,/ChatGPT Sites `\/welcome` audience session is not a native authentication API/);
   assert.match(doc,/Supabase Auth/);
   assert.match(doc,/must never be used for Sessions testing/);
   assert.match(doc,/no WebView/i);
   assert.match(doc,/Stage N0/);
   assert.match(doc,/Stage N5/);
+  assert.match(cross,/Work\/Desktop is the execution boundary/);
+  assert.match(nativeReadme,/Never use or modify `church-os-dev` \/ `svhxjfearcuqxikzvlyb`/);
 });
