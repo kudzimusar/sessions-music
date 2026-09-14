@@ -5,22 +5,28 @@ import {NATIVE_AUTH_BOUNDARY} from '../packages/product-core/index.js';
 
 const read=path=>readFileSync(path,'utf8');
 
-test('native auth is pinned to the verified Sessions Supabase project and forbidden project stays blocked',()=>{
+test('native auth is pinned to active Sessions Music and forbidden project stays blocked',()=>{
   assert.equal(NATIVE_AUTH_BOUNDARY.provider,'supabase-auth');
-  assert.equal(NATIVE_AUTH_BOUNDARY.projectRef,'meswozsllmmiqjwljvnb');
-  assert.equal(NATIVE_AUTH_BOUNDARY.projectUrl,'https://meswozsllmmiqjwljvnb.supabase.co');
+  assert.equal(NATIVE_AUTH_BOUNDARY.status,'ready');
+  assert.equal(NATIVE_AUTH_BOUNDARY.projectRef,'ennfiyxlkvlmtkmibltz');
+  assert.equal(NATIVE_AUTH_BOUNDARY.projectUrl,'https://ennfiyxlkvlmtkmibltz.supabase.co');
   assert.equal(NATIVE_AUTH_BOUNDARY.forbiddenProject,'svhxjfearcuqxikzvlyb');
   assert.equal(NATIVE_AUTH_BOUNDARY.browserCookieImportAllowed,false);
 });
 
-test('native Supabase bootstrap rejects mismatched projects and uses secure persistent storage',()=>{
+test('native Supabase bootstrap has one hardened client with secure persistent storage',()=>{
   const auth=read('native/sessions-native/src/supabase-auth.js');
+  const client=read('native/sessions-native/src/supabase-client.js');
   const store=read('native/sessions-native/src/session-store.js');
-  assert.match(auth,/url!==expected\|\|projectRef!==NATIVE_AUTH_BOUNDARY\.projectRef/);
-  assert.match(auth,/projectRef===NATIVE_AUTH_BOUNDARY\.forbiddenProject/);
-  assert.match(auth,/storage:nativeSupabaseStorage/);
-  assert.match(auth,/detectSessionInUrl:false/);
-  assert.match(auth,/startAutoRefresh/);
+  assert.match(auth,/getSessionsSupabase/);
+  assert.doesNotMatch(auth,/createClient\(/);
+  assert.match(client,/createClient\(/);
+  assert.match(client,/config\.url!==NATIVE_AUTH_BOUNDARY\.projectUrl/);
+  assert.match(client,/ref===NATIVE_AUTH_BOUNDARY\.forbiddenProject/);
+  assert.match(client,/storage:secureSupabaseStorage/);
+  assert.match(client,/detectSessionInUrl:false/);
+  assert.match(client,/startAutoRefresh/);
+  assert.match(client,/getUser\(session\.access_token\)/);
   assert.match(store,/expo-secure-store/);
   assert.match(store,/WHEN_UNLOCKED_THIS_DEVICE_ONLY/);
 });
@@ -31,6 +37,7 @@ test('native OTP flow uses real Supabase sessions, safe continuation and channel
   const continuation=read('native/sessions-native/src/continuation.js');
   assert.match(auth,/signInWithOtp/);
   assert.match(auth,/verifyOtp/);
+  assert.match(auth,/readVerifiedNativeSupabaseSession/);
   assert.match(auth,/Email sign-in is not enabled for Sessions/);
   assert.match(auth,/Phone sign-in is not enabled for Sessions/);
   assert.match(auth,/did not return a native session/);
@@ -70,11 +77,11 @@ test('native discovery renders only canonical Sessions media and keeps a neutral
   assert.doesNotMatch(cards,/unsplash|pexels|pixabay|images\.google/i);
 });
 
-test('native UAT copy reflects identified-but-inactive Sessions identity authority',()=>{
+test('native UAT copy reflects active Sessions Music identity authority without overclaiming installed certification',()=>{
   const uat=read('native/sessions-native/src/uat-data.js');
-  assert.match(uat,/Verified Sessions Supabase project identified/);
-  assert.match(uat,/currently inactive/);
-  assert.doesNotMatch(uat,/positively identified\.$/m);
+  assert.match(uat,/Sessions Music Supabase authority is active/);
+  assert.match(uat,/deployed runtime configuration and device certification/);
+  assert.doesNotMatch(uat,/currently inactive/);
 });
 
 test('installed iOS and Android acceptance requires Maestro flows over the real UAT app',()=>{
