@@ -59,6 +59,15 @@ test('registry room contract validates the same bounded equipment vocabulary',()
   assert.match(route,/Each room equipment item can only be added once/);
 });
 
+test('provider room editor persists explicit room-level equipment instead of studio inference',()=>{
+  const manager=read('app/studio-manager.tsx');
+  assert.match(manager,/RoomEquipmentEditor/);
+  assert.match(manager,/Equipment confirmed in this room/);
+  assert.match(manager,/PLANNER_EQUIPMENT\.map/);
+  assert.match(manager,/Studio-wide notes above do not certify room inventory/);
+  assert.match(manager,/equipment:\[\]/);
+});
+
 test('web and native planners both expose equipment as editable user-visible constraints',()=>{
   const web=read('app/session-planner.tsx');
   const native=read('native/sessions-native/app/planner.js');
