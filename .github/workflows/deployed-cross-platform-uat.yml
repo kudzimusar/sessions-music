@@ -43,11 +43,24 @@ jobs:
       - name: Verify immutable source revision
         run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
 
-      - name: Install UAT dependencies
+      - name: Install locked UAT dependencies
         working-directory: native/sessions-native
         run: |
-          npm install --include=dev
+          npm ci --include=dev
           npm ls @playwright/test @supabase/supabase-js --depth=0
+
+      - name: Verify deployed Sessions runtime is reachable past the audience gate
+        run: |
+          set -euo pipefail
+          STATUS="$(curl -sS -o /tmp/sessions-release-response -w '%{http_code}' "$SESSIONS_DEPLOYED_ORIGIN/api/release")"
+          if [ "$STATUS" = "401" ] || [ "$STATUS" = "403" ]; then
+            echo "Deployed PWA/desktop UAT is blocked by the ChatGPT Sites audience gate before the Sessions runtime. Provide a legitimate CI-safe audience access path or direct UAT origin; do not reuse this host gate as Sessions/native identity." >&2
+            exit 1
+          fi
+          if [ "$STATUS" != "200" ]; then
+            echo "Unexpected deployed Sessions /api/release status: $STATUS" >&2
+            exit 1
+          fi
 
       - name: Install Chromium runtime
         working-directory: native/sessions-native
