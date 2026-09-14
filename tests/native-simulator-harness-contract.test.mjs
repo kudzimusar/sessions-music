@@ -64,13 +64,14 @@ test('native runtime uses Expo Router native stacks/tabs and has no obsolete man
   assert.doesNotMatch(source,/from\s+['"]react-native-webview['"]|require\(['"]react-native-webview['"]\)|<WebView\b|<iframe\b/i);
 });
 
-test('native mobile uses supported safe areas, edge-to-edge Android and practical platform touch targets',()=>{
+test('native mobile uses supported safe areas, SDK 57 architecture defaults and practical platform touch targets',()=>{
   const pkg=JSON.parse(read('native/sessions-native/package.json'));
   const config=JSON.parse(read('native/sessions-native/app.json')).expo;
   const ui=read('native/sessions-native/src/native-ui.js');
   const rootLayout=read('native/sessions-native/app/_layout.js');
   assert.equal(pkg.dependencies['react-native-safe-area-context'],'~5.7.0');
-  assert.equal(config.android.edgeToEdgeEnabled,true);
+  assert.equal(Object.hasOwn(config,'newArchEnabled'),false,'SDK 55+ always uses New Architecture; stale opt-in flags must stay removed');
+  assert.equal(Object.hasOwn(config.android,'edgeToEdgeEnabled'),false,'SDK 55+/Android 15+ edge-to-edge is platform default; stale opt-in flags must stay removed');
   assert.match(rootLayout,/SafeAreaProvider/);
   assert.match(rootLayout,/initialWindowMetrics/);
   assert.match(ui,/SafeAreaView/);
