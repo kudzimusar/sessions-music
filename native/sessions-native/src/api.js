@@ -70,14 +70,38 @@ export async function readPlannerCapabilities(){
   };
 }
 
-export async function planSession({mode,prompt,consent,input}){
+export async function planSession({mode,prompt,consent,input,studioId}){
   if(mode==='ai'&&AI_DISCOVERY_CONTRACT.requiresExplicitConsent&&consent!==true)throw new Error('Explicit consent is required before an AI brief can be sent.');
   if(mode==='ai'&&(!prompt||!prompt.trim()))throw new Error('Describe the session you need before using AI interpretation.');
   const {body}=await sessionsFetch(AI_DISCOVERY_CONTRACT.endpoint,{
     auth:true,
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({mode,prompt,consent,input}),
+    body:JSON.stringify({mode,prompt,consent,input,...(studioId?{studioId}:{})}),
+  });
+  return body;
+}
+
+export async function readStudioInventory({studioId,date,duration,size}){
+  return planSession({
+    mode:'guided',
+    studioId,
+    input:{date,start:null,duration,size,budget:null,area:'',service:'',equipment:[],flexDays:0},
+  });
+}
+
+function nativeRequestKey(){
+  const hex=()=>Math.floor(Math.random()*16).toString(16);
+  let value='';for(let index=0;index<32;index++)value+=hex();
+  return `${value.slice(0,8)}-${value.slice(8,12)}-4${value.slice(13,16)}-${['8','9','a','b'][Math.floor(Math.random()*4)]}${value.slice(17,20)}-${value.slice(20,32)}`;
+}
+
+export async function submitNativeBooking({studioId,roomId,date,start,duration,size,name,phone,note='',addOns=[],useLoyaltyCredit=false,terms=true,key=nativeRequestKey()}){
+  const {body}=await sessionsFetch('/api/registry',{
+    auth:true,
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({type:'book',studioId,key,roomId,date,start,duration,size,name,phone,note,addOns,useLoyaltyCredit,terms}),
   });
   return body;
 }
