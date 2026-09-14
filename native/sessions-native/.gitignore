@@ -13,3 +13,8 @@ android/
 DerivedData/
 .gradle/
 local.properties
+
+# Expo web / Playwright verification output
+dist/
+playwright-report/
+test-results/
