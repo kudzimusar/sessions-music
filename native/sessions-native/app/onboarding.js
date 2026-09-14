@@ -9,7 +9,7 @@ import {updateNativeOnboarding} from '../src/api';
 
 const c=DESIGN_TOKENS.color;
 const idempotency=purpose=>`native-${purpose}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-const nativeChannel=Platform.OS==='android'?'android':'ios';
+const nativeChannel=Platform.OS==='android'?'android':Platform.OS==='ios'?'ios':'web';
 export default function OnboardingScreen(){
  const router=useRouter();const params=useLocalSearchParams();
  const[step,setStep]=useState(params.resume==='profile'?1:0);const[intent,setIntent]=useState('customer');const[name,setName]=useState('');const[consent,setConsent]=useState(false);const[authenticated,setAuthenticated]=useState(false);const[saving,setSaving]=useState(false);const[saved,setSaved]=useState(false);const[error,setError]=useState('');const total=3;
