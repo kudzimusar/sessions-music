@@ -1,4 +1,4 @@
-import type {Studio, StudioBooking} from './registry';
+import type {Studio, StudioBooking, StudioRoom} from './registry';
 import {registrySlotReason,studioPin} from './registry';
 import {addDays,localDate} from './domain';
 
@@ -38,10 +38,20 @@ const equipmentPatterns:Record<PlannerEquipment,RegExp>={
  piano:/\bpiano\b/i,
  'music stands':/music\s+stand/i,
 };
+
+// Studio-level free text remains a legacy/display signal only. It must never prove
+// that any particular room contains equipment.
 export function studioMeetsEquipment(studio:Studio,required:PlannerEquipment[]=[]){
  if(!required.length)return true;
  const published=studio.equipment||'';
  return required.every(item=>equipmentPatterns[item].test(published));
+}
+
+export function roomMeetsEquipment(room:StudioRoom,required:PlannerEquipment[]=[]){
+ if(!required.length)return true;
+ const confirmed=(room.equipment||[]).filter((value):value is PlannerEquipment=>(PLANNER_EQUIPMENT as readonly string[]).includes(value));
+ if(!confirmed.length)return false;
+ return required.every(item=>confirmed.includes(item));
 }
 
 export function planSessions(studios:Studio[],bookings:StudioBooking[],members:StudioMember[],input:PlannerInput|LegacyPlannerInput):PlanOption[]{
@@ -53,8 +63,8 @@ export function planSessions(studios:Studio[],bookings:StudioBooking[],members:S
  if(studio.hidden||studio.status!=='bookable'||!studio.bookingEnabled)continue;
  if(input.area&&!`${studio.area} ${studio.address}`.toLowerCase().includes(input.area.toLowerCase()))continue;
  if(input.service&&!studio.services.some(s=>s.toLowerCase().includes(input.service.toLowerCase())))continue;
- if(!studioMeetsEquipment(studio,requiredEquipment))continue;
  for(const room of studio.rooms){
+ if(!roomMeetsEquipment(room,requiredEquipment))continue;
  if(room.capacity<input.size)continue;
  const price=sessionPrice(room.price,input.duration,memberForDate(members,studio.id,date));
  if(input.budget!==null&&price.price>input.budget)continue;
