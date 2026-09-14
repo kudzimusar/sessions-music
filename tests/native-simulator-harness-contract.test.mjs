@@ -7,194 +7,30 @@ import {sanitizeNativeContinuation} from '../native/sessions-native/src/continua
 const root=new URL('../',import.meta.url);
 const read=file=>fs.readFileSync(new URL(file,root),'utf8');
 const exists=file=>fs.existsSync(new URL(file,root));
-const walk=directory=>{
-  const absolute=new URL(directory,root);
-  return fs.readdirSync(absolute,{withFileTypes:true}).flatMap(entry=>{
-    const child=`${directory.replace(/\/$/,'')}/${entry.name}`;
-    return entry.isDirectory()?walk(child):entry.name.endsWith('.js')?[child]:[];
-  });
-};
+const walk=directory=>{const absolute=new URL(directory,root);return fs.readdirSync(absolute,{withFileTypes:true}).flatMap(entry=>{const child=`${directory.replace(/\/$/,'')}/${entry.name}`;return entry.isDirectory()?walk(child):entry.name.endsWith('.js')?[child]:[]})};
 const nativeFiles=()=>[...walk('native/sessions-native/app'),...walk('native/sessions-native/src')];
 const nativeSource=()=>nativeFiles().map(read).join('\n');
 
-test('every native Phase 1-5 JS/JSX source parses before simulator handoff',()=>{
-  for(const file of nativeFiles()){
-    const result=ts.transpileModule(read(file),{
-      fileName:`${file}.jsx`,
-      reportDiagnostics:true,
-      compilerOptions:{allowJs:true,jsx:ts.JsxEmit.ReactJSX,module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022},
-    });
-    const errors=(result.diagnostics||[]).filter(item=>item.category===ts.DiagnosticCategory.Error);
-    assert.deepEqual(errors.map(item=>ts.flattenDiagnosticMessageText(item.messageText,'\n')),[],`${file} must parse before native execution`);
-  }
-});
+test('every native Phase 1-5 JS/JSX source parses before simulator handoff',()=>{for(const file of nativeFiles()){const result=ts.transpileModule(read(file),{fileName:`${file}.jsx`,reportDiagnostics:true,compilerOptions:{allowJs:true,jsx:ts.JsxEmit.ReactJSX,module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}});const errors=(result.diagnostics||[]).filter(item=>item.category===ts.DiagnosticCategory.Error);assert.deepEqual(errors.map(item=>ts.flattenDiagnosticMessageText(item.messageText,'\n')),[],`${file} must parse before native execution`)}});
 
-test('Expo Router stack and tab manifests never reference a missing Phase 1-5 screen',()=>{
-  const rootLayout=read('native/sessions-native/app/_layout.js');
-  const tabLayout=read('native/sessions-native/app/(customer)/_layout.js');
-  const stackNames=[...rootLayout.matchAll(/<Stack\.Screen\s+name="([^"]+)"/g)].map(match=>match[1]);
-  const tabNames=[...tabLayout.matchAll(/<Tabs\.Screen\s+name="([^"]+)"/g)].map(match=>match[1]);
-  assert.ok(stackNames.length>=10,'root native stack must declare the Phase 1-5 task routes');
-  assert.deepEqual(tabNames,['home','search','sessions','profile']);
-  for(const name of stackNames){
-    const target=name==='index'
-      ?'native/sessions-native/app/index.js'
-      :name==='(customer)'
-        ?'native/sessions-native/app/(customer)/_layout.js'
-        :`native/sessions-native/app/${name}.js`;
-    assert.equal(exists(target),true,`Stack.Screen ${name} must resolve to ${target}`);
-  }
-  for(const name of tabNames)assert.equal(exists(`native/sessions-native/app/(customer)/${name}.js`),true,`customer tab ${name} must have a route file`);
-});
+test('Expo Router stack and tab manifests never reference a missing Phase 1-5 screen',()=>{const rootLayout=read('native/sessions-native/app/_layout.js');const tabLayout=read('native/sessions-native/app/(customer)/_layout.js');const stackNames=[...rootLayout.matchAll(/<Stack\.Screen\s+name="([^"]+)"/g)].map(match=>match[1]);const tabNames=[...tabLayout.matchAll(/<Tabs\.Screen\s+name="([^"]+)"/g)].map(match=>match[1]);assert.ok(stackNames.length>=10,'root native stack must declare the Phase 1-5 task routes');assert.deepEqual(tabNames,['home','search','sessions','profile']);for(const name of stackNames){const target=name==='index'?'native/sessions-native/app/index.js':name==='(customer)'?'native/sessions-native/app/(customer)/_layout.js':`native/sessions-native/app/${name}.js`;assert.equal(exists(target),true,`Stack.Screen ${name} must resolve to ${target}`)}for(const name of tabNames)assert.equal(exists(`native/sessions-native/app/(customer)/${name}.js`),true,`customer tab ${name} must have a route file`)});
 
-test('native runtime uses Expo Router native stacks/tabs and has no obsolete manual App shell',()=>{
-  const pkg=JSON.parse(read('native/sessions-native/package.json'));
-  const rootLayout=read('native/sessions-native/app/_layout.js');
-  const tabs=read('native/sessions-native/app/(customer)/_layout.js');
-  const source=nativeSource();
-  assert.equal(pkg.main,'expo-router/entry');
-  assert.match(pkg.dependencies.expo,/^~57\./);
-  assert.match(pkg.dependencies['react-native'],/^0\.86\./);
-  assert.match(pkg.dependencies['expo-router'],/^~57\./);
-  assert.equal(pkg.dependencies['react-native-webview'],undefined);
-  assert.equal(exists('native/sessions-native/App.js'),false);
-  assert.equal(exists('native/sessions-native/src/styles.js'),false);
-  assert.match(rootLayout,/\bStack\b/);
-  assert.match(tabs,/\bTabs\b/);
-  assert.doesNotMatch(source,/from\s+['"]react-native-webview['"]|require\(['"]react-native-webview['"]\)|<WebView\b|<iframe\b/i);
-});
+test('native runtime uses exact validated Expo Router native stacks/tabs and no obsolete manual App shell',()=>{const pkg=JSON.parse(read('native/sessions-native/package.json'));const rootLayout=read('native/sessions-native/app/_layout.js');const tabs=read('native/sessions-native/app/(customer)/_layout.js');const source=nativeSource();assert.equal(pkg.main,'expo-router/entry');assert.equal(pkg.dependencies.expo,'57.0.22');assert.equal(pkg.dependencies['react-native'],'0.86.3');assert.equal(pkg.dependencies['expo-router'],'57.0.21');assert.equal(pkg.dependencies['expo-font'],'57.0.4');assert.equal(pkg.dependencies['expo-symbols'],'57.0.3');assert.equal(pkg.devDependencies['expo-doctor'],'1.20.4');assert.equal(pkg.dependencies['react-native-webview'],undefined);assert.equal(exists('native/sessions-native/App.js'),false);assert.equal(exists('native/sessions-native/src/styles.js'),false);assert.match(rootLayout,/\bStack\b/);assert.match(tabs,/\bTabs\b/);assert.doesNotMatch(source,/from\s+['"]react-native-webview['"]|require\(['"]react-native-webview['"]\)|<WebView\b|<iframe\b/i)});
 
-test('native mobile uses supported safe areas, SDK 57 architecture defaults and practical platform touch targets',()=>{
-  const pkg=JSON.parse(read('native/sessions-native/package.json'));
-  const config=JSON.parse(read('native/sessions-native/app.json')).expo;
-  const ui=read('native/sessions-native/src/native-ui.js');
-  const rootLayout=read('native/sessions-native/app/_layout.js');
-  assert.equal(pkg.dependencies['react-native-safe-area-context'],'~5.7.0');
-  assert.equal(Object.hasOwn(config,'newArchEnabled'),false,'SDK 55+ always uses New Architecture; stale opt-in flags must stay removed');
-  assert.equal(Object.hasOwn(config.android,'edgeToEdgeEnabled'),false,'SDK 55+/Android 15+ edge-to-edge is platform default; stale opt-in flags must stay removed');
-  assert.match(rootLayout,/SafeAreaProvider/);
-  assert.match(rootLayout,/initialWindowMetrics/);
-  assert.match(ui,/SafeAreaView/);
-  assert.match(ui,/touchTarget\.ios/);
-  assert.match(ui,/touchTarget\.android/);
-  assert.match(ui,/touchTarget\.web/);
-  assert.doesNotMatch(ui,/paddingTop:\s*Platform\.OS.*24/);
-});
+test('native mobile uses supported safe areas, SDK 57 architecture defaults and practical platform touch targets',()=>{const pkg=JSON.parse(read('native/sessions-native/package.json'));const config=JSON.parse(read('native/sessions-native/app.json')).expo;const ui=read('native/sessions-native/src/native-ui.js');const rootLayout=read('native/sessions-native/app/_layout.js');assert.equal(pkg.dependencies['react-native-safe-area-context'],'5.7.0');assert.equal(Object.hasOwn(config,'newArchEnabled'),false,'SDK 55+ always uses New Architecture; stale opt-in flags must stay removed');assert.equal(Object.hasOwn(config.android,'edgeToEdgeEnabled'),false,'SDK 55+/Android 15+ edge-to-edge is platform default; stale opt-in flags must stay removed');assert.match(rootLayout,/SafeAreaProvider/);assert.match(rootLayout,/initialWindowMetrics/);assert.match(ui,/SafeAreaView/);assert.match(ui,/touchTarget\.ios/);assert.match(ui,/touchTarget\.android/);assert.match(ui,/touchTarget\.web/);assert.doesNotMatch(ui,/paddingTop:\s*Platform\.OS.*24/)});
 
-test('native Phase 1 discovery carries music fit signals, availability and explicit offline handling',()=>{
-  const search=read('native/sessions-native/app/(customer)/search.js');
-  const home=read('native/sessions-native/app/(customer)/home.js');
-  const studio=read('native/sessions-native/app/studio/[id].js');
-  const booking=read('native/sessions-native/app/booking/[id].js');
-  const network=read('native/sessions-native/src/network.js');
-  for(const term of ['drums','PA','backup','minCapacity'])assert.match(search,new RegExp(term,'i'));
-  assert.match(home,/Plan with AI or guided filters/);
-  assert.match(studio,/Equipment & practical details/);
-  assert.match(studio,/Next suitable UAT slot/);
-  assert.match(booking,/Unavailable/);
-  assert.match(booking,/duration/);
-  assert.match(network,/getNetworkStateAsync/);
-  assert.match(network,/AppState/);
-});
+test('native Phase 1 discovery carries music fit signals, availability and explicit offline handling',()=>{const search=read('native/sessions-native/app/(customer)/search.js');const home=read('native/sessions-native/app/(customer)/home.js');const studio=read('native/sessions-native/app/studio/[id].js');const booking=read('native/sessions-native/app/booking/[id].js');const network=read('native/sessions-native/src/network.js');for(const term of ['drums','PA','backup','minCapacity'])assert.match(search,new RegExp(term,'i'));assert.match(home,/Plan with AI or guided filters/);assert.match(studio,/Equipment & practical details/);assert.match(studio,/Next suitable UAT slot/);assert.match(booking,/Unavailable/);assert.match(booking,/duration/);assert.match(network,/getNetworkStateAsync/);assert.match(network,/AppState/)});
 
-test('Sessions AI is native-visible but remains an interpreter over the shared canonical planner',()=>{
-  const core=read('packages/product-core/index.js');
-  const planner=read('native/sessions-native/app/planner.js');
-  const api=read('native/sessions-native/src/api.js');
-  assert.match(core,/AI_DISCOVERY_CONTRACT/);
-  assert.match(core,/role:'intent-interpreter'/);
-  assert.match(core,/mayBook:false/);
-  assert.match(core,/mayInventMarketplaceFacts:false/);
-  assert.match(planner,/AI is an intent interpreter, not a booking agent/);
-  assert.match(planner,/editable/i);
-  assert.match(planner,/consent/);
-  assert.match(api,/AI_DISCOVERY_CONTRACT\.endpoint/);
-  assert.match(api,/consent!==true/);
-  assert.match(api,/Authorization=`Bearer/);
-  assert.doesNotMatch(api,/credentials\s*:\s*['"]include['"]/);
-});
+test('Sessions AI is native-visible, equipment-aware and remains an interpreter over the shared canonical planner',()=>{const core=read('packages/product-core/index.js');const planner=read('native/sessions-native/app/planner.js');const api=read('native/sessions-native/src/api.js');assert.match(core,/AI_DISCOVERY_CONTRACT/);assert.match(core,/AI_DISCOVERY_EQUIPMENT/);assert.match(core,/role:'intent-interpreter'/);assert.match(core,/mayBook:false/);assert.match(core,/mayInventMarketplaceFacts:false/);assert.match(core,/fields:Object\.freeze\(\[[^\]]*'equipment'/);assert.match(planner,/AI is an intent interpreter, not a booking agent/);assert.match(planner,/MUSIC-SPECIFIC FIT/);assert.match(planner,/Equipment drums/);assert.match(planner,/consent/);assert.match(api,/AI_DISCOVERY_CONTRACT\.endpoint/);assert.match(api,/consent!==true/);assert.match(api,/Authorization=`Bearer/);assert.doesNotMatch(api,/credentials\s*:\s*['"]include['"]/)});
 
-test('Phase 4.5 native identity architecture is fail-closed, secure-device aware and continuation safe',()=>{
-  const gateway=read('native/sessions-native/app/index.js');
-  const onboarding=read('native/sessions-native/app/onboarding.js');
-  const security=read('native/sessions-native/app/security.js');
-  const store=read('native/sessions-native/src/session-store.js');
-  const webStore=read('native/sessions-native/src/session-store.web.js');
-  assert.match(gateway,/Corporate is never a public account type/);
-  assert.match(onboarding,/Find a rehearsal space/);
-  assert.match(onboarding,/Manage a rehearsal space/);
-  assert.doesNotMatch(onboarding,/Sessions team member\?/);
-  assert.match(security,/Recovery restores identity, not privilege/);
-  assert.match(store,/expo-secure-store/);
-  assert.match(store,/NATIVE_AUTH_BOUNDARY\.status!=='ready'/);
-  assert.match(store,/WHEN_UNLOCKED_THIS_DEVICE_ONLY/);
-  assert.match(webStore,/cannot persist native authentication material/);
-  assert.equal(sanitizeNativeContinuation('/studio/onevibe?room=a'),'/studio/onevibe?room=a');
-  assert.equal(sanitizeNativeContinuation('//evil.example/x'),'/home');
-  assert.equal(sanitizeNativeContinuation('https://evil.example/x'),'/home');
-  assert.equal(sanitizeNativeContinuation('/corporate'),'/home');
-});
+test('Phase 4.5 native identity architecture is fail-closed, secure-device aware and continuation safe',()=>{const gateway=read('native/sessions-native/app/index.js');const onboarding=read('native/sessions-native/app/onboarding.js');const security=read('native/sessions-native/app/security.js');const store=read('native/sessions-native/src/session-store.js');const webStore=read('native/sessions-native/src/session-store.web.js');assert.match(gateway,/Corporate is never a public account type/);assert.match(gateway,/Platform\.OS==='web'/);assert.match(onboarding,/Find a rehearsal space/);assert.match(onboarding,/Manage a rehearsal space/);assert.doesNotMatch(onboarding,/Sessions team member\?/);assert.match(security,/Recovery restores identity, not privilege/);assert.match(store,/expo-secure-store/);assert.match(store,/NATIVE_AUTH_BOUNDARY\.status!=='ready'/);assert.match(store,/WHEN_UNLOCKED_THIS_DEVICE_ONLY/);assert.match(webStore,/cannot persist native authentication material/);assert.equal(sanitizeNativeContinuation('/studio/onevibe?room=a'),'/studio/onevibe?room=a');assert.equal(sanitizeNativeContinuation('//evil.example/x'),'/home');assert.equal(sanitizeNativeContinuation('https://evil.example/x'),'/home');assert.equal(sanitizeNativeContinuation('/corporate'),'/home')});
 
-test('Phase 4 provider native stays bounded to daily operations rather than cloning desktop administration',()=>{
-  const provider=read('native/sessions-native/app/provider.js');
-  assert.match(provider,/Check in session/);
-  assert.match(provider,/Update today’s availability/);
-  assert.match(provider,/Update room status/);
-  assert.match(provider,/booking requests/i);
-  assert.match(provider,/Pricing configuration, staff, reports and long-range calendars stay on desktop\/PWA/);
-  assert.match(provider,/will not send provider mutations/i);
-});
+test('Phase 4 provider native stays bounded to daily operations rather than cloning desktop administration',()=>{const provider=read('native/sessions-native/app/provider.js');assert.match(provider,/Check in session/);assert.match(provider,/Update today’s availability/);assert.match(provider,/Update room status/);assert.match(provider,/booking requests/i);assert.match(provider,/Pricing configuration, staff, reports and long-range calendars stay on desktop\/PWA/);assert.match(provider,/will not send provider mutations/i)});
 
-test('Phase 5 native booking lifecycle includes rebook and corporate critical-mobile is isolated and bounded',()=>{
-  const session=read('native/sessions-native/app/session/[id].js');
-  const critical=read('native/sessions-native/app/corporate-critical.js');
-  assert.match(session,/Book this room again/);
-  assert.match(session,/weekly repeat/i);
-  assert.match(session,/Share session details/);
-  assert.match(critical,/DEMO ONLY/);
-  for(const term of ['Acknowledge','Assign','case note','Escalate'])assert.match(critical,new RegExp(term,'i'));
-  assert.match(critical,/Restricted evidence/);
-  assert.match(critical,/no production Corporate authority/i);
-});
+test('Phase 5 native booking lifecycle includes rebook and corporate critical-mobile is isolated and bounded',()=>{const session=read('native/sessions-native/app/session/[id].js');const critical=read('native/sessions-native/app/corporate-critical.js');assert.match(session,/Book this room again/);assert.match(session,/weekly repeat/i);assert.match(session,/Share session details/);assert.match(critical,/DEMO ONLY/);for(const term of ['Acknowledge','Assign','case note','Escalate'])assert.match(critical,new RegExp(term,'i'));assert.match(critical,/Restricted evidence/);assert.match(critical,/no production Corporate authority/i)});
 
-test('native diagnostics verify provenance, anonymous protection, AI contract and all Phase 1-5 requirements',()=>{
-  const api=read('native/sessions-native/src/api.js');
-  const diagnostics=read('native/sessions-native/app/diagnostics.js');
-  assert.match(api,/\/api\/corporate\/overview/);
-  assert.match(api,/response\.status===401\|\|response\.status===403/);
-  assert.match(api,/Never attach browser audience cookies, secure-store bearer tokens or synthetic credentials/);
-  assert.match(diagnostics,/NATIVE_PHASE_REQUIREMENTS/);
-  assert.match(diagnostics,/AI_DISCOVERY_CONTRACT/);
-  assert.match(diagnostics,/PHASE_1_5_PARITY/);
-  assert.match(diagnostics,/Open demo-only critical mobile subset/);
-});
+test('native diagnostics verify provenance, anonymous protection, AI contract and all Phase 1-5 requirements',()=>{const api=read('native/sessions-native/src/api.js');const diagnostics=read('native/sessions-native/app/diagnostics.js');assert.match(api,/\/api\/corporate\/overview/);assert.match(api,/response\.status===401\|\|response\.status===403/);assert.match(api,/Never attach browser audience cookies, secure-store bearer tokens or synthetic credentials/);assert.match(diagnostics,/NATIVE_PHASE_REQUIREMENTS/);assert.match(diagnostics,/AI_DISCOVERY_CONTRACT/);assert.match(diagnostics,/PHASE_1_5_PARITY/);assert.match(diagnostics,/Open demo-only critical mobile subset/)});
 
-test('native UAT identity, web-projection test surface and Phase 5 provenance are explicit',()=>{
-  const config=JSON.parse(read('native/sessions-native/app.json')).expo;
-  const pkg=JSON.parse(read('native/sessions-native/package.json'));
-  assert.equal(config.ios.bundleIdentifier,'com.sessionstech.sessions.uat');
-  assert.equal(config.android.package,'com.sessionstech.sessions.uat');
-  assert.equal(config.extra.sessionsPhase,5);
-  assert.equal(config.extra.sessionsReleaseId,'unified-platform-v1-phase5');
-  assert.equal(config.extra.sessionsVisualRevision,'phase1-5-native-desktop-v2');
-  assert.equal(config.web.bundler,'metro');
-  assert.equal(config.web.output,'static');
-  assert.equal(pkg.dependencies['react-native-web'],'~0.21.0');
-  assert.equal(pkg.dependencies['react-dom'],'19.2.3');
-  assert.equal(pkg.devDependencies['@playwright/test'],'1.63.0');
-  assert.equal(pkg.scripts['test:chromium'],'playwright test');
-});
+test('native UAT identity, web-projection test surface and Phase 5 provenance are explicit',()=>{const config=JSON.parse(read('native/sessions-native/app.json')).expo;const pkg=JSON.parse(read('native/sessions-native/package.json'));assert.equal(config.ios.bundleIdentifier,'com.sessionstech.sessions.uat');assert.equal(config.android.package,'com.sessionstech.sessions.uat');assert.equal(config.extra.sessionsPhase,5);assert.equal(config.extra.sessionsReleaseId,'unified-platform-v1-phase5');assert.equal(config.extra.sessionsVisualRevision,'phase1-5-native-desktop-v2');assert.equal(config.web.bundler,'metro');assert.equal(config.web.output,'static');assert.equal(pkg.dependencies['react-native-web'],'0.21.2');assert.equal(pkg.dependencies['react-dom'],'19.2.3');assert.equal(pkg.devDependencies['@playwright/test'],'1.63.0');assert.equal(pkg.scripts['test:chromium'],'playwright test')});
 
-test('native harness documentation preserves the authentication and machine-execution boundary',()=>{
-  const doc=read('docs/NATIVE-PHASE1-5-SIMULATOR-HARNESS.md');
-  const cross=read('docs/PHASE-1-5-CROSS-PLATFORM-EXECUTION.md');
-  const nativeReadme=read('native/sessions-native/README.md');
-  assert.match(doc,/ChatGPT Sites `\/welcome` audience session is not a native authentication API/);
-  assert.match(doc,/Supabase Auth/);
-  assert.match(doc,/must never be used for Sessions testing/);
-  assert.match(doc,/no WebView/i);
-  assert.match(doc,/Stage N0/);
-  assert.match(doc,/Stage N5/);
-  assert.match(cross,/Work\/Desktop is the execution boundary/);
-  assert.match(nativeReadme,/Never use or modify `church-os-dev` \/ `svhxjfearcuqxikzvlyb`/);
-});
+test('native harness documentation preserves the authentication and machine-execution boundary',()=>{const doc=read('docs/NATIVE-PHASE1-5-SIMULATOR-HARNESS.md');const cross=read('docs/PHASE-1-5-CROSS-PLATFORM-EXECUTION.md');const nativeReadme=read('native/sessions-native/README.md');assert.match(doc,/ChatGPT Sites `\/welcome` audience session is not a native authentication API/);assert.match(doc,/Supabase Auth/);assert.match(doc,/must never be used for Sessions testing/);assert.match(doc,/no WebView/i);assert.match(doc,/Stage N0/);assert.match(doc,/Stage N5/);assert.match(cross,/Work\/Desktop is the execution boundary/);assert.match(nativeReadme,/Never use or modify `church-os-dev` \/ `svhxjfearcuqxikzvlyb`/)});
