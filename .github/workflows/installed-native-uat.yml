@@ -23,6 +23,42 @@ env:
   EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
 
 jobs:
+  native-lock-candidate:
+    name: Generate native dependency lock candidate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.EXPECTED_SHA }}
+          persist-credentials: false
+
+      - name: Set up Node 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+
+      - name: Verify immutable source revision
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+
+      - name: Generate deterministic lock candidate
+        working-directory: native/sessions-native
+        run: |
+          set -euo pipefail
+          npm install --package-lock-only --include=dev --ignore-scripts
+          test -f package-lock.json
+          node -e "const p=require('./package.json'); if(p.dependencies['@supabase/supabase-js']!=='2.116.0') process.exit(1)"
+          sha256sum package-lock.json
+
+      - name: Upload native lock candidate
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: native-package-lock-${{ env.EXPECTED_SHA }}
+          path: native/sessions-native/package-lock.json
+          if-no-files-found: error
+          retention-days: 7
+
   android-installed:
     name: Android Emulator installed UAT
     runs-on: ubuntu-24.04
@@ -79,13 +115,19 @@ jobs:
           disable-animations: true
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           script: |
-            cd native/sessions-native && npx expo prebuild --clean --platform android
-            cd native/sessions-native && npx expo run:android --variant release --no-bundler
+            cd native/sessions-native
+            npx expo prebuild --clean --platform android
+            npx expo run:android --variant release --no-bundler
             adb shell pm path com.sessionstech.sessions.uat | grep '^package:'
-            cd native/sessions-native && maestro test .maestro/phase1-5-smoke.yml
-            cd native/sessions-native && maestro test .maestro/native-diagnostics.yml
-            cd native/sessions-native && maestro test .maestro/phase5-operations.yml
-            cd native/sessions-native && adb exec-out screencap -p > android-installed-uat.png
+            UAT_STATUS=0
+            maestro test .maestro/phase1-5-smoke.yml || UAT_STATUS=$?
+            if [ "$UAT_STATUS" -eq 0 ]; then maestro test .maestro/native-diagnostics.yml || UAT_STATUS=$?; fi
+            if [ "$UAT_STATUS" -eq 0 ]; then maestro test .maestro/phase5-operations.yml || UAT_STATUS=$?; fi
+            mkdir -p uat-evidence/android-maestro
+            cp -R "$HOME/.maestro/tests/." uat-evidence/android-maestro/ 2>/dev/null || true
+            adb logcat -d -v threadtime > uat-evidence/android-logcat.txt 2>&1 || true
+            adb exec-out screencap -p > uat-evidence/android-installed-uat.png 2>/dev/null || true
+            exit "$UAT_STATUS"
 
       - name: Assert generated Android project is native
         working-directory: native/sessions-native
@@ -93,6 +135,15 @@ jobs:
           test -f android/app/src/main/AndroidManifest.xml
           test -f android/app/build.gradle || test -f android/app/build.gradle.kts
           ! grep -R "react-native-webview\|<WebView\|WebView(" -n app src android --exclude-dir=build
+
+      - name: Upload Android installed-UAT evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: android-installed-uat-${{ env.EXPECTED_SHA }}
+          path: native/sessions-native/uat-evidence
+          if-no-files-found: warn
+          retention-days: 30
 
   ios-installed:
     name: iOS Simulator installed UAT
@@ -163,10 +214,17 @@ jobs:
         working-directory: native/sessions-native
         run: |
           set -euo pipefail
-          maestro --device="$SIMULATOR_UDID" test .maestro/phase1-5-smoke.yml
-          maestro --device="$SIMULATOR_UDID" test .maestro/native-diagnostics.yml
-          maestro --device="$SIMULATOR_UDID" test .maestro/phase5-operations.yml
-          xcrun simctl io "$SIMULATOR_UDID" screenshot ios-installed-uat.png
+          UAT_STATUS=0
+          maestro --device="$SIMULATOR_UDID" test .maestro/phase1-5-smoke.yml || UAT_STATUS=$?
+          if [ "$UAT_STATUS" -eq 0 ]; then maestro --device="$SIMULATOR_UDID" test .maestro/native-diagnostics.yml || UAT_STATUS=$?; fi
+          if [ "$UAT_STATUS" -eq 0 ]; then maestro --device="$SIMULATOR_UDID" test .maestro/phase5-operations.yml || UAT_STATUS=$?; fi
+          mkdir -p uat-evidence/ios-maestro uat-evidence/ios-crash-reports uat-evidence/ios-simulator-crash-reports
+          cp -R "$HOME/.maestro/tests/." uat-evidence/ios-maestro/ 2>/dev/null || true
+          cp -R "$HOME/Library/Logs/DiagnosticReports/." uat-evidence/ios-crash-reports/ 2>/dev/null || true
+          cp -R "$HOME/Library/Developer/CoreSimulator/Devices/$SIMULATOR_UDID/data/Library/Logs/CrashReporter/." uat-evidence/ios-simulator-crash-reports/ 2>/dev/null || true
+          xcrun simctl spawn "$SIMULATOR_UDID" log show --last 15m --style compact > uat-evidence/ios-simulator.log 2>&1 || true
+          xcrun simctl io "$SIMULATOR_UDID" screenshot uat-evidence/ios-installed-uat.png 2>/dev/null || true
+          exit "$UAT_STATUS"
 
       - name: Assert generated iOS project is native
         working-directory: native/sessions-native
@@ -174,3 +232,12 @@ jobs:
           test -d ios
           find ios -maxdepth 2 \( -name '*.xcodeproj' -o -name '*.xcworkspace' \) | grep .
           ! grep -R "react-native-webview\|<WebView\|WebView(" -n app src ios --exclude-dir=Pods
+
+      - name: Upload iOS installed-UAT evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: ios-installed-uat-${{ env.EXPECTED_SHA }}
+          path: native/sessions-native/uat-evidence
+          if-no-files-found: warn
+          retention-days: 30
