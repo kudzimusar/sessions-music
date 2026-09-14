@@ -36,6 +36,11 @@ Apply the checked-in migrations to **`ennfiyxlkvlmtkmibltz` only**, in this orde
    - one primary verified contact per kind
    - contact collisions fail closed instead of moving identity/authority between users
    - registered-session posture exposed through `current_identity()`
+6. `migrations/202609140001_phase1_5_identity_grant_hardening.sql`
+   - removes inherited client grants from scoped authority assignments
+7. `migrations/202609140002_phase1_5_scoped_role_performance_hardening.sql`
+   - indexes scoped-role grant provenance
+   - uses an init-plan-safe self-read policy
 
 After every schema change, run both Supabase security and performance advisors and treat new findings as release blockers until reviewed.
 

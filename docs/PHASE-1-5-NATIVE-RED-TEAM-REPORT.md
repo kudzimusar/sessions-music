@@ -69,14 +69,14 @@ AI cannot submit a booking.
 
 **Resolved:** the genuine project is positively identified as:
 
-- project name: `Sessions`;
-- project ref: `meswozsllmmiqjwljvnb`;
-- project URL: `https://meswozsllmmiqjwljvnb.supabase.co`;
-- region observed at discovery: `eu-central-1`.
+- project name: `Sessions Music`;
+- project ref: `ennfiyxlkvlmtkmibltz`;
+- project URL: `https://ennfiyxlkvlmtkmibltz.supabase.co`;
+- region: `ap-northeast-1`.
 
 The unrelated `church-os-dev` / `svhxjfearcuqxikzvlyb` project remains forbidden.
 
-**Current external blocker:** Sessions is inactive. A restore attempt was rejected because the Supabase organization has reached its active free-project capacity. The control-plane connector subsequently stopped providing a safe live database path. No unrelated project was paused or modified, no publishable key was invented, and no identity migration was applied blindly.
+**Current status:** Sessions Music is `ACTIVE_HEALTHY`. The checked-in identity migrations are applied and verified without creating users or marketplace tables. Remaining external gates are provider configuration, live auth delivery testing and installed native-app certification. No unrelated project was accessed or modified.
 
 ### Native authentication implementation
 
@@ -202,16 +202,14 @@ These flows must run against the built `.app` and `.apk`/installed emulator app.
 
 Only the following remain open after repository hardening.
 
-### Activate the verified Sessions Supabase project
+### Activate the deployed identity runtime
 
-The project is identified but inactive. The organization must have capacity for it to become active. Once active:
+The Sessions Music project is identified, healthy and migrated. The deployed application still needs its server-only Supabase runtime configuration and at least one tested OTP delivery path before native authentication can be certified:
 
-1. retrieve the genuine publishable key/configuration;
-2. inspect live migrations/tables and compare against repository identity migrations;
-3. apply only missing identity migrations;
-4. run Supabase security/performance advisors;
-5. expose the verified runtime config through `/api/auth/config`;
-6. exercise native OTP/session/recovery against the real project.
+1. add the genuine publishable and server-only configuration to the deployed runtime;
+2. expose the verified public configuration through `/api/auth/config`;
+3. exercise native OTP/session/recovery against Sessions Music;
+4. complete exact-commit iOS and Android installed-app evidence.
 
 Do not move studio/room/booking/media truth into Supabase.
 

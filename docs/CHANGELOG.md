@@ -37,7 +37,7 @@
 
 ## 2 September 2026 — Phase R Workstream 1 implementation
 
-- Verified the dedicated `Sessions` Supabase project in Frankfurt, dry-ran the complete identity/RLS migration, then applied it as `20260902085743_phase_r_identity`; all identity tables remain empty and Auth remains disabled.
+- Began the Supabase identity workstream with a Frankfurt project checkpoint; the authoritative project was subsequently aligned to Sessions Music in Tokyo, with the complete checked-in identity/RLS sequence applied and Auth providers still disabled pending live configuration.
 - Added real Supabase phone OTP, Google OAuth, optional Turnstile, bearer-token verification, device/session management and account deletion requests behind disabled gates.
 - Added normalized profiles, platform roles, organizations, memberships, verified contacts, device sessions and private audit records without moving product data out of D1/R2.
 - Split ownership from trust: `unclaimed → claimed → pending_verification → verified → bookable`; no claim produces a verified badge.
@@ -52,6 +52,6 @@
 - Added provider-neutral identity and tenant-authorization contracts plus negative security tests.
 - Added a complete runtime configuration example without credentials.
 - Corrected the calendar health type-safety defect found by the required standalone typecheck.
-- Recorded the dedicated Supabase/Auth integration gate; the unrelated `Wewed` project remains untouched.
+- Recorded the dedicated Supabase/Auth integration gate; the unrelated `church-os-dev` / `svhxjfearcuqxikzvlyb` project remains untouched.
 - Restored the hosted demo to owner-only access with zero external visitors.
 - Verified the checkpoint with a production build, 79 passing tests and a clean standalone typecheck.

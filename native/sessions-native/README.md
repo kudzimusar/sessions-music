@@ -33,7 +33,7 @@ Native code accepts runtime auth configuration only when the URL/ref match this 
 
 Supabase owns Auth plus the normalized identity/authorization mirror defined by the checked-in `supabase/migrations/*` files. Marketplace studios, rooms, room equipment, booking inventory, pricing, settlement and media remain canonical in Sessions D1/R2; do not create a second marketplace schema in Supabase.
 
-The new project began with zero users and no Sessions application migrations. Apply the repository migrations in their documented order before live authorization is certified. Never infer that migrations previously applied to an older project exist here.
+The project began with zero users and no Sessions application migrations; the documented repository sequence is now applied and verified. Never infer that migrations previously applied to an older project exist here.
 
 ## Runtime configuration
 
@@ -141,7 +141,7 @@ Never use or modify `church-os-dev` / `svhxjfearcuqxikzvlyb` for Sessions testin
 
 See `../../docs/PHASE-1-5-NATIVE-RED-TEAM-REPORT.md`. The unresolved gates are deliberately narrow:
 
-- apply and verify the checked-in identity/authority migrations on `ennfiyxlkvlmtkmibltz`;
+- verify the checked-in identity/authority migrations already applied on `ennfiyxlkvlmtkmibltz`;
 - configure the server-only Supabase secret and at least one real OTP delivery channel in the deployed runtime, then enable only that tested provider flag;
 - exact-commit iOS Simulator build, install, OTP/session test, interaction and Maestro evidence;
 - exact-commit Android Emulator build, install, OTP/session test, interaction and Maestro evidence;

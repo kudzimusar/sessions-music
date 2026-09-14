@@ -76,8 +76,8 @@ Corporate remains desktop/tablet-first. Native mobile testing is limited to deli
 
 Production target is Supabase Auth. Required before certification:
 
-- identify the actual Sessions Supabase project;
-- apply/verify the approved identity migrations;
+- verify the identified Sessions Music Supabase project and its applied migrations;
+- confirm the approved identity migrations are applied;
 - configure native redirect schemes/associated links;
 - enable only tested phone/email/OAuth providers;
 - preserve device/session/MFA/AAL state;
@@ -112,8 +112,8 @@ Each item must be recorded as one of:
 
 This prevents simulator appearance from being mistaken for backend/security certification.
 
-## Current known blocker
+## Current status
 
-The real Sessions Supabase project is still unidentified. `church-os-dev` (`svhxjfearcuqxikzvlyb`) is unrelated and must never be used for Sessions testing.
+Sessions Music is identified and its identity migrations are applied. `church-os-dev` (`svhxjfearcuqxikzvlyb`) is unrelated and must never be used for Sessions testing.
 
-Therefore the immediate goal is Stage N0 followed by Stage N1. Phase 4.5/5 authenticated certification remains blocked until native identity authority is available.
+The remaining gates are provider/runtime configuration, live OTP/OAuth delivery tests, and installed iOS/Android certification. Native identity authority must remain server-derived and fail closed until those gates pass.

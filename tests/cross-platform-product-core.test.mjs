@@ -44,13 +44,13 @@ test('shared Phase 5 booking transitions match registry status vocabulary and fo
   assert.equal(canTransitionRegistryBooking('declined','confirmed'),false);
 });
 
-test('cross-platform parity ledger is explicit about simulator testing and native auth blockers',()=>{
+test('cross-platform parity ledger is explicit about simulator testing and native auth certification',()=>{
   assert.equal(PHASE_1_5_PARITY[1].ios,'testing');
   assert.equal(PHASE_1_5_PARITY[1].android,'testing');
   assert.equal(PHASE_1_5_PARITY[1].pwa,'passed');
   assert.equal(PHASE_1_5_PARITY[1].desktop,'passed');
-  assert.equal(PHASE_1_5_PARITY[4.5].ios,'blocked');
-  assert.equal(PHASE_1_5_PARITY[4.5].android,'blocked');
+  assert.equal(PHASE_1_5_PARITY[4.5].ios,'testing');
+  assert.equal(PHASE_1_5_PARITY[4.5].android,'testing');
 });
 
 test('repository rules require simultaneous iOS Android PWA desktop and shared-core accounting',()=>{

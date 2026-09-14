@@ -77,11 +77,11 @@ Every capability is classified FULL, MOBILE, DESKTOP, SHARED or DEFERRED. Dense 
 
 ### Phase 4.5 — production authentication
 
-Native production auth remains blocked until the genuine Sessions Supabase project is positively identified. The ChatGPT Sites `/welcome` audience gate is not native auth. Browser cookies must never be imported into the native app. `church-os-dev` / `svhxjfearcuqxikzvlyb` must never be used for Sessions testing or migration.
+Native production auth is pinned to the verified Sessions Music Supabase project (`ennfiyxlkvlmtkmibltz`). Provider/runtime configuration and installed-app tests remain required before certification. The ChatGPT Sites `/welcome` audience gate is not native auth. Browser cookies must never be imported into the native app. `church-os-dev` / `svhxjfearcuqxikzvlyb` must never be used for Sessions testing or migration.
 
 ### Phase 5 — booking/provider operations
 
-Booking/provider contracts and state transitions remain canonical. Native uses mobile-first service, availability, confirmation, session timeline and provider action patterns. Authenticated mutations remain certification-blocked until Phase 4.5 has a legitimate Sessions identity environment.
+Booking/provider contracts and state transitions remain canonical. Native uses mobile-first service, availability, confirmation, session timeline and provider action patterns. Authenticated mutations remain certification-blocked until deployed Supabase runtime configuration and installed-app identity tests pass against the verified Sessions Music project.
 
 ## Current parity ledger
 

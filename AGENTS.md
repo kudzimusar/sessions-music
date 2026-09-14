@@ -68,7 +68,7 @@ Corporate access must come from trusted invitation, staff assignment or an alrea
 
 Supabase Auth is the intended production identity authority. Native browser-cookie import and the ChatGPT Sites `/welcome` audience session are not production native authentication mechanisms.
 
-Until the real Sessions Supabase project is positively identified, Phase 4.5 native auth and authenticated Phase 5 native mutations remain blocked. Never use or modify `church-os-dev` / `svhxjfearcuqxikzvlyb` for Sessions testing.
+The authoritative Sessions Supabase project is Sessions Music (`ennfiyxlkvlmtkmibltz`, `ap-northeast-1`). Native auth and authenticated Phase 5 mutations remain gated by provider/runtime setup and installed-app certification. Never use or modify `church-os-dev` / `svhxjfearcuqxikzvlyb` for Sessions testing.
 
 ## Architecture rule
 

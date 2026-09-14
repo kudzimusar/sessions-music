@@ -6,7 +6,7 @@ appId: com.sessionstech.sessions.uat
 - assertVisible: "Continue with phone or email"
 - tapOn: "Continue with phone or email"
 - assertVisible: "Sign in without leaving the app."
-- assertVisible: "meswozsllmmiqjwljvnb"
+- assertVisible: "ennfiyxlkvlmtkmibltz"
 - back
 - tapOn: "Open UAT app preview"
 - assertVisible: "Find your next rehearsal room."

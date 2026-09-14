@@ -69,6 +69,8 @@ test('Access & Security is readable by governance but mutation stays privileged 
 
 test('Supabase scoped-authority migration is additive, RLS-bounded and projected separately',async()=>{
  const migration=await read('supabase/migrations/202609120001_phase3_scoped_corporate_authority.sql');assert.match(migration,/create table if not exists public\.platform_scoped_role_assignments/);assert.match(migration,/enable row level security/);assert.match(migration,/user_id = auth\.uid\(\)/);assert.match(migration,/'scoped_roles'/);assert.match(migration,/revoked_at is null/);assert.doesNotMatch(migration,/drop table|delete from/i);
+ const grants=await read('supabase/migrations/202609140001_phase1_5_identity_grant_hardening.sql');assert.match(grants,/revoke all on table public\.platform_scoped_role_assignments from anon, authenticated/);assert.match(grants,/grant select on table public\.platform_scoped_role_assignments to authenticated/);
+ const performance=await read('supabase/migrations/202609140002_phase1_5_scoped_role_performance_hardening.sql');assert.match(performance,/platform_scoped_role_granted_by_idx/);assert.match(performance,/user_id = \(select auth\.uid\(\)\)/);
  const identity=await read('lib/supabase-identity.ts');assert.match(identity,/scoped_roles/);assert.match(identity,/scopedRolesFrom/);assert.match(identity,/allowedScopes/);
 });
 

@@ -4,7 +4,7 @@
 
 Use Supabase Auth for public phone OTP first and Google OAuth second. Do not build a home-grown token or OTP service inside the Sites starter. D1/R2 remain the product-data source of truth; Supabase owns identity and normalized tenant authorization only.
 
-The dedicated project is `Sessions` (`meswozsllmmiqjwljvnb`) in `eu-central-1` (Frankfurt), organization `ybquartnpsqiyfbqgkgg`. On 2 September 2026 it was healthy and empty: no public tables, users, migrations or branches. Only this project was visible through the connector. `Wewed` was not accessed and is not a Sessions dependency.
+The authoritative project is `Sessions Music` (`ennfiyxlkvlmtkmibltz`) in `ap-northeast-1` (Tokyo), URL `https://ennfiyxlkvlmtkmibltz.supabase.co`. On 14 September 2026 it was verified `ACTIVE_HEALTHY`, initially empty, and selected as the Sessions identity authority. `church-os-dev` (`svhxjfearcuqxikzvlyb`) is unrelated and forbidden.
 
 ## Completed groundwork
 
@@ -27,8 +27,8 @@ The dedicated project is `Sessions` (`meswozsllmmiqjwljvnb`) in `eu-central-1` (
 ## Integration gate
 
 - [x] Connect and verify the dedicated Supabase organization/project.
-- [x] Confirm the existing Sessions project is the Free/Nano Frankfurt project selected by the owner.
-- [x] Apply the reviewed identity migration to the live project after the final local gate (`20260902085743_phase_r_identity`).
+- [x] Confirm Sessions Music is the active Tokyo project selected as the Sessions identity authority.
+- [x] Apply and verify the chronological identity/authority migration sequence through `202609140002_phase1_5_scoped_role_performance_hardening.sql` on Sessions Music.
 - [ ] Add the project publishable and secret keys to the Sites runtime; never commit them.
 - [ ] Choose and configure an SMS provider supported by Supabase Auth; phone OTP cannot send without it.
 - [ ] Configure Google OAuth client and redirect origins.
@@ -47,4 +47,4 @@ The dedicated project is `Sessions` (`meswozsllmmiqjwljvnb`) in `eu-central-1` (
 
 ## Current Supabase changes
 
-Migration `20260902085743_phase_r_identity` is applied to `meswozsllmmiqjwljvnb`; all eight public identity tables have RLS and contain zero rows. No Auth provider or runtime gate was enabled. The advisor reports the intentionally callable device RPCs as `SECURITY DEFINER` warnings and asks for an explicit decision before enabling RLS on the non-exposed private audit table. No Sessions SQL or data was sent to `Wewed`.
+The chronological checked-in Sessions identity migrations through `202609140002_phase1_5_scoped_role_performance_hardening.sql` are applied to `ennfiyxlkvlmtkmibltz`. The public identity tables and private audit table have RLS and contain zero rows. Grant and performance findings are cleared; the private-audit no-policy and intentional device-RPC SECURITY DEFINER notices remain by design. Auth provider flags remain disabled until delivery configuration and live OTP/OAuth tests are complete. No Sessions SQL or data was sent to `church-os-dev`.

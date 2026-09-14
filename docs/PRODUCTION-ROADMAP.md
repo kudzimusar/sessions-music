@@ -11,7 +11,7 @@ Status date: 2 September 2026. Phase R is the current execution authority for mo
 - Every external integration is feature-gated. Disabled integrations are absent from the user journey.
 - The demo remains available at `/demo` during migration, but must remain private until Phases 1–3 pass real sandbox integration tests.
 - D1/R2 remain the production system of record. Supabase is Auth and normalized identity/tenant authorization only.
-- `Wewed` is unrelated and must never receive Sessions data or schema changes.
+- `church-os-dev` / `svhxjfearcuqxikzvlyb` is unrelated and must never receive Sessions data or schema changes.
 
 ## Phase R roll-call
 
