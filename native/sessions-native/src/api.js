@@ -1,4 +1,5 @@
-import {SESSIONS_RELEASE,releaseMatchesPhase5} from '@sessions/product-core';
+import {AI_DISCOVERY_CONTRACT,SESSIONS_RELEASE,releaseMatchesPhase5} from '@sessions/product-core';
+import {readNativeAccessToken} from './session-store';
 
 export const DEFAULT_UAT_ORIGIN='https://sessions-music.kudzimusar.chatgpt.site';
 export const UAT_ORIGIN=process.env.EXPO_PUBLIC_SESSIONS_API_BASE_URL||DEFAULT_UAT_ORIGIN;
@@ -8,16 +9,55 @@ async function readJson(response){
   try{return text?JSON.parse(text):null}catch{return {raw:text}}
 }
 
-export async function verifyRelease(){
-  const response=await fetch(`${UAT_ORIGIN}/api/release`,{method:'GET',headers:{Accept:'application/json'}});
+export class SessionsApiError extends Error{
+  constructor(message,status,body){super(message);this.name='SessionsApiError';this.status=status;this.body=body}
+}
+
+export async function sessionsFetch(path,{auth=false,...options}={}){
+  const headers={Accept:'application/json',...(options.headers||{})};
+  if(auth){
+    const accessToken=await readNativeAccessToken();
+    if(accessToken)headers.Authorization=`Bearer ${accessToken}`;
+  }
+  // Deliberately omit credentials/cookies. ChatGPT Sites browser audience cookies are never native auth.
+  const response=await fetch(`${UAT_ORIGIN}${path}`,{...options,headers});
   const body=await readJson(response);
-  if(!response.ok)throw new Error(`Release endpoint returned HTTP ${response.status}`);
+  if(!response.ok){
+    const message=body?.error||`Sessions API returned HTTP ${response.status}`;
+    throw new SessionsApiError(message,response.status,body);
+  }
+  return {response,body};
+}
+
+export async function verifyRelease(){
+  const {body}=await sessionsFetch('/api/release');
   return {release:body,matches:releaseMatchesPhase5(body),expected:SESSIONS_RELEASE};
+}
+
+export async function readAuthConfig(){
+  const {body}=await sessionsFetch('/api/auth/config');
+  return body;
+}
+
+export async function readNativeSession(){
+  const {body}=await sessionsFetch('/api/auth/session',{auth:true});
+  return body;
+}
+
+export async function planSession({mode,prompt,consent,input}){
+  if(mode==='ai'&&!AI_DISCOVERY_CONTRACT.requiresExplicitConsent)throw new Error('AI consent contract is invalid.');
+  const {body}=await sessionsFetch(AI_DISCOVERY_CONTRACT.endpoint,{
+    auth:true,
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({mode,prompt,consent,input}),
+  });
+  return body;
 }
 
 /**
  * Security probe only. A 401/403 is success; 200 is a failed security check.
- * Never attach browser audience cookies or synthetic credentials here.
+ * Never attach browser audience cookies, secure-store bearer tokens or synthetic credentials here.
  */
 export async function probeProtectedEndpoint(){
   const endpoint='/api/corporate/overview';
