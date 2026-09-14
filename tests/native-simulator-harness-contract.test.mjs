@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import path from 'node:path';
 import test from 'node:test';
 import ts from 'typescript';
 import {sanitizeNativeContinuation} from '../native/sessions-native/src/continuation.js';
@@ -28,6 +27,24 @@ test('every native Phase 1-5 JS/JSX source parses before simulator handoff',()=>
     const errors=(result.diagnostics||[]).filter(item=>item.category===ts.DiagnosticCategory.Error);
     assert.deepEqual(errors.map(item=>ts.flattenDiagnosticMessageText(item.messageText,'\n')),[],`${file} must parse before native execution`);
   }
+});
+
+test('Expo Router stack and tab manifests never reference a missing Phase 1-5 screen',()=>{
+  const rootLayout=read('native/sessions-native/app/_layout.js');
+  const tabLayout=read('native/sessions-native/app/(customer)/_layout.js');
+  const stackNames=[...rootLayout.matchAll(/<Stack\.Screen\s+name="([^"]+)"/g)].map(match=>match[1]);
+  const tabNames=[...tabLayout.matchAll(/<Tabs\.Screen\s+name="([^"]+)"/g)].map(match=>match[1]);
+  assert.ok(stackNames.length>=10,'root native stack must declare the Phase 1-5 task routes');
+  assert.deepEqual(tabNames,['home','search','sessions','profile']);
+  for(const name of stackNames){
+    const target=name==='index'
+      ?'native/sessions-native/app/index.js'
+      :name==='(customer)'
+        ?'native/sessions-native/app/(customer)/_layout.js'
+        :`native/sessions-native/app/${name}.js`;
+    assert.equal(exists(target),true,`Stack.Screen ${name} must resolve to ${target}`);
+  }
+  for(const name of tabNames)assert.equal(exists(`native/sessions-native/app/(customer)/${name}.js`),true,`customer tab ${name} must have a route file`);
 });
 
 test('native runtime uses Expo Router native stacks/tabs and has no obsolete manual App shell',()=>{
@@ -101,6 +118,7 @@ test('Phase 4.5 native identity architecture is fail-closed, secure-device aware
   const onboarding=read('native/sessions-native/app/onboarding.js');
   const security=read('native/sessions-native/app/security.js');
   const store=read('native/sessions-native/src/session-store.js');
+  const webStore=read('native/sessions-native/src/session-store.web.js');
   assert.match(gateway,/Corporate is never a public account type/);
   assert.match(onboarding,/Find a rehearsal space/);
   assert.match(onboarding,/Manage a rehearsal space/);
@@ -109,6 +127,7 @@ test('Phase 4.5 native identity architecture is fail-closed, secure-device aware
   assert.match(store,/expo-secure-store/);
   assert.match(store,/NATIVE_AUTH_BOUNDARY\.status!=='ready'/);
   assert.match(store,/WHEN_UNLOCKED_THIS_DEVICE_ONLY/);
+  assert.match(webStore,/cannot persist native authentication material/);
   assert.equal(sanitizeNativeContinuation('/studio/onevibe?room=a'),'/studio/onevibe?room=a');
   assert.equal(sanitizeNativeContinuation('//evil.example/x'),'/home');
   assert.equal(sanitizeNativeContinuation('https://evil.example/x'),'/home');
@@ -161,6 +180,8 @@ test('native UAT identity, web-projection test surface and Phase 5 provenance ar
   assert.equal(config.web.output,'static');
   assert.equal(pkg.dependencies['react-native-web'],'~0.21.0');
   assert.equal(pkg.dependencies['react-dom'],'19.2.3');
+  assert.equal(pkg.devDependencies['@playwright/test'],'1.63.0');
+  assert.equal(pkg.scripts['test:chromium'],'playwright test');
 });
 
 test('native harness documentation preserves the authentication and machine-execution boundary',()=>{
