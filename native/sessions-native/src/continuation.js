@@ -1,4 +1,4 @@
-const SAFE_ROOTS=new Set(['home','search','sessions','profile','planner','provider','security','diagnostics','studio','booking']);
+const SAFE_ROOTS=new Set(['home','search','sessions','profile','planner','provider','security','diagnostics','studio','booking','onboarding']);
 
 export function sanitizeNativeContinuation(value){
   if(typeof value!=='string'||!value.startsWith('/')||value.startsWith('//')||value.includes('://')||value.includes('\\'))return '/home';
