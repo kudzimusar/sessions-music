@@ -96,7 +96,7 @@ jobs:
 
   ios-installed:
     name: iOS Simulator installed UAT
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 45
     steps:
       - name: Checkout exact revision
@@ -113,15 +113,14 @@ jobs:
       - name: Verify immutable source revision
         run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
 
-      - name: Verify Expo SDK 57 Xcode floor
+      - name: Verify Xcode 27.0 toolchain
         shell: bash
         run: |
           set -euo pipefail
           xcodebuild -version
-          XCODE_MAJOR="$(xcodebuild -version | awk '/Xcode/{split($2,v,"."); print v[1]}')"
-          XCODE_MINOR="$(xcodebuild -version | awk '/Xcode/{split($2,v,"."); print v[2]}')"
-          if [ "$XCODE_MAJOR" -lt 26 ] || { [ "$XCODE_MAJOR" -eq 26 ] && [ "$XCODE_MINOR" -lt 4 ]; }; then
-            echo "Expo SDK 57 requires Xcode 26.4 or newer; runner has $(xcodebuild -version | head -1)." >&2
+          XCODE_VERSION="$(xcodebuild -version | awk '/Xcode/{print $2}')"
+          if [ "$XCODE_VERSION" != "27.0" ]; then
+            echo "Installed-native certification requires Xcode 27.0; runner has $(xcodebuild -version | head -1)." >&2
             exit 1
           fi
 
@@ -150,6 +149,7 @@ jobs:
           echo "SIMULATOR_UDID=$UDID" >> "$GITHUB_ENV"
           xcrun simctl boot "$UDID" 2>/dev/null || true
           xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl list devices | grep "$UDID"
 
       - name: Build and install release app on iOS Simulator
         working-directory: native/sessions-native
@@ -162,9 +162,10 @@ jobs:
       - name: Exercise installed iOS app with Maestro
         working-directory: native/sessions-native
         run: |
-          maestro test .maestro/phase1-5-smoke.yml
-          maestro test .maestro/native-diagnostics.yml
-          maestro test .maestro/phase5-operations.yml
+          set -euo pipefail
+          maestro --device="$SIMULATOR_UDID" test .maestro/phase1-5-smoke.yml
+          maestro --device="$SIMULATOR_UDID" test .maestro/native-diagnostics.yml
+          maestro --device="$SIMULATOR_UDID" test .maestro/phase5-operations.yml
           xcrun simctl io "$SIMULATOR_UDID" screenshot ios-installed-uat.png
 
       - name: Assert generated iOS project is native
