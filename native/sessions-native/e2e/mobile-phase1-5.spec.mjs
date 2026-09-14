@@ -1,140 +1,21 @@
 import {expect,test} from '@playwright/test';
 
-const assertNoHorizontalOverflow=async page=>{
-  const overflow=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,client:document.documentElement.clientWidth}));
-  expect(overflow.scroll,`horizontal overflow ${overflow.scroll}px > ${overflow.client}px`).toBeLessThanOrEqual(overflow.client+1);
-};
+const assertNoHorizontalOverflow=async page=>{const overflow=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,client:document.documentElement.clientWidth}));expect(overflow.scroll,`horizontal overflow ${overflow.scroll}px > ${overflow.client}px`).toBeLessThanOrEqual(overflow.client+1)};
+const assertPracticalTouchTargets=async page=>{const targets=await page.locator('[role="button"]:visible').evaluateAll(nodes=>nodes.map(node=>{const rect=node.getBoundingClientRect();return {text:(node.textContent||'').trim().slice(0,80),width:rect.width,height:rect.height}}));for(const target of targets){expect(target.height,`button too short: ${target.text} (${target.height}px)`).toBeGreaterThanOrEqual(43);expect(target.width,`button too narrow: ${target.text} (${target.width}px)`).toBeGreaterThanOrEqual(43)}};
+const watchConsoleErrors=page=>{const errors=[];page.on('console',message=>{if(message.type()==='error')errors.push(message.text())});page.on('pageerror',error=>errors.push(error.message));return errors};
 
-const assertPracticalTouchTargets=async page=>{
-  const targets=await page.locator('[role="button"]:visible').evaluateAll(nodes=>nodes.map(node=>{const rect=node.getBoundingClientRect();return {text:(node.textContent||'').trim().slice(0,80),width:rect.width,height:rect.height}}));
-  for(const target of targets){
-    expect(target.height,`button too short: ${target.text} (${target.height}px)`).toBeGreaterThanOrEqual(43);
-    expect(target.width,`button too narrow: ${target.text} (${target.width}px)`).toBeGreaterThanOrEqual(43);
-  }
-};
+test('gateway is native-oriented, fail-closed and not a public Corporate role chooser',async({page},testInfo)=>{const errors=watchConsoleErrors(page);await page.goto('/');await expect(page.getByText('One identity. Your music spaces.')).toBeVisible();await expect(page.getByRole('button',{name:'Continue with phone or email'})).toBeVisible();await expect(page.getByText(/Corporate is never a public account type/)).toBeVisible();await expect(page.getByText('Sessions team member?')).toHaveCount(0);await assertNoHorizontalOverflow(page);await assertPracticalTouchTargets(page);await page.screenshot({path:`test-results/${testInfo.project.name}-gateway.png`,fullPage:true});expect(errors).toEqual([])});
 
-const watchConsoleErrors=page=>{
-  const errors=[];
-  page.on('console',message=>{if(message.type()==='error')errors.push(message.text())});
-  page.on('pageerror',error=>errors.push(error.message));
-  return errors;
-};
+test('customer native home makes AI and music-space discovery first class',async({page},testInfo)=>{const errors=watchConsoleErrors(page);await page.goto('/');await page.getByRole('button',{name:'Open UAT app preview'}).click();await expect(page).toHaveURL(/\/home/);await expect(page.getByText('Find your next rehearsal room.')).toBeVisible();await expect(page.getByText('SESSIONS AI · INTENT, NOT INVENTION')).toBeVisible();await expect(page.getByRole('button',{name:/Plan with AI or guided filters/})).toBeVisible();await expect(page.getByText('Spaces for your sound')).toBeVisible();await assertNoHorizontalOverflow(page);await assertPracticalTouchTargets(page);await page.screenshot({path:`test-results/${testInfo.project.name}-home.png`,fullPage:true});expect(errors).toEqual([])});
 
-test('gateway is native-oriented, fail-closed and not a public Corporate role chooser',async({page},testInfo)=>{
-  const errors=watchConsoleErrors(page);
-  await page.goto('/');
-  await expect(page.getByText('One identity. Your music spaces.')).toBeVisible();
-  await expect(page.getByRole('button',{name:'Continue with phone or email'})).toBeVisible();
-  await expect(page.getByText(/Corporate is never a public account type/)).toBeVisible();
-  await expect(page.getByText('Sessions team member?')).toHaveCount(0);
-  await assertNoHorizontalOverflow(page);
-  await assertPracticalTouchTargets(page);
-  await page.screenshot({path:`test-results/${testInfo.project.name}-gateway.png`,fullPage:true});
-  expect(errors).toEqual([]);
-});
+test('search exposes music-specific fit filters and meaningful result information',async({page},testInfo)=>{const errors=watchConsoleErrors(page);await page.goto('/search');await expect(page.getByText('Search music spaces')).toBeVisible();await page.getByLabel('Search studios, areas, equipment and services').fill('drums');await expect(page.getByText('OneVibe Studiox')).toBeVisible();await expect(page.getByText(/Up to 8/)).toBeVisible();await page.getByRole('button',{name:'Backup power'}).click();await expect(page.getByText('OneVibe Studiox')).toBeVisible();await assertNoHorizontalOverflow(page);await assertPracticalTouchTargets(page);await page.screenshot({path:`test-results/${testInfo.project.name}-search.png`,fullPage:true});expect(errors).toEqual([])});
 
-test('customer native home makes AI and music-space discovery first class',async({page},testInfo)=>{
-  const errors=watchConsoleErrors(page);
-  await page.goto('/');
-  await page.getByRole('button',{name:'Open UAT app preview'}).click();
-  await expect(page).toHaveURL(/\/home/);
-  await expect(page.getByText('Find your next rehearsal room.')).toBeVisible();
-  await expect(page.getByText('SESSIONS AI · INTENT, NOT INVENTION')).toBeVisible();
-  await expect(page.getByRole('button',{name:/Plan with AI or guided filters/})).toBeVisible();
-  await expect(page.getByText('Spaces for your sound')).toBeVisible();
-  await assertNoHorizontalOverflow(page);
-  await assertPracticalTouchTargets(page);
-  await page.screenshot({path:`test-results/${testInfo.project.name}-home.png`,fullPage:true});
-  expect(errors).toEqual([]);
-});
+test('AI planner is explicit, editable, consent-gated and cannot silently submit',async({page},testInfo)=>{const errors=watchConsoleErrors(page);await page.goto('/planner');await expect(page.getByText('Say what the band needs.')).toBeVisible();await expect(page.getByText(/AI is an intent interpreter, not a booking agent/)).toBeVisible();const submit=page.getByRole('button',{name:'Interpret & check availability'});const consent=page.getByRole('checkbox',{name:/Send only this brief to OpenAI/i});const drums=page.getByRole('checkbox',{name:'Equipment drums'});const pa=page.getByRole('checkbox',{name:'Equipment pa'});await expect(submit).toBeDisabled();await page.getByPlaceholder(/Four-piece gospel band/).fill('Six-piece band in Harare CBD with drums and PA under US$30 tomorrow.');await expect(submit).toBeDisabled();await consent.click();await expect(submit).toBeEnabled();await drums.click();await pa.click();await expect(drums).toBeChecked();await expect(pa).toBeChecked();await expect(page.getByText(/AI cannot invent/)).toBeVisible();await assertNoHorizontalOverflow(page);await assertPracticalTouchTargets(page);await page.screenshot({path:`test-results/${testInfo.project.name}-planner.png`,fullPage:true});expect(errors).toEqual([])});
 
-test('search exposes music-specific fit filters and meaningful result information',async({page},testInfo)=>{
-  const errors=watchConsoleErrors(page);
-  await page.goto('/search');
-  await expect(page.getByText('Search music spaces')).toBeVisible();
-  await page.getByLabel('Search studios, areas, equipment and services').fill('drums');
-  await expect(page.getByText('OneVibe Studiox')).toBeVisible();
-  await expect(page.getByText(/Up to 8/)).toBeVisible();
-  await page.getByRole('button',{name:'Backup power'}).click();
-  await expect(page.getByText('OneVibe Studiox')).toBeVisible();
-  await assertNoHorizontalOverflow(page);
-  await assertPracticalTouchTargets(page);
-  await page.screenshot({path:`test-results/${testInfo.project.name}-search.png`,fullPage:true});
-  expect(errors).toEqual([]);
-});
+test('studio and booking screens behave like inventory, not generic appointment forms',async({page},testInfo)=>{const errors=watchConsoleErrors(page);await page.goto('/studio/onevibe-studiox');await expect(page.getByText('Equipment & practical details')).toBeVisible();await expect(page.getByText('Next suitable UAT slot')).toBeVisible();await page.getByRole('button',{name:/Choose a valid time/}).click();await expect(page).toHaveURL(/\/booking\/onevibe-studiox/);await expect(page.getByText('Available times')).toBeVisible();await expect(page.getByRole('radio',{name:/16:30/})).toBeDisabled();await expect(page.getByText(/server before a request is created/)).toBeVisible();await assertNoHorizontalOverflow(page);await assertPracticalTouchTargets(page);await page.screenshot({path:`test-results/${testInfo.project.name}-booking.png`,fullPage:true});expect(errors).toEqual([])});
 
-test('AI planner is explicit, editable, consent-gated and cannot silently submit',async({page},testInfo)=>{
-  const errors=watchConsoleErrors(page);
-  await page.goto('/planner');
-  await expect(page.getByText('Say what the band needs.')).toBeVisible();
-  await expect(page.getByText(/AI is an intent interpreter, not a booking agent/)).toBeVisible();
-  const submit=page.getByRole('button',{name:'Interpret & check availability'});
-  await expect(submit).toBeDisabled();
-  await page.getByPlaceholder(/Four-piece gospel band/).fill('Six-piece band in Harare CBD with drums and PA under US$30 tomorrow.');
-  await page.getByRole('checkbox').click();
-  await expect(submit).toBeEnabled();
-  await expect(page.getByText(/AI cannot invent/)).toBeVisible();
-  await assertNoHorizontalOverflow(page);
-  await assertPracticalTouchTargets(page);
-  await page.screenshot({path:`test-results/${testInfo.project.name}-planner.png`,fullPage:true});
-  expect(errors).toEqual([]);
-});
+test('provider mobile remains daily-operations focused',async({page},testInfo)=>{const errors=watchConsoleErrors(page);await page.goto('/provider');await expect(page.getByText('Today at OneVibe Studiox')).toBeVisible();await expect(page.getByRole('button',{name:'Check in session'})).toBeVisible();await page.getByRole('tab',{name:/Requests/}).click();await expect(page.getByText(/booking requests/)).toBeVisible();await page.getByRole('tab',{name:'More'}).click();await expect(page.getByText(/Pricing configuration, staff, reports and long-range calendars stay on desktop\/PWA/)).toBeVisible();await assertNoHorizontalOverflow(page);await assertPracticalTouchTargets(page);await page.screenshot({path:`test-results/${testInfo.project.name}-provider.png`,fullPage:true});expect(errors).toEqual([])});
 
-test('studio and booking screens behave like inventory, not generic appointment forms',async({page},testInfo)=>{
-  const errors=watchConsoleErrors(page);
-  await page.goto('/studio/onevibe-studiox');
-  await expect(page.getByText('Equipment & practical details')).toBeVisible();
-  await expect(page.getByText('Next suitable UAT slot')).toBeVisible();
-  await page.getByRole('button',{name:/Choose a valid time/}).click();
-  await expect(page).toHaveURL(/\/booking\/onevibe-studiox/);
-  await expect(page.getByText('Available times')).toBeVisible();
-  const unavailable=page.getByRole('radio',{name:/16:30/});
-  await expect(unavailable).toBeDisabled();
-  await expect(page.getByText(/server before a request is created/)).toBeVisible();
-  await assertNoHorizontalOverflow(page);
-  await assertPracticalTouchTargets(page);
-  await page.screenshot({path:`test-results/${testInfo.project.name}-booking.png`,fullPage:true});
-  expect(errors).toEqual([]);
-});
+test('Phase 4.5 onboarding is short, provider-intent aware and excludes Corporate self-selection',async({page},testInfo)=>{const errors=watchConsoleErrors(page);await page.goto('/onboarding');await expect(page.getByText('What are you here to do?')).toBeVisible();await expect(page.getByText('Find a rehearsal space')).toBeVisible();await expect(page.getByText('Manage a rehearsal space')).toBeVisible();await expect(page.getByText('Corporate/Sessions-team is intentionally absent.')).toBeVisible();await assertNoHorizontalOverflow(page);await assertPracticalTouchTargets(page);await page.screenshot({path:`test-results/${testInfo.project.name}-onboarding.png`,fullPage:true});expect(errors).toEqual([])});
 
-test('provider mobile remains daily-operations focused',async({page},testInfo)=>{
-  const errors=watchConsoleErrors(page);
-  await page.goto('/provider');
-  await expect(page.getByText('Today at OneVibe Studiox')).toBeVisible();
-  await expect(page.getByRole('button',{name:'Check in session'})).toBeVisible();
-  await page.getByRole('tab',{name:/Requests/}).click();
-  await expect(page.getByText(/booking requests/)).toBeVisible();
-  await page.getByRole('tab',{name:'More'}).click();
-  await expect(page.getByText(/Pricing configuration, staff, reports and long-range calendars stay on desktop\/PWA/)).toBeVisible();
-  await assertNoHorizontalOverflow(page);
-  await assertPracticalTouchTargets(page);
-  await page.screenshot({path:`test-results/${testInfo.project.name}-provider.png`,fullPage:true});
-  expect(errors).toEqual([]);
-});
-
-test('Phase 4.5 onboarding is short, provider-intent aware and excludes Corporate self-selection',async({page},testInfo)=>{
-  const errors=watchConsoleErrors(page);
-  await page.goto('/onboarding');
-  await expect(page.getByText('What are you here to do?')).toBeVisible();
-  await expect(page.getByText('Find a rehearsal space')).toBeVisible();
-  await expect(page.getByText('Manage a rehearsal space')).toBeVisible();
-  await expect(page.getByText('Corporate/Sessions-team is intentionally absent.')).toBeVisible();
-  await assertNoHorizontalOverflow(page);
-  await assertPracticalTouchTargets(page);
-  await page.screenshot({path:`test-results/${testInfo.project.name}-onboarding.png`,fullPage:true});
-  expect(errors).toEqual([]);
-});
-
-test('corporate critical mobile is visibly isolated and contains only bounded urgent actions',async({page},testInfo)=>{
-  const errors=watchConsoleErrors(page);
-  await page.goto('/corporate-critical');
-  await expect(page.getByText(/DEMO ONLY/)).toBeVisible();
-  await expect(page.getByRole('button',{name:'Acknowledge'})).toBeVisible();
-  await expect(page.getByRole('button',{name:'Assign'})).toBeVisible();
-  await expect(page.getByRole('button',{name:/Escalate with reason/})).toBeVisible();
-  await expect(page.getByText(/Restricted evidence.*remain on Corporate desktop\/tablet/)).toBeVisible();
-  await assertNoHorizontalOverflow(page);
-  await assertPracticalTouchTargets(page);
-  await page.screenshot({path:`test-results/${testInfo.project.name}-corporate-critical.png`,fullPage:true});
-  expect(errors).toEqual([]);
-});
+test('corporate critical mobile is visibly isolated and contains only bounded urgent actions',async({page},testInfo)=>{const errors=watchConsoleErrors(page);await page.goto('/corporate-critical');await expect(page.getByText(/DEMO ONLY/)).toBeVisible();await expect(page.getByRole('button',{name:'Acknowledge'})).toBeVisible();await expect(page.getByRole('button',{name:'Assign'})).toBeVisible();await expect(page.getByRole('button',{name:/Escalate with reason/})).toBeVisible();await expect(page.getByText(/Restricted evidence.*remain on Corporate desktop\/tablet/)).toBeVisible();await assertNoHorizontalOverflow(page);await assertPracticalTouchTargets(page);await page.screenshot({path:`test-results/${testInfo.project.name}-corporate-critical.png`,fullPage:true});expect(errors).toEqual([])});
