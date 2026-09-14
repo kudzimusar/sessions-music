@@ -76,3 +76,18 @@ test('native UAT copy reflects identified-but-inactive Sessions identity authori
   assert.match(uat,/currently inactive/);
   assert.doesNotMatch(uat,/positively identified\.$/m);
 });
+
+test('installed iOS and Android acceptance requires Maestro flows over the real UAT app',()=>{
+  const smoke=read('native/sessions-native/.maestro/phase1-5-smoke.yml');
+  const diagnostics=read('native/sessions-native/.maestro/native-diagnostics.yml');
+  const operations=read('native/sessions-native/.maestro/phase5-operations.yml');
+  for(const flow of [smoke,diagnostics,operations])assert.match(flow,/appId: com\.sessionstech\.sessions\.uat/);
+  assert.match(smoke,/Sign in without leaving the app/);
+  assert.match(smoke,/SESSIONS AI · INTENT, NOT INVENTION/);
+  assert.match(diagnostics,/Verify \/api\/release/);
+  assert.match(diagnostics,/Run anonymous probe/);
+  assert.match(diagnostics,/401.*403/);
+  assert.match(operations,/Choose a session/);
+  assert.match(operations,/Continue securely/);
+  assert.match(operations,/Today at OneVibe Studiox/);
+});
