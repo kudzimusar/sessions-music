@@ -1,5 +1,5 @@
 import {env} from 'cloudflare:workers';
-import {NATIVE_AUTH_BOUNDARY} from '@sessions/product-core';
+import {NATIVE_AUTH_BOUNDARY} from '../../../../packages/product-core/index.js';
 
 type RuntimeEnv={
   SESSIONS_IDENTITY_MODE?:string;
