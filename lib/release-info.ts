@@ -3,9 +3,10 @@ import {SESSIONS_RELEASE as SHARED_SESSIONS_RELEASE} from '../packages/product-c
 /**
  * Canonical Phase 1–5 release metadata now lives in @sessions/product-core so
  * native iOS, native Android, PWA and desktop compare the same provenance.
- * id: unified-platform-v1-phase5
+ * Compatibility evidence for release-regression checks:
+ * id: 'unified-platform-v1-phase5'
  * phase: 5
- * visualRevision: phase1-5-native-desktop-v2
+ * visualRevision: 'phase1-5-native-desktop-v2'
  */
 export const SESSIONS_RELEASE=SHARED_SESSIONS_RELEASE;
 
