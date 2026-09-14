@@ -27,6 +27,20 @@ test('native Phase 1-5 client is an actual React Native runtime, not a WebView/P
   assert.match(app,/TextInput/);
 });
 
+test('native safe areas use the Expo SDK 57 supported context instead of deprecated core SafeAreaView or hard-coded Android inset',()=>{
+  const pkg=JSON.parse(read('native/sessions-native/package.json'));
+  const app=read('native/sessions-native/App.js');
+  const styles=read('native/sessions-native/src/styles.js');
+  assert.equal(pkg.dependencies['react-native-safe-area-context'],'~5.7.0');
+  assert.match(app,/from 'react-native-safe-area-context'/);
+  assert.match(app,/SafeAreaProvider/);
+  assert.match(app,/initialWindowMetrics/);
+  assert.match(app,/edges=\{\['top','right','bottom','left'\]\}/);
+  const reactNativeImports=app.match(/import \{[\s\S]*?\} from 'react-native';/)?.[0]||'';
+  assert.doesNotMatch(reactNativeImports,/\bSafeAreaView\b/);
+  assert.doesNotMatch(styles,/paddingTop:Platform\.OS==='android'\?24:0/);
+});
+
 test('native client consumes the shared Sessions product core and mobile interaction contracts',()=>{
   const pkg=JSON.parse(read('native/sessions-native/package.json'));
   const app=read('native/sessions-native/App.js');
