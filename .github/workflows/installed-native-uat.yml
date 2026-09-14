@@ -27,6 +27,8 @@ jobs:
     name: Generate native dependency lock candidate
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    permissions:
+      contents: write
     steps:
       - name: Checkout exact revision
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -50,6 +52,26 @@ jobs:
           test -f package-lock.json
           node -e "const p=require('./package.json'); if(p.dependencies['@supabase/supabase-js']!=='2.116.0') process.exit(1)"
           sha256sum package-lock.json
+
+      - name: Commit generated lockfile to same-repository PR branch
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          set -euo pipefail
+          LOCK_PATH='native/sessions-native/package-lock.json'
+          if git ls-files --error-unmatch "$LOCK_PATH" >/dev/null 2>&1; then
+            git diff --exit-code -- "$LOCK_PATH"
+            echo 'Committed native lockfile already matches the pinned manifest.'
+            exit 0
+          fi
+          CONTENT="$(base64 < "$LOCK_PATH" | tr -d '\n')"
+          gh api --method PUT "/repos/${GITHUB_REPOSITORY}/contents/${LOCK_PATH}" \
+            -f message='Commit native dependency lockfile' \
+            -f content="$CONTENT" \
+            -f branch="$HEAD_REF" >/tmp/native-lock-commit.json
+          echo 'Committed CI-generated native dependency lockfile to the PR branch.'
 
       - name: Upload native lock candidate
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
