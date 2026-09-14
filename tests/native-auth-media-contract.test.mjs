@@ -25,9 +25,10 @@ test('native Supabase bootstrap rejects mismatched projects and uses secure pers
   assert.match(store,/WHEN_UNLOCKED_THIS_DEVICE_ONLY/);
 });
 
-test('native OTP flow uses real Supabase sessions and remains channel-gated',()=>{
+test('native OTP flow uses real Supabase sessions, safe continuation and channel gating',()=>{
   const auth=read('native/sessions-native/src/supabase-auth.js');
   const screen=read('native/sessions-native/app/sign-in.js');
+  const continuation=read('native/sessions-native/src/continuation.js');
   assert.match(auth,/signInWithOtp/);
   assert.match(auth,/verifyOtp/);
   assert.match(auth,/Email sign-in is not enabled for Sessions/);
@@ -36,6 +37,9 @@ test('native OTP flow uses real Supabase sessions and remains channel-gated',()=
   assert.match(screen,/6-digit verification code/);
   assert.match(screen,/sanitizeNativeContinuation/);
   assert.match(screen,/Sign in without leaving the app/);
+  assert.match(continuation,/'onboarding'/);
+  assert.match(continuation,/value\.startsWith\('\/\/'\)/);
+  assert.match(continuation,/value\.includes\('\:\/\/'\)/);
 });
 
 test('native onboarding writes canonical profile consent and provider intention only after native identity',()=>{
