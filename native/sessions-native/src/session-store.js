@@ -6,6 +6,10 @@ const SESSION_META_KEY='sessions.native.supabase.session-meta';
 const AUTH_STORAGE_PREFIX='sessions.native.supabase.storage.';
 const secureOptions={keychainAccessible:SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY};
 
+function requireReadyBoundary(){
+  if(NATIVE_AUTH_BOUNDARY.status!=='ready')throw new Error('Sessions native authentication is not ready for secure persistence.');
+}
+
 export async function readNativeAccessToken(){
   return SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
 }
@@ -17,6 +21,7 @@ export async function readNativeSessionMeta(){
 }
 
 export async function persistVerifiedSupabaseSession({accessToken,userId,expiresAt,provider,projectRef}){
+  requireReadyBoundary();
   if(provider!=='supabase-auth')throw new Error('Only a verified Supabase Auth session may be persisted.');
   if(projectRef!==NATIVE_AUTH_BOUNDARY.projectRef||projectRef===NATIVE_AUTH_BOUNDARY.forbiddenProject){
     throw new Error('Refusing to persist a session from an unverified Supabase project.');
@@ -28,9 +33,12 @@ export async function persistVerifiedSupabaseSession({accessToken,userId,expires
 }
 
 export const nativeSupabaseStorage={
-  async getItem(key){return SecureStore.getItemAsync(`${AUTH_STORAGE_PREFIX}${key}`)},
+  async getItem(key){
+    requireReadyBoundary();
+    return SecureStore.getItemAsync(`${AUTH_STORAGE_PREFIX}${key}`);
+  },
   async setItem(key,value){
-    if(NATIVE_AUTH_BOUNDARY.status!=='identified-project-inactive'&&NATIVE_AUTH_BOUNDARY.status!=='ready')throw new Error('Native authentication boundary is not trusted.');
+    requireReadyBoundary();
     return SecureStore.setItemAsync(`${AUTH_STORAGE_PREFIX}${key}`,value,secureOptions);
   },
   async removeItem(key){return SecureStore.deleteItemAsync(`${AUTH_STORAGE_PREFIX}${key}`)},
