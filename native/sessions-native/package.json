@@ -14,7 +14,8 @@
     "@sessions/product-core": "file:../../packages/product-core",
     "expo": "~57.0.22",
     "react": "19.2.3",
-    "react-native": "0.86.3"
+    "react-native": "0.86.3",
+    "react-native-safe-area-context": "~5.7.0"
   },
   "devDependencies": {
     "expo-doctor": "^1.17.0"
