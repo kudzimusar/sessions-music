@@ -5,14 +5,20 @@ import {readFile} from 'node:fs/promises';
 const root=new URL('../',import.meta.url);
 const read=path=>readFile(new URL(path,root),'utf8');
 
-test('CI verifies the immutable PR head and the merge candidate before exposing release-gate',async()=>{
+test('CI verifies immutable head, merge candidate and Chromium projection before release-gate',async()=>{
  const ci=await read('.github/workflows/ci.yml');
  assert.match(ci,/verify-head:/);
  assert.match(ci,/ref:\s*\$\{\{ github\.event\.pull_request\.head\.sha \}\}/);
  assert.match(ci,/SESSIONS_EXPECTED_SHA:\s*\$\{\{ github\.event\.pull_request\.head\.sha \}\}/);
  assert.match(ci,/verify-merge:/);
+ assert.match(ci,/native-chromium:/);
+ assert.match(ci,/npm audit --omit=dev --audit-level=high/);
+ assert.match(ci,/npm run doctor/);
+ assert.match(ci,/npm run web:export/);
+ assert.match(ci,/npm run test:chromium/);
  assert.match(ci,/release-gate:/);
- assert.match(ci,/needs:\s*\[verify-head, verify-merge\]/);
+ assert.match(ci,/needs:\s*\[verify-head, verify-merge, native-chromium\]/);
+ assert.match(ci,/CHROMIUM_RESULT:\s*\$\{\{ needs\.native-chromium\.result \}\}/);
  assert.match(ci,/verify-main:/);
  assert.match(ci,/persist-credentials:\s*false/g);
  assert.equal((ci.match(/npm ci --include=dev/g)||[]).length,3);
