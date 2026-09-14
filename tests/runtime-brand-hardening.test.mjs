@@ -26,9 +26,15 @@ test('production registry primitives use the approved palette and canonical Sess
   assert.doesNotMatch(css,/#245c78|#163c50|#162b35|#6cb3a3/,'runtime production layer must not reintroduce the legacy teal/slate palette');
 });
 
-test('release endpoint exposes the Phase 1–5 native/desktop visual revision separately from the phase marker',async()=>{
-  const [release,route]=await Promise.all([read('lib/release-info.ts'),read('app/api/release/route.ts')]);
-  assert.match(release,/visualRevision:\s*'phase1-5-native-desktop-v2'/);
-  assert.match(release,/brandPrimary:\s*'#4169E1'/);
+test('release endpoint exposes the shared Phase 1–5 native/desktop visual revision separately from the phase marker',async()=>{
+  const [productCore,releaseAdapter,route]=await Promise.all([
+    read('packages/product-core/index.js'),
+    read('lib/release-info.ts'),
+    read('app/api/release/route.ts'),
+  ]);
+  assert.match(productCore,/visualRevision:\s*'phase1-5-native-desktop-v2'/);
+  assert.match(productCore,/brandPrimary:\s*'#4169E1'/);
+  assert.match(productCore,/phase:\s*5\b/);
+  assert.match(releaseAdapter,/SHARED_SESSIONS_RELEASE/);
   assert.match(route,/Response\.json\(SESSIONS_RELEASE/);
 });

@@ -25,16 +25,19 @@ test('production build fails closed if Sites metadata or Phase 4/4.5/5 hardening
  assert.match(script,/Expected DB\/R2 Sites bindings/);
 });
 
-test('running application exposes the Phase 5 release provenance marker',async()=>{
- const [release,route,layout]=await Promise.all([
+test('running application exposes the canonical shared Phase 5 release provenance marker',async()=>{
+ const [productCore,releaseAdapter,route,layout]=await Promise.all([
+  read('packages/product-core/index.js'),
   read('lib/release-info.ts'),
   read('app/api/release/route.ts'),
   read('app/layout.tsx'),
  ]);
- assert.match(release,/unified-platform-v1-phase5/);
- assert.match(release,/phase:\s*5/);
- assert.match(release,/phaseStatus:\s*'complete'/);
- assert.match(release,/#4169E1/);
+ assert.match(productCore,/id:\s*'unified-platform-v1-phase5'/);
+ assert.match(productCore,/phase:\s*5\b/);
+ assert.match(productCore,/phaseStatus:\s*'complete'/);
+ assert.match(productCore,/brandPrimary:\s*'#4169E1'/);
+ assert.match(productCore,/deploymentModel:\s*'chatgpt-sites-versioned'/);
+ assert.match(releaseAdapter,/SHARED_SESSIONS_RELEASE/);
  assert.match(route,/X-Sessions-Release/);
  assert.match(route,/SESSIONS_RELEASE/);
  assert.match(layout,/sessions-release/);
