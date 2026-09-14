@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
+import ts from 'typescript';
 
 const read=path=>fs.readFileSync(new URL(`../${path}`,import.meta.url),'utf8');
 const nativeSource=()=>[
@@ -9,6 +10,18 @@ const nativeSource=()=>[
  read('native/sessions-native/src/styles.js'),
  read('native/sessions-native/src/uat-data.js'),
 ].join('\n');
+
+test('native Phase 1-5 JavaScript and JSX sources are syntactically valid before simulator handoff',()=>{
+  for(const path of ['native/sessions-native/App.js','native/sessions-native/src/api.js','native/sessions-native/src/styles.js','native/sessions-native/src/uat-data.js']){
+    const result=ts.transpileModule(read(path),{
+      fileName:path.endsWith('App.js')?'App.jsx':path,
+      reportDiagnostics:true,
+      compilerOptions:{allowJs:true,jsx:ts.JsxEmit.ReactJSX,module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022},
+    });
+    const errors=(result.diagnostics||[]).filter(item=>item.category===ts.DiagnosticCategory.Error);
+    assert.deepEqual(errors.map(item=>ts.flattenDiagnosticMessageText(item.messageText,'\n')),[],`${path} must parse before Work/Desktop native execution`);
+  }
+});
 
 test('native Phase 1-5 client is an actual React Native runtime, not a WebView/PWA wrapper',()=>{
   const pkg=JSON.parse(read('native/sessions-native/package.json'));
