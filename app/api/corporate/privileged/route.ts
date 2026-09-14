@@ -16,7 +16,7 @@ export async function GET(){
   const actor=await getProductionUser();if(!actor)return response({error:'Sign in required.'},401);
   if(!canManagePlatformRoles(actor))return response({error:'Super administrator authority is required.'},403);
   const privileged=await currentPrivilegedSession(actor);
-  return response({assuranceLevel:actor.assuranceLevel,eligible:actor.method!=='chatgpt_demo'&&actor.assuranceLevel==='aal2',privileged});
+  return response({assuranceLevel:actor.assuranceLevel,deviceRegistered:actor.deviceRegistered,eligible:actor.method!=='chatgpt_demo'&&actor.assuranceLevel==='aal2'&&actor.deviceRegistered,privileged});
  }catch(error){
   console.error('Privileged session read failed',error instanceof Error?error.message:'Unknown error');
   return response({error:'Privileged session state is unavailable. Security schema may not be provisioned yet.'},503);
@@ -39,6 +39,7 @@ export async function POST(request:Request){
    return response({ok:true,privileged:null});
   }
   if(actor.method==='chatgpt_demo')return response({error:'Privileged administration cannot be activated from the ChatGPT preview identity. Use the production identity provider.'},403);
+  if(!actor.deviceRegistered)return response({error:'Register this signed-in device before privileged administration can be activated.'},403);
   if(actor.assuranceLevel!=='aal2')return response({error:'Multi-factor authentication is required before privileged administration can be activated.'},403);
   const expiresAt=new Date(at.getTime()+15*60*1000).toISOString();const id=`priv_${crypto.randomUUID()}`;
   const existing=await db.prepare("SELECT id,identity_session_id FROM corporate_privileged_sessions WHERE user_id=? AND status='active'").bind(actor.id).first();
