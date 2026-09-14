@@ -59,6 +59,7 @@ export const WORKSPACE_CONTEXTS=Object.freeze([
   Object.freeze({type:'corporate',label:'Sessions company',description:'Authorized corporate operations',access:'authorized-only'}),
 ]);
 
+export const AI_DISCOVERY_EQUIPMENT=Object.freeze(['drums','pa','vocal microphones','bass amp','guitar amps','keyboard','piano','music stands']);
 export const AI_DISCOVERY_CONTRACT=Object.freeze({
   role:'intent-interpreter',
   endpoint:'/api/planner',
@@ -67,8 +68,9 @@ export const AI_DISCOVERY_CONTRACT=Object.freeze({
   mayBook:false,
   mayInventMarketplaceFacts:false,
   canonicalFactsAfterInterpretation:true,
-  fields:Object.freeze(['date','start','duration','size','budget','area','service','flexDays']),
-  prohibitedFacts:Object.freeze(['price','availability','verification','equipment','provider identity','booking confirmation']),
+  fields:Object.freeze(['date','start','duration','size','budget','area','service','equipment','flexDays']),
+  equipment:AI_DISCOVERY_EQUIPMENT,
+  prohibitedFacts:Object.freeze(['price','availability','verification','equipment availability','provider identity','booking confirmation']),
   privacy:Object.freeze({sendAccount:false,sendPreciseLocation:false,sendBookingHistory:false}),
 });
 
