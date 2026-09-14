@@ -96,9 +96,11 @@ begin
 end;
 $$;
 
--- revoke_device likewise requires a real current caller session. It can only act
--- on a device row owned by the caller, is idempotent for already-revoked rows,
--- and writes one audit event for the actual state transition.
+-- revoke_device likewise requires a real, already-registered and non-revoked
+-- current caller session. It can only act on a device row owned by the caller,
+-- is idempotent for an already-revoked target, and writes one audit event for the
+-- actual state transition. This prevents a JWT from a locally revoked Sessions
+-- device from continuing to manage the user's other devices via the direct RPC.
 create or replace function public.revoke_device(target_session_id uuid)
 returns boolean
 language plpgsql
@@ -132,6 +134,16 @@ begin
       and s.user_id = caller_id
   ) then
     raise exception 'Authenticated session is no longer active';
+  end if;
+
+  if not exists (
+    select 1
+    from public.device_sessions caller_device
+    where caller_device.session_id = caller_session_id
+      and caller_device.user_id = caller_id
+      and caller_device.revoked_at is null
+  ) then
+    raise exception 'Register a non-revoked current device before managing sessions';
   end if;
 
   select ds.user_id, ds.revoked_at
