@@ -104,7 +104,11 @@ export const NATIVE_AUTH_BOUNDARY=Object.freeze({
   audienceGateIsNativeAuth:false,
   browserCookieImportAllowed:false,
   secureDeviceStorage:'expo-secure-store',
-  status:'blocked-until-sessions-supabase-identified',
+  status:'identified-project-inactive',
+  projectRef:'meswozsllmmiqjwljvnb',
+  projectUrl:'https://meswozsllmmiqjwljvnb.supabase.co',
+  requiresActiveProject:true,
+  requiresPublishableKey:true,
   forbiddenProject:'svhxjfearcuqxikzvlyb',
 });
 
