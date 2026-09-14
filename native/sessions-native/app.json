@@ -19,6 +19,10 @@
       "package": "com.sessionstech.sessions.uat",
       "edgeToEdgeEnabled": true
     },
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
     "extra": {
       "sessionsPhase": 5,
       "sessionsReleaseId": "unified-platform-v1-phase5",
