@@ -38,11 +38,11 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
 
-      - name: Resolve native dependency graph
+      - name: Resolve locked native dependency graph
         working-directory: native/sessions-native
         run: |
           set -euo pipefail
-          npm install --include=dev
+          npm ci --include=dev
           npm ls --depth=0
 
       - name: Expo Doctor
