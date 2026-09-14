@@ -1,0 +1,73 @@
+name: Room equipment one-off hardening
+
+on:
+  push:
+    paths:
+      - '.github/workflows/room-equipment-oneoff.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: native/phase1-5-simulator-runtime
+          persist-credentials: true
+          fetch-depth: 0
+      - name: Apply exact room-equipment hardening
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          route = Path('app/api/registry/route.ts')
+          text = route.read_text()
+          old = "import {memberForDate,sessionPrice,type StudioMember} from '@/lib/discovery';"
+          new = "import {memberForDate,sessionPrice,PLANNER_EQUIPMENT,type StudioMember} from '@/lib/discovery';"
+          assert text.count(old) == 1, 'registry discovery import changed unexpectedly'
+          text = text.replace(old, new)
+
+          old = "const roomSchema=z.object({id:id,name:text.min(2).max(100),price:z.number().int().min(100).max(100000),capacity:z.number().int().min(1).max(200),open:z.number().int().min(0).max(1410).multipleOf(30),close:z.number().int().min(30).max(1440).multipleOf(30),days:z.array(z.number().int().min(0).max(6)).min(1).max(7),buffer:z.number().int().min(0).max(120).multipleOf(30),minimum:z.number().int().min(30).max(480).multipleOf(30),deposit:z.number().int().min(0).max(100000).optional(),addOns:z.array(addOnSchema).max(12).optional(),photos:z.array(mediaUrl).max(5).optional()}).refine(r=>r.close-r.open>=r.minimum+r.buffer,'Hours must accommodate the minimum session and buffer').refine(r=>new Set((r.addOns||[]).map(value=>value.id)).size===(r.addOns||[]).length,'Each add-on needs a unique ID');"
+          new = "const roomSchema=z.object({id:id,name:text.min(2).max(100),price:z.number().int().min(100).max(100000),capacity:z.number().int().min(1).max(200),open:z.number().int().min(0).max(1410).multipleOf(30),close:z.number().int().min(30).max(1440).multipleOf(30),days:z.array(z.number().int().min(0).max(6)).min(1).max(7),buffer:z.number().int().min(0).max(120).multipleOf(30),minimum:z.number().int().min(30).max(480).multipleOf(30),deposit:z.number().int().min(0).max(100000).optional(),addOns:z.array(addOnSchema).max(12).optional(),photos:z.array(mediaUrl).max(5).optional(),equipment:z.array(z.enum(PLANNER_EQUIPMENT)).max(PLANNER_EQUIPMENT.length).default([])}).refine(r=>r.close-r.open>=r.minimum+r.buffer,'Hours must accommodate the minimum session and buffer').refine(r=>new Set((r.addOns||[]).map(value=>value.id)).size===(r.addOns||[]).length,'Each add-on needs a unique ID').refine(r=>new Set(r.equipment).size===r.equipment.length,'Each room equipment item can only be added once');"
+          assert text.count(old) == 1, 'registry room schema changed unexpectedly'
+          route.write_text(text.replace(old, new))
+
+          manager = Path('app/studio-manager.tsx')
+          text = manager.read_text()
+          old = "import {localDate,addDays,timeLabel,prettyDate,money,timestamp} from '@/lib/domain';"
+          new = old + "\nimport {PLANNER_EQUIPMENT} from '@/lib/discovery';"
+          assert text.count(old) == 1, 'studio manager domain import changed unexpectedly'
+          text = text.replace(old, new)
+
+          old = "const newRoom=():StudioRoom=>({id:crypto.randomUUID(),name:'Main studio',price:1500,capacity:6,open:540,close:1080,days:[1,2,3,4,5,6],buffer:30,minimum:60,deposit:0,addOns:[],photos:[]});"
+          new = "const newRoom=():StudioRoom=>({id:crypto.randomUUID(),name:'Main studio',price:1500,capacity:6,open:540,close:1080,days:[1,2,3,4,5,6],buffer:30,minimum:60,deposit:0,addOns:[],photos:[],equipment:[]});"
+          assert text.count(old) == 1, 'newRoom factory changed unexpectedly'
+          text = text.replace(old, new)
+
+          old = "</div><div className=\"r-weekdays\">{['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((d,n)=><CheckField key={d} checked={r.days.includes(n)} onChange={v=>update(i,{days:v?[...r.days,n]:r.days.filter(day=>day!==n)})}>{d}</CheckField>)}</div><RoomCommerceEditor room={r} onChange={patch=>update(i,patch)}/><RoomPhotos"
+          new = "</div><div className=\"r-weekdays\">{['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((d,n)=><CheckField key={d} checked={r.days.includes(n)} onChange={v=>update(i,{days:v?[...r.days,n]:r.days.filter(day=>day!==n)})}>{d}</CheckField>)}</div><RoomEquipmentEditor room={r} onChange={equipment=>update(i,{equipment})}/><RoomCommerceEditor room={r} onChange={patch=>update(i,patch)}/><RoomPhotos"
+          assert text.count(old) == 1, 'room editor insertion point changed unexpectedly'
+          text = text.replace(old, new)
+
+          marker = "function RoomCommerceEditor({room,onChange}:{room:StudioRoom;onChange:(patch:Partial<StudioRoom>)=>void}){"
+          component = """function RoomEquipmentEditor({room,onChange}:{room:StudioRoom;onChange:(equipment:string[])=>void}){\n const selected=room.equipment||[];\n return <div className=\"r-room-equipment\"><div><h4>Equipment confirmed in this room</h4><p className=\"r-small\">Select only equipment that musicians can rely on being available in this exact room. Studio-wide notes above do not certify room inventory.</p></div><div className=\"r-weekdays\">{PLANNER_EQUIPMENT.map(item=><CheckField key={item} checked={selected.includes(item)} onChange={checked=>onChange(checked?[...selected,item]:selected.filter(value=>value!==item))}>{item}</CheckField>)}</div></div>;\n}\n"""
+          assert text.count(marker) == 1, 'RoomCommerceEditor insertion point changed unexpectedly'
+          manager.write_text(text.replace(marker, component + marker))
+
+          workflow = Path('.github/workflows/room-equipment-oneoff.yml')
+          workflow.unlink()
+          PY
+      - name: Verify surgical diff
+        run: |
+          git diff --check
+          git diff -- app/api/registry/route.ts app/studio-manager.tsx
+          test ! -e .github/workflows/room-equipment-oneoff.yml
+      - name: Commit hardened room equipment flow
+        run: |
+          git config user.name 'Sessions CI'
+          git config user.email 'actions@users.noreply.github.com'
+          git add app/api/registry/route.ts app/studio-manager.tsx .github/workflows/room-equipment-oneoff.yml
+          git commit -m 'Persist room equipment and expose provider controls'
+          git push origin HEAD:native/phase1-5-simulator-runtime
