@@ -25,6 +25,32 @@ test('native Supabase bootstrap rejects mismatched projects and uses secure pers
   assert.match(store,/WHEN_UNLOCKED_THIS_DEVICE_ONLY/);
 });
 
+test('native OTP flow uses real Supabase sessions and remains channel-gated',()=>{
+  const auth=read('native/sessions-native/src/supabase-auth.js');
+  const screen=read('native/sessions-native/app/sign-in.js');
+  assert.match(auth,/signInWithOtp/);
+  assert.match(auth,/verifyOtp/);
+  assert.match(auth,/Email sign-in is not enabled for Sessions/);
+  assert.match(auth,/Phone sign-in is not enabled for Sessions/);
+  assert.match(auth,/did not return a native session/);
+  assert.match(screen,/6-digit verification code/);
+  assert.match(screen,/sanitizeNativeContinuation/);
+  assert.match(screen,/Sign in without leaving the app/);
+});
+
+test('native onboarding writes canonical profile consent and provider intention only after native identity',()=>{
+  const onboarding=read('native/sessions-native/app/onboarding.js');
+  const api=read('native/sessions-native/src/api.js');
+  assert.match(api,/sessionsFetch\('\/api\/onboarding',\{auth:true\}\)/);
+  assert.match(api,/action:\'completeProfile\'/);
+  assert.match(onboarding,/updateNativeOnboarding\(\{action:'completeProfile'/);
+  assert.match(onboarding,/consentType:'terms'/);
+  assert.match(onboarding,/consentType:'privacy'/);
+  assert.match(onboarding,/journey:'provider'/);
+  assert.match(onboarding,/Platform\.OS==='android'\?'android':Platform\.OS==='ios'\?'ios':'web'/);
+  assert.doesNotMatch(onboarding,/journey:'corporate'/);
+});
+
 test('Chromium projection cannot persist native Supabase authentication material',()=>{
   const web=read('native/sessions-native/src/session-store.web.js');
   assert.match(web,/cannot persist native authentication material/);
