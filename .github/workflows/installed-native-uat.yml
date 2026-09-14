@@ -79,7 +79,7 @@ jobs:
           disable-animations: true
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           script: |
-            set -euo pipefail
+            set -eu
             cd native/sessions-native
             npx expo prebuild --clean --platform android
             npx expo run:android --variant release --no-bundler
