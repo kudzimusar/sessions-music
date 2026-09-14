@@ -44,6 +44,15 @@ export async function readNativeSession(){
   return body;
 }
 
+export async function readPlannerCapabilities(){
+  const {body}=await sessionsFetch(AI_DISCOVERY_CONTRACT.endpoint);
+  return {
+    aiReady:body?.aiReady===true,
+    timezone:body?.timezone||'Africa/Harare',
+    currency:body?.currency||'USD',
+  };
+}
+
 export async function planSession({mode,prompt,consent,input}){
   if(mode==='ai'&&AI_DISCOVERY_CONTRACT.requiresExplicitConsent&&consent!==true)throw new Error('Explicit consent is required before an AI brief can be sent.');
   if(mode==='ai'&&(!prompt||!prompt.trim()))throw new Error('Describe the session you need before using AI interpretation.');
