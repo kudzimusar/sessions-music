@@ -27,8 +27,6 @@ export type PlannerEquipment=(typeof PLANNER_EQUIPMENT)[number];
 export type PlannerInput={date:string;start:number|null;duration:number;size:number;budget:number|null;area:string;service:string;equipment:PlannerEquipment[];flexDays:number};
 type LegacyPlannerInput=Omit<PlannerInput,'equipment'>&{equipment?:PlannerEquipment[]};
 export type PlanOption={studioId:string;studioName:string;roomId:string;roomName:string;date:string;start:number;duration:number;size:number;capacity:number;price:number;basePrice:number;discount:number;priority:boolean;address:string};
-export type RoomEquipmentMap=Record<string,PlannerEquipment[]>;
-type StudioWithRoomEquipment=Studio&{roomEquipment?:RoomEquipmentMap};
 
 const equipmentPatterns:Record<PlannerEquipment,RegExp>={
  drums:/\bdrum(?:s| kit)?\b/i,
@@ -41,21 +39,17 @@ const equipmentPatterns:Record<PlannerEquipment,RegExp>={
  'music stands':/music\s+stand/i,
 };
 
-// Legacy studio-level free text remains useful for display/search migration only. It
-// must never be treated as proof that a particular room contains the same gear.
+// Studio-level free text remains a legacy/display signal only. It must never prove
+// that any particular room contains equipment.
 export function studioMeetsEquipment(studio:Studio,required:PlannerEquipment[]=[]){
  if(!required.length)return true;
  const published=studio.equipment||'';
  return required.every(item=>equipmentPatterns[item].test(published));
 }
 
-export function roomEquipmentFor(studio:Studio,room:StudioRoom):PlannerEquipment[]{
- const value=(studio as StudioWithRoomEquipment).roomEquipment?.[room.id]||[];
- return value.filter((item):item is PlannerEquipment=>(PLANNER_EQUIPMENT as readonly string[]).includes(item));
-}
-export function roomMeetsEquipment(studio:Studio,room:StudioRoom,required:PlannerEquipment[]=[]){
+export function roomMeetsEquipment(room:StudioRoom,required:PlannerEquipment[]=[]){
  if(!required.length)return true;
- const confirmed=roomEquipmentFor(studio,room);
+ const confirmed=(room.equipment||[]).filter((value):value is PlannerEquipment=>(PLANNER_EQUIPMENT as readonly string[]).includes(value));
  if(!confirmed.length)return false;
  return required.every(item=>confirmed.includes(item));
 }
@@ -70,7 +64,7 @@ export function planSessions(studios:Studio[],bookings:StudioBooking[],members:S
  if(input.area&&!`${studio.area} ${studio.address}`.toLowerCase().includes(input.area.toLowerCase()))continue;
  if(input.service&&!studio.services.some(s=>s.toLowerCase().includes(input.service.toLowerCase())))continue;
  for(const room of studio.rooms){
- if(!roomMeetsEquipment(studio,room,requiredEquipment))continue;
+ if(!roomMeetsEquipment(room,requiredEquipment))continue;
  if(room.capacity<input.size)continue;
  const price=sessionPrice(room.price,input.duration,memberForDate(members,studio.id,date));
  if(input.budget!==null&&price.price>input.budget)continue;
