@@ -21,16 +21,37 @@ export function refineDiscovery(studios:Studio[],settings:DiscoverySettings,memb
  const nearby=position?findAStudioNearMe(studios,position,radius,includeApproximate).map(r=>r.studio):studios.filter(s=>!s.hidden);
  return nearby.filter(s=>{if(!size&&!budget)return true;const member=memberForDate(members,s.id,localDate());return s.rooms.some(r=>(!size||r.capacity>=Number(size))&&(!budget||sessionPrice(r.price,duration,member).price<=Math.round(Number(budget)*100)));});
 }
-export type PlannerInput={date:string;start:number|null;duration:number;size:number;budget:number|null;area:string;service:string;flexDays:number};
+
+export const PLANNER_EQUIPMENT=['drums','pa','vocal microphones','bass amp','guitar amps','keyboard','piano','music stands'] as const;
+export type PlannerEquipment=(typeof PLANNER_EQUIPMENT)[number];
+export type PlannerInput={date:string;start:number|null;duration:number;size:number;budget:number|null;area:string;service:string;equipment:PlannerEquipment[];flexDays:number};
 export type PlanOption={studioId:string;studioName:string;roomId:string;roomName:string;date:string;start:number;duration:number;size:number;capacity:number;price:number;basePrice:number;discount:number;priority:boolean;address:string};
+
+const equipmentPatterns:Record<PlannerEquipment,RegExp>={
+ drums:/\bdrum(?:s| kit)?\b/i,
+ pa:/\bpa\b|speaker|mixer/i,
+ 'vocal microphones':/vocal\s+mic|microphone|\bmics?\b/i,
+ 'bass amp':/bass\s+(?:amp|combo)|bass amplifier/i,
+ 'guitar amps':/guitar\s+(?:amp|combo)|guitar amplifier/i,
+ keyboard:/\bkeyboard\b/i,
+ piano:/\bpiano\b/i,
+ 'music stands':/music\s+stand/i,
+};
+export function studioMeetsEquipment(studio:Studio,required:PlannerEquipment[]){
+ if(!required.length)return true;
+ const published=studio.equipment||'';
+ return required.every(item=>equipmentPatterns[item].test(published));
+}
+
 export function planSessions(studios:Studio[],bookings:StudioBooking[],members:StudioMember[],input:PlannerInput):PlanOption[]{
  const result:PlanOption[]=[];
  for(let offset=0;offset<=input.flexDays;offset++){
  const date=addDays(input.date,offset);if(date<localDate())continue;
  for(const studio of studios){
-	 if(studio.hidden||studio.status!=='bookable'||!studio.bookingEnabled)continue;
+ if(studio.hidden||studio.status!=='bookable'||!studio.bookingEnabled)continue;
  if(input.area&&!`${studio.area} ${studio.address}`.toLowerCase().includes(input.area.toLowerCase()))continue;
  if(input.service&&!studio.services.some(s=>s.toLowerCase().includes(input.service.toLowerCase())))continue;
+ if(!studioMeetsEquipment(studio,input.equipment))continue;
  for(const room of studio.rooms){
  if(room.capacity<input.size)continue;
  const price=sessionPrice(room.price,input.duration,memberForDate(members,studio.id,date));
