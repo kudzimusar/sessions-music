@@ -75,25 +75,59 @@ jobs:
       - name: Verify integration with current base
         run: npm run verify:release
 
+  native-chromium:
+    name: native mobile Chromium projection
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+      - name: Install native UAT dependencies
+        working-directory: native/sessions-native
+        run: npm install --include=dev --no-audit --no-fund
+      - name: Install Chromium runtime
+        working-directory: native/sessions-native
+        run: npx playwright install --with-deps chromium
+      - name: Exercise Phase 1-5 mobile projection in Chromium
+        working-directory: native/sessions-native
+        run: npm run test:chromium
+      - name: Publish Chromium failure evidence
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: native-chromium-failure-${{ github.event.pull_request.head.sha }}
+          path: |
+            native/sessions-native/playwright-report
+            native/sessions-native/test-results
+          if-no-files-found: ignore
+          retention-days: 14
+
   release-gate:
     name: release-gate
     if: always() && github.event_name == 'pull_request'
-    needs: [verify-head, verify-merge]
+    needs: [verify-head, verify-merge, native-chromium]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Require exact-head and merge-candidate success
+      - name: Require exact-head, merge-candidate and Chromium success
         env:
           HEAD_RESULT: ${{ needs.verify-head.result }}
           MERGE_RESULT: ${{ needs.verify-merge.result }}
+          CHROMIUM_RESULT: ${{ needs.native-chromium.result }}
           EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
-          if [[ "$HEAD_RESULT" != "success" || "$MERGE_RESULT" != "success" ]]; then
-            echo "Release gate blocked. exact-head=$HEAD_RESULT merge-candidate=$MERGE_RESULT expected-head=$EXPECTED_HEAD" >&2
+          if [[ "$HEAD_RESULT" != "success" || "$MERGE_RESULT" != "success" || "$CHROMIUM_RESULT" != "success" ]]; then
+            echo "Release gate blocked. exact-head=$HEAD_RESULT merge-candidate=$MERGE_RESULT chromium=$CHROMIUM_RESULT expected-head=$EXPECTED_HEAD" >&2
             exit 1
           fi
-          echo "Release gate passed for immutable PR head $EXPECTED_HEAD and its current merge candidate."
+          echo "Release gate passed for immutable PR head $EXPECTED_HEAD, its current merge candidate and the Chromium mobile projection."
 
   verify-main:
     name: verify merged main revision
