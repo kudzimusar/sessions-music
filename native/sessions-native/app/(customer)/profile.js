@@ -1,0 +1,11 @@
+import React from 'react';
+import {Pressable,StyleSheet,Text,View} from 'react-native';
+import {useRouter} from 'expo-router';
+import {DESIGN_TOKENS} from '@sessions/product-core';
+import {Body,Card,Eyebrow,LinkButton,Notice,Screen,Section,Small,Title} from '../../src/native-ui';
+import {UAT_IDENTITY} from '../../src/uat-data';
+import {useOnlineState} from '../../src/network';
+
+const c=DESIGN_TOKENS.color;
+export default function ProfileScreen(){const router=useRouter();const{online}=useOnlineState();return <Screen offline={!online}><Eyebrow>YOUR SESSIONS IDENTITY</Eyebrow><Title>One account, authorized contexts.</Title><Card style={{marginTop:20}}><Text style={styles.name}>{UAT_IDENTITY.displayName}</Text><Body>{UAT_IDENTITY.contact}</Body><Small style={{marginTop:8}}>State: {UAT_IDENTITY.onboardingState}</Small></Card><Section eyebrow="WORKSPACES" title="Authority is derived, never selected">{UAT_IDENTITY.contexts.map(context=><Pressable key={context.type} accessibilityRole="button" disabled={!context.authorized} onPress={()=>context.type==='provider'?router.push('/provider'):router.push('/home')} style={[styles.context,!context.authorized&&styles.locked]}><View style={{flex:1}}><Text style={styles.contextTitle}>{context.label}</Text><Small>{context.detail}</Small></View><Text style={styles.trailing}>{context.authorized?'›':'Locked'}</Text></Pressable>)}</Section><Notice>Corporate remains hidden from public onboarding and cannot be unlocked from this screen. A trusted staff assignment must exist first.</Notice><Section eyebrow="ACCOUNT & SECURITY" title="Native lifecycle"><Card><LinkButton onPress={()=>router.push('/onboarding')}>Onboarding & provider intention</LinkButton><LinkButton onPress={()=>router.push('/security')}>Recovery, sessions & device posture</LinkButton><LinkButton onPress={()=>router.push('/diagnostics')}>Native diagnostics</LinkButton></Card></Section></Screen>}
+const styles=StyleSheet.create({name:{fontSize:18,fontWeight:'850',color:c.ink,marginBottom:4},context:{minHeight:68,borderRadius:18,backgroundColor:c.white,borderWidth:1,borderColor:c.line,paddingHorizontal:16,paddingVertical:12,marginBottom:9,flexDirection:'row',alignItems:'center',gap:12},locked:{opacity:.58},contextTitle:{fontSize:15,fontWeight:'850',color:c.ink,marginBottom:3},trailing:{fontSize:14,fontWeight:'850',color:c.royal}});
