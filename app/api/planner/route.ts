@@ -15,7 +15,7 @@ export async function POST(req:Request){
  if(req.headers.get('origin')&&req.headers.get('origin')!==new URL(req.url).origin)return reply({error:'Cross-origin request rejected'},403);
  const user=await getProductionUser();if(!user)return reply({error:'Sign in to use the session planner'},401);
  const raw=await req.text();if(raw.length>6000)return reply({error:'Request too large'},413);
- const p=z.object({mode:z.enum(['guided','ai']),prompt:z.string().trim().max(1500).optional(),consent:z.boolean().optional(),input:inputSchema}).parse(JSON.parse(raw));
+ const p=z.object({mode:z.enum(['guided','ai']),prompt:z.string().trim().max(1500).optional(),consent:z.boolean().optional(),studioId:z.string().trim().min(1).max(100).optional(),input:inputSchema}).parse(JSON.parse(raw));
  let input:PlannerInput=p.input;let mode:'guided'|'ai'='guided';
  if(p.mode==='ai'){
  const c=config();if(!c.OPENAI_API_KEY||!c.OPENAI_MODEL)return reply({error:'AI is not connected. Use guided planning below.'},503);
@@ -33,8 +33,8 @@ export async function POST(req:Request){
  const fields=JSON.parse(output);const safe=Object.fromEntries(Object.entries(fields).filter(([,v])=>v!==null));input=inputSchema.parse({...input,...safe});mode='ai';
  }
  if(input.date<localDate()||input.date>addDays(localDate(),365)||new Date(input.date+'T12:00:00Z').toISOString().slice(0,10)!==input.date)return reply({error:'Choose a valid date within the next year.'},400);
- const state=await readRegistry(user);const all=(await database().prepare('SELECT content FROM studio_bookings').all()).results.map((r:any)=>JSON.parse(r.content));
- const options=planSessions(state.studios,all,(state.memberships||[]).filter(m=>m.customer===user.id),input);
- return reply({mode,input,options,checkedAt:new Date().toISOString(),unknownPriceCount:state.studios.filter(s=>!s.hidden&&!s.rooms.length).length,notice:'Suggestions do not reserve a room. Price, equipment and availability are checked against published Sessions data and checked again when you submit. All times CAT; prices USD. Unknown rates are excluded from budget matches.'});
+ const state=await readRegistry(user);const studios=p.studioId?state.studios.filter(studio=>studio.id===p.studioId):state.studios;if(p.studioId&&!studios.length)return reply({error:'Studio not found'},404);const all=(await database().prepare('SELECT content FROM studio_bookings').all()).results.map((r:any)=>JSON.parse(r.content));
+ const options=planSessions(studios,all,(state.memberships||[]).filter(m=>m.customer===user.id),input);
+ return reply({mode,input,studioId:p.studioId||null,options,checkedAt:new Date().toISOString(),unknownPriceCount:studios.filter(s=>!s.hidden&&!s.rooms.length).length,notice:'Suggestions do not reserve a room. Price, equipment and availability are checked against published Sessions data and checked again when you submit. All times CAT; prices USD. Unknown rates are excluded from budget matches.'});
  }catch(e){if(e instanceof z.ZodError)return reply({error:'Check the date, time, group size, duration, budget and equipment requirements. AI cannot override valid booking constraints.'},400);return reply({error:'Planner unavailable. No booking was created. Please retry or use the directory.'},503);}
 }
