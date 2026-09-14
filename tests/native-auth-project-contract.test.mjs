@@ -5,11 +5,13 @@ import {NATIVE_AUTH_BOUNDARY} from '../packages/product-core/index.js';
 
 const read=path=>readFileSync(new URL(`../${path}`,import.meta.url),'utf8');
 
-test('native identity is pinned to the verified Sessions Supabase project and never church-os-dev',()=>{
-  assert.equal(NATIVE_AUTH_BOUNDARY.projectRef,'meswozsllmmiqjwljvnb');
-  assert.equal(NATIVE_AUTH_BOUNDARY.projectUrl,'https://meswozsllmmiqjwljvnb.supabase.co');
+test('native identity is pinned to the active Sessions Music Supabase project and never church-os-dev',()=>{
+  assert.equal(NATIVE_AUTH_BOUNDARY.projectName,'Sessions Music');
+  assert.equal(NATIVE_AUTH_BOUNDARY.projectRef,'ennfiyxlkvlmtkmibltz');
+  assert.equal(NATIVE_AUTH_BOUNDARY.projectUrl,'https://ennfiyxlkvlmtkmibltz.supabase.co');
+  assert.equal(NATIVE_AUTH_BOUNDARY.region,'ap-northeast-1');
   assert.equal(NATIVE_AUTH_BOUNDARY.forbiddenProject,'svhxjfearcuqxikzvlyb');
-  assert.equal(NATIVE_AUTH_BOUNDARY.status,'identified-project-inactive');
+  assert.equal(NATIVE_AUTH_BOUNDARY.status,'ready');
   assert.equal(NATIVE_AUTH_BOUNDARY.browserCookieImportAllowed,false);
 });
 
