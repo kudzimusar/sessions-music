@@ -12,32 +12,48 @@ Current native scope:
 - **Phase 2:** one-identity projection without a second identity authority;
 - **Phase 3:** Personal / Provider / authorized-only Corporate workspace semantics;
 - **Phase 4:** bounded provider daily operations (`Today`, `Requests`, `Rooms`, `More`) plus an isolated demo-only Corporate critical-mobile subset; dense administration stays desktop/PWA;
-- **Phase 4.5:** verified Sessions Supabase project pinning, real native email/phone OTP, encrypted persistent Supabase session storage, safe continuation, canonical profile/consent onboarding, recovery/device-session posture and server-derived workspace authority. Live certification remains blocked while the verified project is inactive and cannot expose its publishable runtime configuration;
-- **Phase 5:** mobile time-inventory, booking review, session references, rebook/repeat/share, provider operations and bounded urgent case actions. Privileged mutations remain fail-closed until Phase 4.5 is live and certified;
+- **Phase 4.5:** verified active Sessions Music Supabase project pinning, real native email/phone OTP, encrypted persistent Supabase session storage, safe continuation, canonical profile/consent onboarding, recovery/device-session posture and server-derived workspace authority. Repository implementation is ready for installed-app/live-provider certification;
+- **Phase 5:** mobile time-inventory, booking review, session references, rebook/repeat/share, provider operations and bounded urgent case actions. Privileged mutations remain fail-closed unless a verified native session and server authorization are present;
 - **Sessions AI:** the same shared `/api/planner` intent-interpreter used by web/PWA. Natural-language requirements require explicit consent, remain editable, include room-specific music equipment such as drums/PA, and are checked against canonical Sessions data. AI never books and never invents marketplace facts;
 - **Diagnostics:** platform identity, `/api/release` provenance and anonymous protected-endpoint probe.
 
-The local UAT fixture module is presentation-only and visibly non-authoritative. It exists to review native composition before production identity/data are available; it must not become a second product database.
+The local UAT fixture module is presentation-only and visibly non-authoritative. It exists to review native composition independently of live account data; it must not become a second product database.
 
 ## Verified Sessions identity authority
 
-The genuine project has been positively identified as:
+The active production identity project is:
 
-- project: `Sessions`
-- project ref: `meswozsllmmiqjwljvnb`
-- URL: `https://meswozsllmmiqjwljvnb.supabase.co`
-
-The project is currently inactive. A restore attempt was rejected by Supabase because the organization has reached its active free-project capacity, so no publishable key or live schema change has been guessed or copied from another project.
+- project: **Sessions Music**
+- project ref: `ennfiyxlkvlmtkmibltz`
+- URL: `https://ennfiyxlkvlmtkmibltz.supabase.co`
+- region: `ap-northeast-1` (Tokyo)
+- status at verification: `ACTIVE_HEALTHY`
 
 Native code accepts runtime auth configuration only when the URL/ref match this exact project. `church-os-dev` / `svhxjfearcuqxikzvlyb` remains explicitly forbidden.
 
-Supabase remains the identity/session authority only. Marketplace studios, rooms, room equipment, booking inventory and media remain canonical in Sessions D1/R2; do not create a second marketplace schema in Supabase.
+Supabase owns Auth plus the normalized identity/authorization mirror defined by the checked-in `supabase/migrations/*` files. Marketplace studios, rooms, room equipment, booking inventory, pricing, settlement and media remain canonical in Sessions D1/R2; do not create a second marketplace schema in Supabase.
+
+The new project began with zero users and no Sessions application migrations. Apply the repository migrations in their documented order before live authorization is certified. Never infer that migrations previously applied to an older project exist here.
+
+## Runtime configuration
+
+The backend `/api/auth/config` is the only native source for public Supabase runtime configuration. It exposes a publishable key only when all of these are true:
+
+- `SESSIONS_IDENTITY_MODE=supabase`;
+- `SUPABASE_AUTH_ENABLED=true`;
+- URL and publishable key are configured;
+- URL exactly matches the verified Sessions Music project;
+- the forbidden development project is not present.
+
+Provider flags are separate gates. Do not set phone/email/Google/Apple enabled merely because the project is active. Each channel must have working delivery/callback configuration and an end-to-end test first.
+
+No Supabase secret/service-role credential belongs in this native package.
 
 ## Room equipment and media truth
 
-Room equipment is now part of the canonical `StudioRoom` aggregate. Provider room editing, registry validation and the canonical planner use the same bounded equipment vocabulary. Studio-level free text remains useful as legacy/display metadata but **never proves that a specific room contains gear**. Equipment-aware planner matches fail closed when the room has no confirmed equipment list.
+Room equipment is part of the canonical `StudioRoom` aggregate. Provider room editing, registry validation and the canonical planner use the same bounded equipment vocabulary. Studio-level free text remains useful as legacy/display metadata but **never proves that a specific room contains gear**. Equipment-aware planner matches fail closed when the room has no confirmed equipment list.
 
-Canonical room photography already uses Sessions media records linked to the studio and room. Native discovery renders only trusted same-origin `/api/media/<uuid>` resources. Arbitrary remote imagery is rejected; if a provider has not published canonical media, the app uses a neutral Sessions-branded fallback rather than scraped, stock or AI-fabricated room photography.
+Canonical room photography uses Sessions media records linked to the studio and room. Native discovery renders only trusted same-origin `/api/media/<uuid>` resources. Arbitrary remote imagery is rejected; if a provider has not published canonical media, the app uses a neutral Sessions-branded fallback rather than scraped, stock or AI-fabricated room photography.
 
 ## Dependency policy
 
@@ -79,7 +95,7 @@ maestro test .maestro/phase5-operations.yml
 These flows cover:
 
 - installed app launch and native gateway;
-- real phone/email sign-in screen and verified Sessions project identity;
+- real phone/email sign-in screen and verified Sessions Music project identity;
 - native back navigation and customer tabs;
 - Sessions AI discovery entry and planner;
 - studio → valid inventory → booking review;
@@ -87,7 +103,7 @@ These flows cover:
 - `/api/release` provenance from the installed runtime;
 - anonymous Corporate security probe requiring HTTP 401/403.
 
-A green Chromium projection is not a substitute for these installed-binary flows. Current Expo guidance also recommends Maestro against built `.app`/`.apk` artifacts for simulator/emulator E2E testing.
+A green Chromium projection is not a substitute for these installed-binary flows.
 
 ## Chromium projection
 
@@ -109,27 +125,30 @@ From the installed app open **Native diagnostics** and verify on both platforms:
 2. `/api/release` matches `unified-platform-v1-phase5`, Phase 5 and `phase1-5-native-desktop-v2`;
 3. anonymous `GET /api/corporate/overview` remains protected with HTTP 401/403;
 4. the application shell is React Native, not Safari/Chrome/PWA/WebView;
-5. safe areas, Android system bars/back behavior, keyboard movement and touch targets are correct on the installed binary.
+5. safe areas, Android system bars/back behavior, keyboard movement and touch targets are correct on the installed binary;
+6. `/api/auth/config` exposes only the exact verified Sessions Music project;
+7. a real OTP creates a Supabase session that survives secure native persistence and is revalidated by `getUser()` before protected Sessions calls.
 
 ## Identity boundary
 
 ChatGPT Sites `/welcome` is a private audience gate, not a production native authentication API. Never import browser cookies or embed `/welcome` in a WebView.
 
-Production native identity uses the verified Sessions Supabase project only. The repository now contains the secure Supabase bootstrap, email/phone OTP flow, device-backed session storage and canonical onboarding integration, but live Phase 4.5 certification remains blocked until that project is active and the deployed `/api/auth/config` can expose its real publishable configuration.
+Production native identity uses **Sessions Music / `ennfiyxlkvlmtkmibltz` only**. The repository contains one hardened Supabase client, email/phone OTP helpers, device-backed session storage and canonical onboarding integration. Browser UAT intentionally cannot persist native authentication material.
 
 Never use or modify `church-os-dev` / `svhxjfearcuqxikzvlyb` for Sessions testing.
 
 ## Remaining non-fakeable gates
 
-See `../../docs/PHASE-1-5-NATIVE-RED-TEAM-REPORT.md`. The unresolved gates are now deliberately narrow:
+See `../../docs/PHASE-1-5-NATIVE-RED-TEAM-REPORT.md`. The unresolved gates are deliberately narrow:
 
-- restore/activate the verified Sessions Supabase project without modifying unrelated projects, then retrieve and verify its genuine publishable configuration and live identity schema;
-- exact-commit iOS Simulator build, install, interaction and Maestro evidence;
-- exact-commit Android Emulator build, install, interaction and Maestro evidence;
+- apply and verify the checked-in identity/authority migrations on `ennfiyxlkvlmtkmibltz`;
+- configure the server-only Supabase secret and at least one real OTP delivery channel in the deployed runtime, then enable only that tested provider flag;
+- exact-commit iOS Simulator build, install, OTP/session test, interaction and Maestro evidence;
+- exact-commit Android Emulator build, install, OTP/session test, interaction and Maestro evidence;
 - review generated `ios/`, `android/` and native dependency lock changes;
 - run the entire exact-head / merge-candidate / Chromium / release-gate chain again if machine execution changes the repository.
 
-Room-specific equipment authority and canonical native room-media projection are no longer open architecture gaps.
+Room-specific equipment authority, canonical native room-media projection, project identification and project activation are no longer open architecture gaps.
 
 ## Cross-platform completion rule
 
