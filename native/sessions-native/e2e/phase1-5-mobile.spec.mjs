@@ -29,7 +29,7 @@ async function expectNoHorizontalOverflow(page){
 for(const [route,heading] of routes){
   test(`${route} renders without browser/runtime regressions`,async({page})=>{
     const failures=captureRuntimeFailures(page);
-    await page.goto(route,{waitUntil:'networkidle'});
+    await page.goto(route,{waitUntil:'domcontentloaded'});
     await expect(page.getByText(heading,{exact:false}).first()).toBeVisible();
     await expect(page.locator('iframe')).toHaveCount(0);
     await expectNoHorizontalOverflow(page);
@@ -43,10 +43,7 @@ test('customer home exposes native-first discovery and AI without desktop naviga
   await expect(page.getByText('SESSIONS.',{exact:true})).toBeVisible();
   await expect(page.getByText('AI · INTENT, NOT INVENTION',{exact:false})).toBeVisible();
   await expect(page.getByText('Plan with AI or guided filters',{exact:true})).toBeVisible();
-  await expect(page.getByText('Home',{exact:true})).toBeVisible();
-  await expect(page.getByText('Search',{exact:true})).toBeVisible();
-  await expect(page.getByText('Sessions',{exact:true})).toBeVisible();
-  await expect(page.getByText('Profile',{exact:true})).toBeVisible();
+  for(const tab of ['Home','Search','Sessions','Profile'])await expect(page.getByText(tab,{exact:true}).first()).toBeVisible();
   await expect(page.getByText(/sidebar/i)).toHaveCount(0);
   await page.getByText('Plan with AI or guided filters',{exact:true}).click();
   await expect(page).toHaveURL(/\/planner$/);
@@ -54,16 +51,38 @@ test('customer home exposes native-first discovery and AI without desktop naviga
   expect(failures,failures.join('\n')).toEqual([]);
 });
 
-test('AI planner is consented, editable and never presented as booking authority',async({page})=>{
+test('AI planner requires consent, keeps equipment editable and never becomes booking authority',async({page})=>{
   await page.goto('/planner');
-  await expect(page.getByRole('checkbox')).toHaveCount(1);
+  const consent=page.getByRole('checkbox',{name:/Send only this brief to OpenAI/i});
+  const drums=page.getByRole('checkbox',{name:'Equipment drums'});
+  const pa=page.getByRole('checkbox',{name:'Equipment pa'});
+  await expect(consent).toBeVisible();
+  await expect(drums).toBeVisible();
+  await expect(pa).toBeVisible();
   await expect(page.getByText('AI never submits a booking.',{exact:false})).toBeVisible();
-  await expect(page.getByText(/AI cannot invent .*price.*availability.*verification.*equipment/i)).toBeVisible();
-  await expect(page.getByLabel('Date · YYYY-MM-DD')).toBeVisible();
+  await expect(page.getByText(/AI cannot invent .*price.*availability.*verification.*equipment availability/i)).toBeVisible();
+  await expect(page.getByLabel('Planner date')).toBeVisible();
   await expect(page.getByLabel('People')).toBeVisible();
   await expect(page.getByLabel('Minutes')).toBeVisible();
   await expect(page.getByLabel('Neighbourhood')).toBeVisible();
   await expect(page.getByLabel('Total budget · USD')).toBeVisible();
+  const submit=page.getByRole('button',{name:'Interpret & check availability'});
+  await expect(submit).toBeDisabled();
+  await page.getByLabel('What do you need?').fill('Four-piece gospel band near Borrowdale with drums and PA under US$25.');
+  await expect(submit).toBeDisabled();
+  await consent.click();
+  await expect(submit).toBeEnabled();
+  await drums.click();
+  await pa.click();
+  await expect(drums).toBeChecked();
+  await expect(pa).toBeChecked();
+});
+
+test('search exposes music-specific fit controls rather than generic venue search only',async({page})=>{
+  await page.goto('/search');
+  await expect(page.getByLabel('Search studios, areas, equipment and services')).toBeVisible();
+  await expect(page.getByLabel('Minimum group size')).toBeVisible();
+  for(const filter of ['Bookable','Rehearsal','Recording','Drums','PA','Backup power'])await expect(page.getByRole('button',{name:filter})).toBeVisible();
 });
 
 test('public onboarding has only customer and provider intent, never corporate self-selection',async({page})=>{
