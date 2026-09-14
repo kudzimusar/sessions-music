@@ -1,0 +1,56 @@
+name: Root lock bootstrap
+
+on:
+  push:
+    branches:
+      - native/phase1-5-simulator-runtime
+    paths:
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/root-lock-bootstrap.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: root-lock-bootstrap
+  cancel-in-progress: false
+
+jobs:
+  lock:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout branch revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: native/phase1-5-simulator-runtime
+          persist-credentials: false
+
+      - name: Set up Node 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+
+      - name: Generate exact root lockfile
+        run: |
+          set -euo pipefail
+          npm install --package-lock-only --include=dev --ignore-scripts
+          node -e "const p=require('./package.json'),l=require('./package-lock.json'); if(p.dependencies['@supabase/supabase-js']!=='2.116.0') process.exit(0); if(l.packages[''].dependencies['@supabase/supabase-js']!=='2.116.0'||l.packages['node_modules/@supabase/supabase-js'].version!=='2.116.0') process.exit(1)"
+
+      - name: Commit generated root lockfile when Supabase is pinned
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          node -e "const p=require('./package.json'); process.exit(p.dependencies['@supabase/supabase-js']==='2.116.0'?0:78)" || code=$?
+          if [ "${code:-0}" = "78" ]; then
+            echo 'Root manifest has not been pinned yet; no write required.'
+            exit 0
+          fi
+          git diff --quiet -- package-lock.json && { echo 'Root lock already exact.'; exit 0; }
+          base64 -w 0 package-lock.json > /tmp/root-lock.b64
+          jq -Rs '{message:"Regenerate root lock for exact Supabase version",content:.,branch:"native/phase1-5-simulator-runtime"}' /tmp/root-lock.b64 > /tmp/root-lock-payload.json
+          LOCK_SHA="$(git ls-files -s package-lock.json | awk '{print $2}')"
+          jq --arg sha "$LOCK_SHA" '. + {sha:$sha}' /tmp/root-lock-payload.json > /tmp/root-lock-put.json
+          gh api --method PUT "/repos/${GITHUB_REPOSITORY}/contents/package-lock.json" --input /tmp/root-lock-put.json >/dev/null
