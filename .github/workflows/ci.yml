@@ -79,7 +79,7 @@ jobs:
     name: native mobile Chromium projection
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -90,23 +90,33 @@ jobs:
           node-version: 22
       - name: Install native UAT dependencies
         working-directory: native/sessions-native
-        run: npm install --include=dev --no-audit --no-fund
+        run: npm install --include=dev --no-fund
+      - name: Audit shipped native dependency graph
+        working-directory: native/sessions-native
+        run: npm audit --omit=dev --audit-level=high
+      - name: Validate Expo native project contract
+        working-directory: native/sessions-native
+        run: npm run doctor
+      - name: Export production Expo Router web projection
+        working-directory: native/sessions-native
+        run: npm run web:export
       - name: Install Chromium runtime
         working-directory: native/sessions-native
         run: npx playwright install --with-deps chromium
       - name: Exercise Phase 1-5 mobile projection in Chromium
         working-directory: native/sessions-native
         run: npm run test:chromium
-      - name: Publish Chromium failure evidence
-        if: failure()
+      - name: Publish Chromium evidence
+        if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: native-chromium-failure-${{ github.event.pull_request.head.sha }}
+          name: native-chromium-${{ github.event.pull_request.head.sha }}
           path: |
             native/sessions-native/playwright-report
             native/sessions-native/test-results
-          if-no-files-found: ignore
-          retention-days: 14
+            native/sessions-native/package-lock.json
+          if-no-files-found: warn
+          retention-days: 30
 
   release-gate:
     name: release-gate
