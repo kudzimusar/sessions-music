@@ -45,8 +45,8 @@ export function DestructiveButton({children,onPress,disabled=false}){
 }
 export function LinkButton({children,onPress}){return <Pressable accessibilityRole="button" hitSlop={8} onPress={onPress} style={styles.linkButton}><Text style={styles.link}>{children}</Text></Pressable>}
 
-export function Field({label,hint,style,...props}){
-  return <View style={styles.fieldWrap}><Text style={styles.fieldLabel}>{label}</Text><TextInput placeholderTextColor={c.subtle} style={[styles.field,style]} {...props}/>{hint?<Small>{hint}</Small>:null}</View>;
+export function Field({label,hint,style,accessibilityLabel,...props}){
+  return <View style={styles.fieldWrap}><Text style={styles.fieldLabel}>{label}</Text><TextInput accessibilityLabel={accessibilityLabel||label} placeholderTextColor={c.subtle} style={[styles.field,style]} {...props}/>{hint?<Small>{hint}</Small>:null}</View>;
 }
 
 export function LoadingState({label='Loading…'}){return <View accessibilityRole="progressbar" style={styles.state}><ActivityIndicator/><Body>{label}</Body></View>}
