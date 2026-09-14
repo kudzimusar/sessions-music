@@ -52,15 +52,25 @@ jobs:
       - name: Verify deployed Sessions runtime is reachable past the audience gate
         run: |
           set -euo pipefail
+          EVIDENCE_DIR='native/sessions-native/uat-evidence-deployed'
+          mkdir -p "$EVIDENCE_DIR"
           STATUS="$(curl -sS -o /tmp/sessions-release-response -w '%{http_code}' "$SESSIONS_DEPLOYED_ORIGIN/api/release")"
+          {
+            echo "expected_sha=$EXPECTED_SHA"
+            echo "origin=$SESSIONS_DEPLOYED_ORIGIN"
+            echo "release_endpoint_status=$STATUS"
+          } > "$EVIDENCE_DIR/preflight.txt"
           if [ "$STATUS" = "401" ] || [ "$STATUS" = "403" ]; then
+            echo 'result=blocked_by_chatgpt_sites_audience_gate' >> "$EVIDENCE_DIR/preflight.txt"
             echo "Deployed PWA/desktop UAT is blocked by the ChatGPT Sites audience gate before the Sessions runtime. Provide a legitimate CI-safe audience access path or direct UAT origin; do not reuse this host gate as Sessions/native identity." >&2
             exit 1
           fi
           if [ "$STATUS" != "200" ]; then
+            echo 'result=unexpected_http_status' >> "$EVIDENCE_DIR/preflight.txt"
             echo "Unexpected deployed Sessions /api/release status: $STATUS" >&2
             exit 1
           fi
+          echo 'result=sessions_runtime_reachable' >> "$EVIDENCE_DIR/preflight.txt"
 
       - name: Install Chromium runtime
         working-directory: native/sessions-native
@@ -76,7 +86,8 @@ jobs:
         with:
           name: deployed-pwa-desktop-uat-${{ env.EXPECTED_SHA }}
           path: |
+            native/sessions-native/uat-evidence-deployed
             native/sessions-native/playwright-report-deployed
             native/sessions-native/test-results
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 30
