@@ -104,9 +104,11 @@ export const NATIVE_AUTH_BOUNDARY=Object.freeze({
   audienceGateIsNativeAuth:false,
   browserCookieImportAllowed:false,
   secureDeviceStorage:'expo-secure-store',
-  status:'identified-project-inactive',
-  projectRef:'meswozsllmmiqjwljvnb',
-  projectUrl:'https://meswozsllmmiqjwljvnb.supabase.co',
+  status:'ready',
+  projectName:'Sessions Music',
+  projectRef:'ennfiyxlkvlmtkmibltz',
+  projectUrl:'https://ennfiyxlkvlmtkmibltz.supabase.co',
+  region:'ap-northeast-1',
   requiresActiveProject:true,
   requiresPublishableKey:true,
   forbiddenProject:'svhxjfearcuqxikzvlyb',
@@ -117,7 +119,7 @@ export const PHASE_1_5_PARITY=Object.freeze({
   2:Object.freeze({name:'Identity projection',ios:'testing',android:'testing',pwa:'passed',desktop:'passed'}),
   3:Object.freeze({name:'Workspace and authority projection',ios:'testing',android:'testing',pwa:'passed',desktop:'passed'}),
   4:Object.freeze({name:'Provider daily operations and corporate critical-mobile subset',ios:'testing',android:'testing',pwa:'passed',desktop:'passed'}),
-  4.5:Object.freeze({name:'Native identity, onboarding, continuation and session posture',ios:'blocked',android:'blocked',pwa:'testing',desktop:'testing'}),
+  4.5:Object.freeze({name:'Native identity, onboarding, continuation and session posture',ios:'testing',android:'testing',pwa:'testing',desktop:'testing'}),
   5:Object.freeze({name:'Booking operations and critical case workflows',ios:'testing',android:'testing',pwa:'passed',desktop:'passed'}),
 });
 
