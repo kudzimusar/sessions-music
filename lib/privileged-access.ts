@@ -4,7 +4,7 @@ import {database} from '@/db/store';
 export type PrivilegedSession={id:string;userId:string;identitySessionId:string;purpose:string;createdAt:string;expiresAt:string};
 
 export async function currentPrivilegedSession(user:SessionUser,at=Date.now()):Promise<PrivilegedSession|null>{
- if(user.method==='chatgpt_demo'||user.assuranceLevel!=='aal2')return null;
+ if(user.method==='chatgpt_demo'||user.assuranceLevel!=='aal2'||!user.deviceRegistered)return null;
  const db=database();
  const row=await db.prepare("SELECT id,user_id,identity_session_id,purpose,created_at,expires_at FROM corporate_privileged_sessions WHERE user_id=? AND identity_session_id=? AND status='active' LIMIT 1").bind(user.id,user.sessionId).first();
  if(!row)return null;
