@@ -24,7 +24,7 @@ export function refineDiscovery(studios:Studio[],settings:DiscoverySettings,memb
 
 export const PLANNER_EQUIPMENT=['drums','pa','vocal microphones','bass amp','guitar amps','keyboard','piano','music stands'] as const;
 export type PlannerEquipment=(typeof PLANNER_EQUIPMENT)[number];
-export type PlannerInput={date:string;start:number|null;duration:number;size:number;budget:number|null;area:string;service:string;equipment:PlannerEquipment[];flexDays:number};
+export type PlannerInput={date:string;start:number|null;duration:number;size:number;budget:number|null;area:string;service:string;equipment?:PlannerEquipment[];flexDays:number};
 export type PlanOption={studioId:string;studioName:string;roomId:string;roomName:string;date:string;start:number;duration:number;size:number;capacity:number;price:number;basePrice:number;discount:number;priority:boolean;address:string};
 
 const equipmentPatterns:Record<PlannerEquipment,RegExp>={
@@ -37,7 +37,7 @@ const equipmentPatterns:Record<PlannerEquipment,RegExp>={
  piano:/\bpiano\b/i,
  'music stands':/music\s+stand/i,
 };
-export function studioMeetsEquipment(studio:Studio,required:PlannerEquipment[]){
+export function studioMeetsEquipment(studio:Studio,required:PlannerEquipment[]=[]){
  if(!required.length)return true;
  const published=studio.equipment||'';
  return required.every(item=>equipmentPatterns[item].test(published));
@@ -45,13 +45,14 @@ export function studioMeetsEquipment(studio:Studio,required:PlannerEquipment[]){
 
 export function planSessions(studios:Studio[],bookings:StudioBooking[],members:StudioMember[],input:PlannerInput):PlanOption[]{
  const result:PlanOption[]=[];
+ const requiredEquipment=input.equipment||[];
  for(let offset=0;offset<=input.flexDays;offset++){
  const date=addDays(input.date,offset);if(date<localDate())continue;
  for(const studio of studios){
  if(studio.hidden||studio.status!=='bookable'||!studio.bookingEnabled)continue;
  if(input.area&&!`${studio.area} ${studio.address}`.toLowerCase().includes(input.area.toLowerCase()))continue;
  if(input.service&&!studio.services.some(s=>s.toLowerCase().includes(input.service.toLowerCase())))continue;
- if(!studioMeetsEquipment(studio,input.equipment))continue;
+ if(!studioMeetsEquipment(studio,requiredEquipment))continue;
  for(const room of studio.rooms){
  if(room.capacity<input.size)continue;
  const price=sessionPrice(room.price,input.duration,memberForDate(members,studio.id,date));
