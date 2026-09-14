@@ -1,4 +1,4 @@
-import {AI_DISCOVERY_CONTRACT,SESSIONS_RELEASE,releaseMatchesPhase5} from '@sessions/product-core';
+import {AI_DISCOVERY_CONTRACT,AI_DISCOVERY_EQUIPMENT,SESSIONS_RELEASE,releaseMatchesPhase5} from '@sessions/product-core';
 import {readNativeAccessToken} from './session-store';
 
 export const DEFAULT_UAT_ORIGIN='https://sessions-music.kudzimusar.chatgpt.site';
@@ -46,10 +46,12 @@ export async function readNativeSession(){
 
 export async function readPlannerCapabilities(){
   const {body}=await sessionsFetch(AI_DISCOVERY_CONTRACT.endpoint);
+  const supported=new Set(AI_DISCOVERY_EQUIPMENT);
   return {
     aiReady:body?.aiReady===true,
     timezone:body?.timezone||'Africa/Harare',
     currency:body?.currency||'USD',
+    equipment:Array.isArray(body?.equipment)?body.equipment.filter(item=>supported.has(item)):AI_DISCOVERY_EQUIPMENT,
   };
 }
 
