@@ -42,7 +42,7 @@ test('native onboarding writes canonical profile consent and provider intention 
   const onboarding=read('native/sessions-native/app/onboarding.js');
   const api=read('native/sessions-native/src/api.js');
   assert.match(api,/sessionsFetch\('\/api\/onboarding',\{auth:true\}\)/);
-  assert.match(api,/action:\'completeProfile\'/);
+  assert.match(api,/body:JSON\.stringify\(action\)/);
   assert.match(onboarding,/updateNativeOnboarding\(\{action:'completeProfile'/);
   assert.match(onboarding,/consentType:'terms'/);
   assert.match(onboarding,/consentType:'privacy'/);
