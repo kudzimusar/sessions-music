@@ -5,7 +5,7 @@ import {readRegistry,seedRegistry,isRegistryUserOperator} from '@/db/registry-st
 import {type Studio,type Staff,type Claim,type StudioBooking,type StudioSettlement,type RegistryIssue,type VerificationRequest,registrySlotReason} from '@/lib/registry';
 import {timestamp,localDate,addDays} from '@/lib/domain';
 import {registrationAction} from '@/db/registrations';
-import {memberForDate,sessionPrice,type StudioMember} from '@/lib/discovery';
+import {memberForDate,sessionPrice,PLANNER_EQUIPMENT,type StudioMember} from '@/lib/discovery';
 import {syncPlatformCalendar} from '@/lib/google-calendar-server';
 import {provisionStudioMembership} from '@/lib/supabase-admin';
 import {normalizeZimbabwePhone} from '@/lib/identity-core';
@@ -20,7 +20,7 @@ function fail(message:string,status=400):never{throw new Fault(message,status)}
 const text=z.string().trim();const id=text.min(1).max(100);const https=z.union([z.literal(''),z.string().url().startsWith('https://').max(1000)]);
 const mediaUrl=z.string().regex(/^\/api\/media\/[0-9a-f-]{36}$/,'Use a photo uploaded to this studio workspace');
 const addOnSchema=z.object({id:id,name:text.min(2).max(100),price:z.number().int().min(0).max(100000),commissionable:z.boolean(),available:z.boolean()});
-const roomSchema=z.object({id:id,name:text.min(2).max(100),price:z.number().int().min(100).max(100000),capacity:z.number().int().min(1).max(200),open:z.number().int().min(0).max(1410).multipleOf(30),close:z.number().int().min(30).max(1440).multipleOf(30),days:z.array(z.number().int().min(0).max(6)).min(1).max(7),buffer:z.number().int().min(0).max(120).multipleOf(30),minimum:z.number().int().min(30).max(480).multipleOf(30),deposit:z.number().int().min(0).max(100000).optional(),addOns:z.array(addOnSchema).max(12).optional(),photos:z.array(mediaUrl).max(5).optional()}).refine(r=>r.close-r.open>=r.minimum+r.buffer,'Hours must accommodate the minimum session and buffer').refine(r=>new Set((r.addOns||[]).map(value=>value.id)).size===(r.addOns||[]).length,'Each add-on needs a unique ID');
+const roomSchema=z.object({id:id,name:text.min(2).max(100),price:z.number().int().min(100).max(100000),capacity:z.number().int().min(1).max(200),open:z.number().int().min(0).max(1410).multipleOf(30),close:z.number().int().min(30).max(1440).multipleOf(30),days:z.array(z.number().int().min(0).max(6)).min(1).max(7),buffer:z.number().int().min(0).max(120).multipleOf(30),minimum:z.number().int().min(30).max(480).multipleOf(30),deposit:z.number().int().min(0).max(100000).optional(),addOns:z.array(addOnSchema).max(12).optional(),photos:z.array(mediaUrl).max(5).optional(),equipment:z.array(z.enum(PLANNER_EQUIPMENT)).max(PLANNER_EQUIPMENT.length).default([])}).refine(r=>r.close-r.open>=r.minimum+r.buffer,'Hours must accommodate the minimum session and buffer').refine(r=>new Set((r.addOns||[]).map(value=>value.id)).size===(r.addOns||[]).length,'Each add-on needs a unique ID').refine(r=>new Set(r.equipment).size===r.equipment.length,'Each room equipment item can only be added once');
 export async function GET(req:Request){try{const user=await getProductionUser();return response(await readRegistry(user,new URL(req.url).searchParams.get('studio')||undefined));}catch(e){console.error('Registry load failed',e instanceof Error?e.message:'Unknown error');return response({error:'The studio registry is temporarily unavailable. Please retry.'},503)}}
 export async function POST(req:Request){
  try{
