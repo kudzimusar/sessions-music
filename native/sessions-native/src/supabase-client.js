@@ -29,6 +29,19 @@ async function rejectInvalidSession(client){
   try{await client.auth.signOut({scope:'local'});}finally{await clearNativeSession();}
 }
 
+function nativePlatform(){
+  if(Platform.OS==='ios')return {platform:'ios',deviceName:'iOS device'};
+  if(Platform.OS==='android')return {platform:'android',deviceName:'Android device'};
+  return null;
+}
+
+async function registerVerifiedNativeDevice(client){
+  const native=nativePlatform();
+  if(!native)return;
+  const {error}=await client.rpc('register_current_device',{device_name:native.deviceName,platform:native.platform});
+  if(error){await rejectInvalidSession(client);throw error;}
+}
+
 function attachNativeRefresh(client){
   if(Platform.OS==='web'||appStateSubscription)return;
   if(AppState.currentState==='active')client.auth.startAutoRefresh();
@@ -50,6 +63,7 @@ function attachBearerSynchronization(client){
           return;
         }
         if(!verification.data.user||verification.data.user.id!==session.user?.id){await rejectInvalidSession(client);return;}
+        await registerVerifiedNativeDevice(client);
         await persistVerifiedSupabaseSession({
           accessToken:session.access_token,
           userId:verification.data.user.id,
@@ -95,6 +109,7 @@ export async function readVerifiedNativeSupabaseSession(){
     throw verification.error;
   }
   if(!verification.data.user||verification.data.user.id!==session.user?.id){await rejectInvalidSession(client);throw new Error('Native session identity does not match Sessions Auth.');}
+  await registerVerifiedNativeDevice(client);
   return session;
 }
 
