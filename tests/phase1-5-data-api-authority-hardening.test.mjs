@@ -22,7 +22,10 @@ test('device registration proves the real Auth session and never resurrects a re
  assert.match(migration,/Device session has been revoked/);
 });
 
-test('device revocation is ownership-bound and idempotent',()=>{
+test('device revocation is ownership-bound, caller-posture-gated and idempotent',()=>{
+ assert.match(migration,/from auth\.sessions s[\s\S]*s\.id = caller_session_id[\s\S]*s\.user_id = caller_id/i);
+ assert.match(migration,/from public\.device_sessions caller_device[\s\S]*caller_device\.session_id = caller_session_id[\s\S]*caller_device\.user_id = caller_id[\s\S]*caller_device\.revoked_at is null/i);
+ assert.match(migration,/Register a non-revoked current device before managing sessions/);
  assert.match(migration,/select ds\.user_id, ds\.revoked_at[\s\S]*where ds\.session_id = target_session_id/i);
  assert.match(migration,/target_owner is null or target_owner <> caller_id/i);
  assert.match(migration,/if target_revoked_at is not null then[\s\S]*return true/i);
