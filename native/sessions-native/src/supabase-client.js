@@ -14,6 +14,7 @@ function projectRefFromUrl(url){
 }
 
 export function assertSessionsAuthConfig(config){
+  if(NATIVE_AUTH_BOUNDARY.status!=='ready')throw new Error('The verified Sessions Supabase project is not active and ready for native authentication.');
   if(!config?.enabled)throw new Error(config?.reason||'Sessions native authentication is not enabled by the backend.');
   if(!config.url||!config.publishableKey)throw new Error('Sessions native authentication configuration is incomplete.');
   const ref=projectRefFromUrl(config.url);
@@ -22,6 +23,10 @@ export function assertSessionsAuthConfig(config){
   }
   if(ref===NATIVE_AUTH_BOUNDARY.forbiddenProject)throw new Error('The forbidden development Supabase project cannot be used by Sessions native.');
   return config;
+}
+
+async function rejectInvalidSession(client){
+  try{await client.auth.signOut({scope:'local'});}finally{await clearNativeSession();}
 }
 
 function attachNativeRefresh(client){
@@ -39,7 +44,12 @@ function attachBearerSynchronization(client){
       try{
         if(!session){await clearNativeSession();return;}
         const verification=await client.auth.getUser(session.access_token);
-        if(verification.error||!verification.data.user||verification.data.user.id!==session.user?.id){await clearNativeSession();return;}
+        if(verification.error){
+          await clearNativeSession();
+          if(verification.error.status===401||verification.error.status===403)await rejectInvalidSession(client);
+          return;
+        }
+        if(!verification.data.user||verification.data.user.id!==session.user?.id){await rejectInvalidSession(client);return;}
         await persistVerifiedSupabaseSession({
           accessToken:session.access_token,
           userId:verification.data.user.id,
@@ -80,8 +90,11 @@ export async function readVerifiedNativeSupabaseSession(){
   const session=data.session;
   if(!session)return null;
   const verification=await client.auth.getUser(session.access_token);
-  if(verification.error||!verification.data.user)throw verification.error||new Error('Sessions Auth could not verify the native session.');
-  if(verification.data.user.id!==session.user?.id)throw new Error('Native session identity does not match Sessions Auth.');
+  if(verification.error){
+    if(verification.error.status===401||verification.error.status===403)await rejectInvalidSession(client);else await clearNativeSession();
+    throw verification.error;
+  }
+  if(!verification.data.user||verification.data.user.id!==session.user?.id){await rejectInvalidSession(client);throw new Error('Native session identity does not match Sessions Auth.');}
   return session;
 }
 
