@@ -1,8 +1,9 @@
 import React,{useEffect,useMemo,useState} from 'react';
 import {
   ActivityIndicator,Alert,BackHandler,KeyboardAvoidingView,Modal,Platform,Pressable,
-  RefreshControl,SafeAreaView,ScrollView,StatusBar,Text,TextInput,View,
+  RefreshControl,ScrollView,StatusBar,Text,TextInput,View,
 } from 'react-native';
+import {SafeAreaProvider,SafeAreaView,initialWindowMetrics} from 'react-native-safe-area-context';
 import {
   CUSTOMER_TABS,DESIGN_TOKENS,NATIVE_AUTH_BOUNDARY,PHASE_1_5_PARITY,PROVIDER_TABS,
   SESSIONS_RELEASE,WORKSPACE_CONTEXTS,
@@ -87,5 +88,5 @@ export default function App(){
   let content;
   if(route.name==='search')content=<SearchScreen go={go}/>;else if(route.name==='sessions')content=<SessionsScreen go={go}/>;else if(route.name==='profile')content=<ProfileScreen go={go}/>;else if(route.name==='studio')content=<StudioScreen route={route} go={go} back={back}/>;else if(route.name==='booking')content=<BookingScreen route={route} back={back}/>;else if(route.name==='session')content=<SessionScreen route={route} back={back}/>;else if(route.name==='workspace')content=<WorkspaceScreen back={back} go={go}/>;else if(route.name==='provider')content=<ProviderScreen back={back}/>;else if(route.name==='diagnostics')content=<DiagnosticsScreen back={back}/>;else content=<HomeScreen go={go}/>;
   const customerTabs=!['provider','booking','studio','session','workspace','diagnostics'].includes(route.name);
-  return <SafeAreaView style={styles.safe}><StatusBar barStyle={route.name==='provider'?'light-content':'dark-content'} backgroundColor={route.name==='provider'?DESIGN_TOKENS.color.ink:DESIGN_TOKENS.color.white}/><View style={styles.app}>{content}{customerTabs?<CustomerTabs route={route} onTab={onTab}/>:null}</View></SafeAreaView>;
+  return <SafeAreaProvider initialMetrics={initialWindowMetrics}><SafeAreaView edges={['top','right','bottom','left']} style={[styles.safe,route.name==='provider'&&{backgroundColor:DESIGN_TOKENS.color.ink}]}><StatusBar barStyle={route.name==='provider'?'light-content':'dark-content'} backgroundColor={route.name==='provider'?DESIGN_TOKENS.color.ink:DESIGN_TOKENS.color.white}/><View style={styles.app}>{content}{customerTabs?<CustomerTabs route={route} onTab={onTab}/>:null}</View></SafeAreaView></SafeAreaProvider>;
 }
