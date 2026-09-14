@@ -23,8 +23,8 @@ export const UAT_CRITICAL_CASES=[
 
 export const UAT_IDENTITY={
   displayName:'Sessions UAT reviewer',
-  contact:'Verified Sessions Supabase project identified; live native auth awaits project activation and publishable configuration',
-  onboardingState:'active-preview-only',
+  contact:'Sessions Music Supabase authority is active; installed native auth still requires deployed runtime configuration and device certification',
+  onboardingState:'auth-ready-uat',
   contexts:[
     {type:'personal',label:'Personal',detail:'Marketplace and bookings',authorized:true},
     {type:'provider',label:'Provider',detail:'Daily studio operations',authorized:true},
@@ -33,10 +33,10 @@ export const UAT_IDENTITY={
 };
 
 export const UAT_ONBOARDING_STEPS=[
-  {key:'identity',label:'Verify phone, email, Google or Apple',status:'blocked',detail:'Verified Sessions Supabase project is currently inactive; native auth stays fail-closed until activation and publishable configuration are verified.'},
-  {key:'profile',label:'Customer profile',status:'preview',detail:'Display name, market and required consent only.'},
+  {key:'identity',label:'Verify phone or email',status:'testing',detail:'Sessions Music Supabase is active. Native OTP activates only when the deployed auth config exposes this exact verified project and an enabled delivery channel.'},
+  {key:'profile',label:'Customer profile',status:'testing',detail:'Display name, market and versioned required consent are written through the canonical onboarding service after verified identity.'},
   {key:'provider',label:'Manage a studio',status:'optional',detail:'Claim or register, submit evidence, remain a customer while pending.'},
   {key:'corporate',label:'Corporate invitation',status:'trusted-only',detail:'Never public self-selection; identity-bound invitation and security setup are required.'},
 ];
 
-export const UAT_DATA_NOTICE='UAT projection only — not a second source of truth. Live authenticated data replaces this preview after the verified Sessions Supabase project is active and native authentication is certified.';
+export const UAT_DATA_NOTICE='UAT projection only — not a second source of truth. Live authenticated data replaces this preview when the deployed runtime exposes the active Sessions Music Supabase configuration and installed native authentication is certified.';
