@@ -39,6 +39,15 @@ RegistryApp remains browser/PWA. Its historical `phone-mode` navigation is retir
 
 `/mobile/provider/...` remains the bounded daily-operations client: Today, Requests, Rooms and More. Dense setup/reporting remains `/manage` on provider web. Provider mobile account/security returns to the customer-native Profile security screen rather than creating another account UI.
 
+### Corporate route vocabulary
+
+The canonical Phase 5 operational routes are:
+
+- Booking Ops — `/corporate/booking-ops`
+- Cases — `/corporate/cases`
+
+Historical `/corporate/bookings` and `/corporate/incidents` URLs redirect to those canonical routes. Internal module IDs may remain `bookings` and `incidents`; route labels are a presentation/navigation contract, not a new source of authority.
+
 ## Identity and workspace rule
 
 There is one Sessions identity. Personal/provider/corporate are authorized contexts, not separate accounts.
@@ -80,6 +89,14 @@ Draft PR #22 (`native/phase1-5-simulator-runtime`) is a separate implementation 
 
 After this consolidation lands on `main`, PR #22 must rebase onto the landed commit before final Phase 1–5 native certification. It must not reintroduce CustomerV5, Registry phone-mode navigation, fake Saved state, or a WebView/PWA wrapper.
 
+The authoritative Sessions Supabase project has now been positively identified as:
+
+- project name: `Sessions Music`
+- project ref: `ennfiyxlkvlmtkmibltz`
+- region: `ap-northeast-1`
+
+This consolidation does not casually mutate that identity environment. Exact native migration/advisor/Auth-delivery closeout remains part of PR #22 after it rebases onto the consolidated `main`. The unrelated `church-os-dev` project (`svhxjfearcuqxikzvlyb`) must never be used or modified for Sessions.
+
 ## Release/UAT gate
 
 This source targets the next private Sites candidate, referred to as Version 20 for planning. A source marker does not mean Version 20 is deployed.
@@ -91,6 +108,6 @@ Before Phase 6:
 3. a new private Sites version must be stamped from that exact merged commit;
 4. customer mobile, provider mobile, desktop/PWA and Corporate authorization boundaries must be UAT-tested separately;
 5. PR #22 must rebase and complete installed iOS/Android UAT at an exact SHA;
-6. the Sessions Supabase project and native identity closeout must be verified without touching unrelated projects.
+6. live Supabase migrations/advisors and production-like native identity delivery must be verified on `ennfiyxlkvlmtkmibltz`, without touching unrelated projects.
 
 Phase 6 finance/monetization remains out of scope until those Phase 1–5 gates pass.
