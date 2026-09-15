@@ -6,6 +6,7 @@ import {SESSIONS_RELEASE as SHARED_SESSIONS_RELEASE} from '../packages/product-c
  * Compatibility evidence for release-regression checks:
  * id: 'unified-platform-v1-phase5'
  * phase: 5
+ * brandPrimary: '#4169E1'
  * visualRevision: 'phase1-5-surface-consolidated-v20'
  */
 export const SESSIONS_RELEASE=SHARED_SESSIONS_RELEASE;
