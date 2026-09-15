@@ -36,6 +36,8 @@ test('scoped assignments remain context and never become global permission grant
 test('corporate navigation covers the approved Phase 4 information architecture from one registry',()=>{
  const ids=control.corporateModules.map(module=>module.id);
  for(const id of ['organization','access','bookings','customers','providers','memberships','incidents','finance','support','trust','growth','analytics','platform','audit','settings'])assert.ok(ids.includes(id),id);
+ assert.equal(control.moduleForId('bookings')?.href,'/corporate/booking-ops');
+ assert.equal(control.moduleForId('incidents')?.href,'/corporate/cases');
  const support=control.visibleCorporateModules(access.permissionsForRoles(['support_agent'])).map(module=>module.id);assert.ok(support.includes('bookings'));assert.ok(support.includes('customers'));assert.ok(support.includes('incidents'));assert.ok(support.includes('support'));assert.equal(support.includes('finance'),false);assert.equal(support.includes('access'),false);assert.equal(support.includes('analytics'),false);
  const growth=control.visibleCorporateModules(access.permissionsForRoles(['growth_analyst'])).map(module=>module.id);assert.ok(growth.includes('growth'));assert.ok(growth.includes('analytics'));assert.equal(growth.includes('finance'),false);assert.equal(growth.includes('customers'),false);
  const product=control.visibleCorporateModules(access.permissionsForRoles(['product_operations'])).map(module=>module.id);assert.ok(product.includes('platform'));assert.ok(product.includes('analytics'));assert.equal(product.includes('settings'),false);
@@ -51,6 +53,8 @@ test('department workspace ownership is explicit but remains separate from RBAC'
 test('control-plane routes and persistent navigation consume the same permission registry',async()=>{
  const [route,boundary,nav,workspace]=await Promise.all([read('app/[...slug]/page.tsx'),read('app/access-boundary.tsx'),read('app/corporate-navigation.tsx'),read('app/corporate-workspace.tsx')]);
  assert.match(route,/isCorporateReadModule\(slug\[1\]\)/);assert.match(route,/moduleForId\(slug\[1\]\)/);assert.match(route,/requiredPermissions=\{\[\.\.\.module\.requiredPermissions\]\}/);assert.match(route,/corporate\/access.*security:read/s);
+ assert.match(route,/path==='\/corporate\/bookings'.*redirect\('\/corporate\/booking-ops'\)/s);assert.match(route,/path==='\/corporate\/incidents'.*redirect\('\/corporate\/cases'\)/s);
+ assert.match(route,/slug\[1\]==='booking-ops'.*CorporateBookingOps/s);assert.match(route,/slug\[1\]==='cases'.*CorporateCases/s);
  assert.match(boundary,/CorporateNavigation permissions=\{session\?\.permissions\|\|\[\]\}/);assert.match(nav,/visibleCorporateModules\(permissions\)/);assert.match(workspace,/departmentContextsForModules\(modules\)/);assert.doesNotMatch(workspace,/Not assigned/);
 });
 
