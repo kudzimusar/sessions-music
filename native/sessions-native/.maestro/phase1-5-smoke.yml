@@ -2,6 +2,9 @@ appId: com.sessionstech.sessions.uat
 ---
 - launchApp:
     clearState: true
+- tapOn:
+    text: "Wait"
+    optional: true
 - assertVisible: "One identity. Your music spaces."
 - assertVisible: "Continue with phone or email"
 - tapOn: "Continue with phone or email"
