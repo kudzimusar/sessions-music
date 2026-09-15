@@ -31,7 +31,7 @@ const corporateSurface=(children:React.ReactNode)=><div data-sessions-surface="c
 async function sendToOnboarding(path:string,userId?:string|null,entry:'welcome'|'onboarding'='onboarding'):Promise<never>{const token=await createContinuationIntent(path,'route',userId||null);redirect(`/${entry}?continue=${encodeURIComponent(token)}`)}
 export default async function Page({params}:Props){
  const {slug}=await params;const path='/'+slug.join('/');
- if(path==='/provider')redirect('/manage');if(path==='/admin')redirect('/corporate');if(path==='/bookings')redirect('/requests');if(path==='/profile')redirect('/mobile/profile');if(path==='/mobile/saved')redirect('/mobile/search');
+ if(path==='/provider')redirect('/manage');if(path==='/admin')redirect('/corporate');if(path==='/bookings')redirect('/requests');if(path==='/profile')redirect('/mobile/profile');if(path==='/mobile/saved')redirect('/mobile/search');if(path==='/corporate/bookings')redirect('/corporate/booking-ops');if(path==='/corporate/incidents')redirect('/corporate/cases');
  const sandboxSurface=['demo','saved','space','booking'].includes(slug[0]);
  if(sandboxSurface&&(env as unknown as {SESSIONS_IDENTITY_MODE?:string}).SESSIONS_IDENTITY_MODE==='supabase'){
   const user=await getChatGPTUser();if(!user)redirect(chatGPTSignInPath(path));
@@ -57,8 +57,8 @@ export default async function Page({params}:Props){
   if(slug.length!==2)notFound();
   if(slug[1]==='organization')return corporateSurface(<AccessBoundary surface="corporate" returnTo="/corporate/organization" requiredPermissions={['organization:read']}><CorporateOrganization/></AccessBoundary>);
   if(slug[1]==='access')return corporateSurface(<AccessBoundary surface="corporate" returnTo="/corporate/access" requiredPermissions={['security:read']}><CorporateAccessReviews/></AccessBoundary>);
-  if(slug[1]==='bookings')return corporateSurface(<AccessBoundary surface="corporate" returnTo="/corporate/bookings" requiredPermissions={['bookings:read']}><CorporateBookingOps/></AccessBoundary>);
-  if(slug[1]==='incidents')return corporateSurface(<AccessBoundary surface="corporate" returnTo="/corporate/incidents" requiredPermissions={['cases:read']}><CorporateCases/></AccessBoundary>);
+  if(slug[1]==='booking-ops')return corporateSurface(<AccessBoundary surface="corporate" returnTo="/corporate/booking-ops" requiredPermissions={['bookings:read']}><CorporateBookingOps/></AccessBoundary>);
+  if(slug[1]==='cases')return corporateSurface(<AccessBoundary surface="corporate" returnTo="/corporate/cases" requiredPermissions={['cases:read']}><CorporateCases/></AccessBoundary>);
   if(isCorporateReadModule(slug[1])){const module=moduleForId(slug[1]);if(!module)notFound();return corporateSurface(<AccessBoundary surface="corporate" returnTo={module.href} requiredPermissions={[...module.requiredPermissions]}><CorporateControlPlane module={slug[1]}/></AccessBoundary>)}
   if(slug[1]==='trust')return corporateSurface(<AccessBoundary surface="corporate" returnTo="/corporate/trust" requiredPermissions={['claims:review','verification:review']}><CorporateOffice office="trust"/></AccessBoundary>);
   if(slug[1]==='finance')return corporateSurface(<AccessBoundary surface="corporate" returnTo="/corporate/finance" requiredPermissions={['settlements:review']}><CorporateOffice office="finance"/></AccessBoundary>);
