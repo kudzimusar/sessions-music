@@ -26,6 +26,10 @@ Every UI task and pull request must state which surface it changes:
 
 Do not use "responsive" as a substitute for choosing a surface.
 
+## Mandatory four-client impact declaration
+
+Every implementation must account for **native iOS, native Android, PWA/mobile browser, and desktop web** before it can be treated as complete. State which clients change, which deliberately do not, and which shared product/authority contracts are affected. Platform-specific composition is allowed; divergent identity, authorization, booking, media, pricing or security truth is not.
+
 ## Customer surface consolidation rule
 
 Customer mobile has one navigation shell and one vocabulary: **Home / Search / Sessions / Profile**.
