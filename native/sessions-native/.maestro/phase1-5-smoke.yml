@@ -20,6 +20,6 @@ appId: com.sessionstech.sessions.uat
 - assertVisible: "Find your next rehearsal room."
 - tapOn: "Plan with AI or guided filters"
 - assertVisible: "Say what the band needs."
-- assertVisible: "AI is an intent interpreter, not a booking agent"
+- assertVisible: "AI is an intent interpreter"
 - back
 - assertVisible: "Find your next rehearsal room."
