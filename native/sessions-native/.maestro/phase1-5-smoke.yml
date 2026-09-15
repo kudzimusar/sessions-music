@@ -14,9 +14,11 @@ appId: com.sessionstech.sessions.uat
 - tapOn: "Open UAT app preview"
 - assertVisible: "Find your next rehearsal room."
 - assertVisible: "SESSIONS AI · INTENT, NOT INVENTION"
-- tapOn: "Search tab"
+- tapOn:
+    id: "customer-search-tab"
 - assertVisible: "Search music spaces"
-- tapOn: "Home tab"
+- tapOn:
+    id: "customer-home-tab"
 - assertVisible: "Find your next rehearsal room."
 - tapOn: "Plan with AI or guided filters"
 - assertVisible: "Say what the band needs."
