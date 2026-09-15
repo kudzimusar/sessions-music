@@ -10,7 +10,7 @@ appId: com.sessionstech.sessions.uat
 - tapOn: "Continue with phone or email"
 - assertVisible: "Sign in without leaving the app."
 - assertVisible: "ennfiyxlkvlmtkmibltz"
-- back
+- tapOn: "Back to gateway"
 - tapOn: "Open UAT app preview"
 - assertVisible: "Find your next rehearsal room."
 - assertVisible: "SESSIONS AI · INTENT, NOT INVENTION"
