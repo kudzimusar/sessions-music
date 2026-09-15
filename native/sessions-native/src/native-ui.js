@@ -24,7 +24,7 @@ export function Screen({children,scroll=true,edges=['top','left','right'],offlin
 export function OfflineBanner(){return <View accessibilityRole="alert" style={styles.offline}><Text style={styles.offlineText}>Offline · saved screens remain available, live availability and actions need a connection.</Text></View>}
 export function Eyebrow({children}){return <Text style={styles.eyebrow}>{children}</Text>}
 export function Title({children}){return <Text accessibilityRole="header" style={styles.title}>{children}</Text>}
-export function Body({children,style}){return <Text style={[styles.body,style]}>{children}</Text>}
+export function Body({children,style,accessibilityLabel}){const label=accessibilityLabel|| (typeof children==='string'?children:undefined);return <Text accessibilityLabel={label} style={[styles.body,style]}>{children}</Text>}
 export function Small({children,style}){return <Text style={[styles.small,style]}>{children}</Text>}
 export function Section({eyebrow,title,children,action}){return <View style={styles.section}><View style={styles.sectionHead}><View style={styles.flex}><Eyebrow>{eyebrow}</Eyebrow><Text style={styles.sectionTitle}>{title}</Text></View>{action||null}</View>{children}</View>}
 export function Card({children,style}){return <View style={[styles.card,style]}>{children}</View>}
