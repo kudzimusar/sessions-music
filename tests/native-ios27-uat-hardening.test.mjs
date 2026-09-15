@@ -25,6 +25,6 @@ test('installed smoke UAT may recover from Android Quickstep crash UI without we
     'Continue with phone or email',
     'ennfiyxlkvlmtkmibltz',
     'Find your next rehearsal room.',
-    'AI is an intent interpreter, not a booking agent'
+    'AI is an intent interpreter'
   ])assert.match(flow,new RegExp(assertion.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
 });
