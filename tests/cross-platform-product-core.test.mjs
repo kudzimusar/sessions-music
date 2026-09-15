@@ -13,7 +13,7 @@ test('shared product core declares all four Phase 1-5 clients and canonical rele
   assert.deepEqual(SESSIONS_SURFACES,['ios-native','android-native','pwa','desktop-web']);
   assert.equal(SESSIONS_RELEASE.phase,5);
   assert.equal(SESSIONS_RELEASE.id,'unified-platform-v1-phase5');
-  assert.equal(SESSIONS_RELEASE.visualRevision,'phase1-5-native-desktop-v2');
+  assert.equal(SESSIONS_RELEASE.visualRevision,'phase1-5-surface-consolidated-v20');
   assert.equal(releaseMatchesPhase5({...SESSIONS_RELEASE}),true);
   assert.equal(DESIGN_TOKENS.touchTarget.ios,44);
   assert.equal(DESIGN_TOKENS.touchTarget.android,48);
