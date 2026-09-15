@@ -1,0 +1,43 @@
+{
+  "name": "sessions-native-uat",
+  "version": "0.5.1",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start --dev-client",
+    "doctor": "expo-doctor",
+    "prebuild": "expo prebuild --clean",
+    "ios": "expo run:ios",
+    "android": "expo run:android",
+    "web:export": "expo export --platform web",
+    "test:chromium": "playwright test"
+  },
+  "dependencies": {
+    "@sessions/product-core": "file:../../packages/product-core",
+    "@supabase/supabase-js": "2.116.0",
+    "expo": "57.0.22",
+    "expo-constants": "57.0.18",
+    "expo-dev-client": "57.0.19",
+    "expo-font": "57.0.4",
+    "expo-haptics": "57.0.3",
+    "expo-linking": "57.0.10",
+    "expo-network": "57.0.2",
+    "expo-router": "57.0.21",
+    "expo-secure-store": "57.0.4",
+    "expo-status-bar": "57.0.1",
+    "expo-symbols": "57.0.3",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-safe-area-context": "5.7.0",
+    "react-native-screens": "4.26.2",
+    "react-native-web": "0.21.2"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "expo-doctor": "1.20.4"
+  },
+  "engines": {
+    "node": ">=22.13"
+  }
+}

@@ -1,0 +1,29 @@
+appId: com.sessionstech.sessions.uat
+---
+- launchApp:
+    clearState: true
+- tapOn:
+    text: "Wait"
+    optional: true
+- assertVisible: "One identity. Your music spaces."
+- assertVisible: "Continue with phone or email"
+- tapOn: "Continue with phone or email"
+- assertVisible: "Sign in without leaving the app."
+- assertVisible: "ennfiyxlkvlmtkmibltz"
+- tapOn: "Back to gateway"
+- tapOn: "Open UAT app preview"
+- assertVisible: "Find your next rehearsal room."
+- assertVisible: "SESSIONS AI · INTENT, NOT INVENTION"
+- tapOn:
+    id: "customer-search-tab"
+    retryTapIfNoChange: true
+- assertVisible: "Search music spaces"
+- tapOn:
+    id: "customer-home-tab"
+    retryTapIfNoChange: true
+- assertVisible: "Find your next rehearsal room."
+- tapOn: "Plan with AI or guided filters"
+- assertVisible: "Say what the band needs."
+- assertVisible: "AI is an intent interpreter, not a booking agent. It can structure your brief; canonical marketplace data decides what is actually true."
+- back
+- assertVisible: "Find your next rehearsal room."

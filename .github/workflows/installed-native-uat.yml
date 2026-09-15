@@ -1,0 +1,194 @@
+name: Installed native UAT
+
+on:
+  pull_request:
+    paths:
+      - 'native/sessions-native/**'
+      - 'packages/product-core/**'
+      - '.github/workflows/installed-native-uat.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: installed-native-uat-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: '1'
+  EXPO_NO_TELEMETRY: '1'
+  EXPO_NO_DEPLOY: '1'
+  MAESTRO_VERSION: '2.7.0'
+  EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  android-installed:
+    name: Android Emulator installed UAT
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.EXPECTED_SHA }}
+          persist-credentials: false
+
+      - name: Set up Node 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+
+      - name: Verify immutable source revision
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+
+      - name: Set up Java 17
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install locked native dependencies
+        working-directory: native/sessions-native
+        run: |
+          npm ci --include=dev
+          npm ls --depth=0
+
+      - name: Validate Expo project contract
+        working-directory: native/sessions-native
+        run: npm run doctor
+
+      - name: Install pinned Maestro CLI
+        run: |
+          curl -fsSL "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+          "$HOME/.maestro/bin/maestro" --version
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Build, install and exercise Android app
+        uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_7
+          disable-animations: true
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: bash native/sessions-native/scripts/run-android-installed-uat.sh
+
+      - name: Assert generated Android project is native
+        working-directory: native/sessions-native
+        run: |
+          test -f android/app/src/main/AndroidManifest.xml
+          test -f android/app/build.gradle || test -f android/app/build.gradle.kts
+          ! grep -R "react-native-webview\|<WebView\|WebView(" -n app src android --exclude-dir=build
+
+      - name: Upload Android installed-UAT evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: android-installed-uat-${{ env.EXPECTED_SHA }}
+          path: native/sessions-native/uat-evidence
+          if-no-files-found: warn
+          retention-days: 30
+
+  ios-installed:
+    name: iOS Simulator installed UAT
+    runs-on: xcode-27
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.EXPECTED_SHA }}
+          persist-credentials: false
+
+      - name: Set up Node 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+
+      - name: Verify immutable source revision
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+
+      - name: Verify Xcode 27.0 toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          XCODE_VERSION="$(xcodebuild -version | awk '/Xcode/{print $2}')"
+          if [ "$XCODE_VERSION" != "27.0" ]; then
+            echo "Installed-native certification requires Xcode 27.0; runner has $(xcodebuild -version | head -1)." >&2
+            exit 1
+          fi
+
+      - name: Install locked native dependencies
+        working-directory: native/sessions-native
+        run: |
+          npm ci --include=dev
+          npm ls --depth=0
+
+      - name: Validate Expo project contract
+        working-directory: native/sessions-native
+        run: npm run doctor
+
+      - name: Install pinned Maestro CLI
+        run: |
+          curl -fsSL "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+          "$HOME/.maestro/bin/maestro" --version
+
+      - name: Boot an available iPhone Simulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          UDID="$(xcrun simctl list devices available -j | python3 -c 'import json,sys; data=json.load(sys.stdin)["devices"]; print(next(d["udid"] for runtime in data.values() for d in runtime if d["name"].startswith("iPhone")))')"
+          test -n "$UDID"
+          echo "SIMULATOR_UDID=$UDID" >> "$GITHUB_ENV"
+          xcrun simctl boot "$UDID" 2>/dev/null || true
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl list devices | grep "$UDID"
+
+      - name: Build and install release app on iOS Simulator
+        working-directory: native/sessions-native
+        run: |
+          set -euo pipefail
+          npx expo prebuild --clean --platform ios
+          npx expo run:ios --configuration Release --device "$SIMULATOR_UDID" --no-bundler
+          xcrun simctl get_app_container "$SIMULATOR_UDID" com.sessionstech.sessions.uat app
+
+      - name: Exercise installed iOS app with Maestro
+        working-directory: native/sessions-native
+        run: |
+          set -euo pipefail
+          UAT_STATUS=0
+          maestro --device="$SIMULATOR_UDID" test .maestro/phase1-5-smoke.yml || UAT_STATUS=$?
+          if [ "$UAT_STATUS" -eq 0 ]; then maestro --device="$SIMULATOR_UDID" test .maestro/native-diagnostics.yml || UAT_STATUS=$?; fi
+          if [ "$UAT_STATUS" -eq 0 ]; then maestro --device="$SIMULATOR_UDID" test .maestro/phase5-operations.yml || UAT_STATUS=$?; fi
+          mkdir -p uat-evidence/ios-maestro uat-evidence/ios-crash-reports uat-evidence/ios-simulator-crash-reports
+          cp -R "$HOME/.maestro/tests/." uat-evidence/ios-maestro/ 2>/dev/null || true
+          cp -R "$HOME/Library/Logs/DiagnosticReports/." uat-evidence/ios-crash-reports/ 2>/dev/null || true
+          cp -R "$HOME/Library/Developer/CoreSimulator/Devices/$SIMULATOR_UDID/data/Library/Logs/CrashReporter/." uat-evidence/ios-simulator-crash-reports/ 2>/dev/null || true
+          xcrun simctl spawn "$SIMULATOR_UDID" log show --last 15m --style compact > uat-evidence/ios-simulator.log 2>&1 || true
+          xcrun simctl io "$SIMULATOR_UDID" screenshot uat-evidence/ios-installed-uat.png 2>/dev/null || true
+          exit "$UAT_STATUS"
+
+      - name: Assert generated iOS project is native
+        working-directory: native/sessions-native
+        run: |
+          test -d ios
+          find ios -maxdepth 2 \( -name '*.xcodeproj' -o -name '*.xcworkspace' \) | grep .
+          ! grep -R "react-native-webview\|<WebView\|WebView(" -n app src ios --exclude-dir=Pods
+
+      - name: Upload iOS installed-UAT evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: ios-installed-uat-${{ env.EXPECTED_SHA }}
+          path: native/sessions-native/uat-evidence
+          if-no-files-found: warn
+          retention-days: 30

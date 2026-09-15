@@ -5,17 +5,24 @@ import {readFile} from 'node:fs/promises';
 const root=new URL('../',import.meta.url);
 const read=path=>readFile(new URL(path,root),'utf8');
 
-test('CI verifies the immutable PR head and the merge candidate before exposing release-gate',async()=>{
+test('CI verifies immutable head, merge candidate and Chromium projection before release-gate',async()=>{
  const ci=await read('.github/workflows/ci.yml');
  assert.match(ci,/verify-head:/);
  assert.match(ci,/ref:\s*\$\{\{ github\.event\.pull_request\.head\.sha \}\}/);
  assert.match(ci,/SESSIONS_EXPECTED_SHA:\s*\$\{\{ github\.event\.pull_request\.head\.sha \}\}/);
  assert.match(ci,/verify-merge:/);
+ assert.match(ci,/native-chromium:/);
+ assert.match(ci,/npm audit --omit=dev --audit-level=high/);
+ assert.match(ci,/npm run doctor/);
+ assert.match(ci,/npm run web:export/);
+ assert.match(ci,/npm run test:chromium/);
  assert.match(ci,/release-gate:/);
- assert.match(ci,/needs:\s*\[verify-head, verify-merge\]/);
+ assert.match(ci,/needs:\s*\[verify-head, verify-merge, native-chromium\]/);
+ assert.match(ci,/CHROMIUM_RESULT:\s*\$\{\{ needs\.native-chromium\.result \}\}/);
  assert.match(ci,/verify-main:/);
  assert.match(ci,/persist-credentials:\s*false/g);
- assert.equal((ci.match(/npm ci --include=dev/g)||[]).length,3);
+ assert.equal((ci.match(/npm ci --include=dev/g)||[]).length,4);
+ assert.match(ci,/Install locked native UAT dependencies/);
  assert.match(ci,/node_modules\/tw-animate-css\/dist\/tw-animate\.css/);
 });
 
@@ -46,8 +53,12 @@ test('successful exact revisions publish machine-readable immutable release evid
  assert.match(evidence,/contains no credentials/);
 });
 
-test('release preflight fails closed on wrong revision, wrong hosting, stale phase provenance or missing hardening contracts',async()=>{
- const gate=await read('scripts/release-gate.mjs');
+test('release preflight fails closed on wrong revision, wrong hosting, stale shared provenance or missing hardening contracts',async()=>{
+ const [gate,productCore,releaseAdapter]=await Promise.all([
+  read('scripts/release-gate.mjs'),
+  read('packages/product-core/index.js'),
+  read('lib/release-info.ts'),
+ ]);
  assert.match(gate,/SESSIONS_EXPECTED_SHA/);
  assert.match(gate,/git.*rev-parse.*HEAD/s);
  assert.match(gate,/appgprj_6a9530e0c2548191b905ccc3a663dc4d/);
@@ -62,9 +73,16 @@ test('release preflight fails closed on wrong revision, wrong hosting, stale pha
  assert.match(gate,/app\/api\/corporate\/booking-ops\/route\.ts/);
  assert.match(gate,/app\/api\/corporate\/cases\/route\.ts/);
  assert.match(gate,/PHASE-1-5-CROSS-PHASE-REVIEW\.md/);
- assert.match(gate,/unified-platform-v1-phase5/);
+ assert.match(gate,/packages\/product-core\/index\.js/);
+ assert.match(gate,/expected Phase 5 release id/);
  assert.match(gate,/expected phase 5/);
- assert.match(gate,/phaseStatus: 'complete'/);
+ assert.match(gate,/release provenance does not declare Phase 5 complete/);
+ assert.match(gate,/web release metadata is no longer sourced from the shared product core/);
+ assert.match(productCore,/id:\s*'unified-platform-v1-phase5'/);
+ assert.match(productCore,/phase:\s*5\b/);
+ assert.match(productCore,/phaseStatus:\s*'complete'/);
+ assert.match(productCore,/deploymentModel:\s*'chatgpt-sites-versioned'/);
+ assert.match(releaseAdapter,/SHARED_SESSIONS_RELEASE/);
 });
 
 test('production build packages every D1 migration required by the Phase 5 runtime',async()=>{

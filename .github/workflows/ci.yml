@@ -75,25 +75,69 @@ jobs:
       - name: Verify integration with current base
         run: npm run verify:release
 
+  native-chromium:
+    name: native mobile Chromium projection
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+      - name: Install locked native UAT dependencies
+        working-directory: native/sessions-native
+        run: npm ci --include=dev --no-fund
+      - name: Audit shipped native dependency graph
+        working-directory: native/sessions-native
+        run: npm audit --omit=dev --audit-level=high
+      - name: Validate Expo native project contract
+        working-directory: native/sessions-native
+        run: npm run doctor
+      - name: Export production Expo Router web projection
+        working-directory: native/sessions-native
+        run: npm run web:export
+      - name: Install Chromium runtime
+        working-directory: native/sessions-native
+        run: npx playwright install --with-deps chromium
+      - name: Exercise Phase 1-5 mobile projection in Chromium
+        working-directory: native/sessions-native
+        run: npm run test:chromium
+      - name: Publish Chromium evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: native-chromium-${{ github.event.pull_request.head.sha }}
+          path: |
+            native/sessions-native/playwright-report
+            native/sessions-native/test-results
+            native/sessions-native/package-lock.json
+          if-no-files-found: warn
+          retention-days: 30
+
   release-gate:
     name: release-gate
     if: always() && github.event_name == 'pull_request'
-    needs: [verify-head, verify-merge]
+    needs: [verify-head, verify-merge, native-chromium]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Require exact-head and merge-candidate success
+      - name: Require exact-head, merge-candidate and Chromium success
         env:
           HEAD_RESULT: ${{ needs.verify-head.result }}
           MERGE_RESULT: ${{ needs.verify-merge.result }}
+          CHROMIUM_RESULT: ${{ needs.native-chromium.result }}
           EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
-          if [[ "$HEAD_RESULT" != "success" || "$MERGE_RESULT" != "success" ]]; then
-            echo "Release gate blocked. exact-head=$HEAD_RESULT merge-candidate=$MERGE_RESULT expected-head=$EXPECTED_HEAD" >&2
+          if [[ "$HEAD_RESULT" != "success" || "$MERGE_RESULT" != "success" || "$CHROMIUM_RESULT" != "success" ]]; then
+            echo "Release gate blocked. exact-head=$HEAD_RESULT merge-candidate=$MERGE_RESULT chromium=$CHROMIUM_RESULT expected-head=$EXPECTED_HEAD" >&2
             exit 1
           fi
-          echo "Release gate passed for immutable PR head $EXPECTED_HEAD and its current merge candidate."
+          echo "Release gate passed for immutable PR head $EXPECTED_HEAD, its current merge candidate and the Chromium mobile projection."
 
   verify-main:
     name: verify merged main revision

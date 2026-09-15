@@ -1,0 +1,31 @@
+appId: com.sessionstech.sessions.uat
+---
+- launchApp:
+    clearState: true
+- tapOn: "Open UAT app preview"
+- assertVisible: "Find your next rehearsal room."
+- tapOn:
+    text: "OneVibe Studiox"
+    index: 0
+- assertVisible: "Equipment & practical details"
+- assertVisible: "Choose a valid time"
+- tapOn: "Choose a valid time"
+- assertVisible: "Choose a session."
+- assertVisible: "Available times"
+- assertVisible: "Unavailable"
+- tapOn:
+    text: "120 min"
+- tapOn: "Review request.*"
+- assertVisible: "REVIEW SESSION"
+- assertVisible: "Continue securely"
+- tapOn: "Edit session"
+- back
+- back
+- tapOn: "Open provider mode"
+- assertVisible: "Today at OneVibe Studiox"
+- tapOn: "Requests"
+- assertVisible:
+    text: ".*booking requests.*"
+- tapOn: "More"
+- assertVisible:
+    text: ".*stay on desktop/PWA.*"

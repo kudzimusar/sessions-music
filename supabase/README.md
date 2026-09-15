@@ -1,18 +1,77 @@
 # Sessions Supabase identity handoff
 
-Target: dedicated project `Sessions` (`meswozsllmmiqjwljvnb`), organization `ybquartnpsqiyfbqgkgg`, `eu-central-1` (Frankfurt). D1 and R2 remain the product system of record. Supabase owns Auth and normalized identity/tenant authorization only.
+Target: dedicated active project **Sessions Music** (`ennfiyxlkvlmtkmibltz`), `ap-northeast-1` (Tokyo), URL `https://ennfiyxlkvlmtkmibltz.supabase.co`.
 
-`migrations/202609020001_phase_r_identity.sql` adds profiles, server-granted platform roles, studio organizations/memberships, verified contacts, app-level device sessions, merge/deletion requests and a private identity audit. Every exposed table has RLS plus explicit grants. Roles are not read from user-editable metadata.
+Cloudflare D1/R2 remain the marketplace/product system of record for studios, rooms, booking inventory, pricing, settlements and media. Supabase owns authentication plus normalized identity and authorization authority only.
 
-The migration passed a rollback-only transaction and was then applied as `20260902085743_phase_r_identity` on 2 September 2026. The identity tables remain empty and Auth providers remain disabled. The advisor follow-up in `202609020002_phase_r_identity_hardening.sql` is intentionally not applied until the owner approves RLS-with-no-client-policies for the private audit table.
+## Current project baseline
 
-## Apply sequence
+When this project was connected on 14 September 2026 it was `ACTIVE_HEALTHY`, had zero Auth users, no application migrations and no Sessions public identity tables. That clean baseline is intentional: do not copy application data or stale schema from another Supabase project.
 
-1. Confirm every operation targets `meswozsllmmiqjwljvnb`; never select or access Wewed.
-2. Review and approve the hardening migration, then apply it and re-run both advisors.
-4. Configure an SMS provider, Google OAuth, CAPTCHA and exact redirect origins.
-5. Put `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` and the server-only `SUPABASE_SECRET_KEY` in secure Sites runtime configuration.
-6. Keep all auth provider flags off while testing. Exercise real OTP/OAuth, revocation and cross-tenant rejection.
-7. Switch `SESSIONS_IDENTITY_MODE=supabase`, enable only the tested provider, and keep `/demo` owner-only.
+The application uses the modern publishable client key for browser/native Auth initialization. Secret/service-role credentials remain server-only and must never be committed or placed in the native package.
 
-Never expose the secret key to browser code or move rooms, bookings, pricing, settlement or media ownership into Supabase during Workstream 1.
+## Authoritative migration sequence
+
+Apply the checked-in migrations to **`ennfiyxlkvlmtkmibltz` only**, in this order:
+
+1. `migrations/202609020001_phase_r_identity.sql`
+   - profiles
+   - server-managed platform roles
+   - provider organizations/memberships
+   - verified contacts
+   - device sessions
+   - merge/deletion requests
+   - private identity audit
+   - RLS and authenticated read/self-service boundaries
+2. `migrations/202609020002_phase_r_identity_hardening.sql`
+   - RLS defense in depth for the private audit table
+   - missing administrative FK indexes
+3. `migrations/202609110001_platform_authority_hierarchy.sql`
+   - expanded server-managed platform roles
+   - distinct provider-manager authority
+4. `migrations/202609120001_phase3_scoped_corporate_authority.sql`
+   - scoped corporate/operations role assignments
+   - scoped roles remain contextual and never become global authority
+5. `migrations/202609130001_identity_contact_hardening.sql`
+   - one primary verified contact per kind
+   - contact collisions fail closed instead of moving identity/authority between users
+   - registered-session posture exposed through `current_identity()`
+6. `migrations/202609140001_phase1_5_identity_grant_hardening.sql`
+   - removes inherited client grants from scoped authority assignments
+7. `migrations/202609140002_phase1_5_scoped_role_performance_hardening.sql`
+   - indexes scoped-role grant provenance
+   - uses an init-plan-safe self-read policy
+
+After every schema change, run both Supabase security and performance advisors and treat new findings as release blockers until reviewed.
+
+## Runtime activation
+
+The verified application contract is:
+
+```text
+SESSIONS_IDENTITY_MODE=supabase
+SUPABASE_AUTH_ENABLED=true
+SUPABASE_URL=https://ennfiyxlkvlmtkmibltz.supabase.co
+SUPABASE_PUBLISHABLE_KEY=<Sessions Music publishable key>
+```
+
+Keep every provider flag false until that delivery path has been configured and tested in this project:
+
+```text
+SUPABASE_PHONE_AUTH_ENABLED=false
+SUPABASE_EMAIL_AUTH_ENABLED=false
+SUPABASE_GOOGLE_AUTH_ENABLED=false
+SUPABASE_APPLE_AUTH_ENABLED=false
+```
+
+For native Phase 4.5, enable email or phone only after a real device/simulator receives and verifies the expected OTP. Google/Apple require their native OAuth callback/deep-link flow before their flags may be enabled.
+
+## Security boundaries
+
+- Never use or modify `church-os-dev` / `svhxjfearcuqxikzvlyb` for Sessions.
+- Never reuse ChatGPT Sites `/welcome` cookies as native identity.
+- Never expose the Supabase secret/service-role key to browser or native code.
+- Never derive corporate/provider authority from user-editable metadata.
+- Never move rooms, bookings, pricing, settlement or media ownership into Supabase during this identity workstream.
+- Individual staff identities are mandatory; no shared corporate/admin credentials.
+- Privileged administration must retain its separate step-up/MFA policy even when ordinary customer/provider sessions are AAL1.

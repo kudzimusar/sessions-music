@@ -32,9 +32,9 @@ The complete source is mirrored at `https://github.com/kudzimusar/sessions-music
 
 ### Supabase
 
-The dedicated project is `Sessions` (`meswozsllmmiqjwljvnb`) in `eu-central-1` (Frankfurt). It was verified healthy and empty on 2 September 2026. Only that project was visible through the connector. Do not access or attach `Wewed`; it is unrelated.
+The authoritative project is `Sessions Music` (`ennfiyxlkvlmtkmibltz`) in `ap-northeast-1` (Tokyo), URL `https://ennfiyxlkvlmtkmibltz.supabase.co`. It was verified `ACTIVE_HEALTHY` on 14 September 2026. Do not access or attach `church-os-dev` (`svhxjfearcuqxikzvlyb`); it is unrelated and forbidden.
 
-D1/R2 remain the product system of record. Supabase owns Auth plus normalized identity/tenant authorization only. Migration `20260902085743_phase_r_identity` is applied and all eight exposed tables have RLS with zero rows. Auth providers remain disabled. The advisor follow-up for the non-exposed private audit table and five administrative foreign-key indexes is recorded in `supabase/migrations/202609020002_phase_r_identity_hardening.sql` and awaits explicit approval before application.
+D1/R2 remain the product system of record. Supabase owns Auth plus normalized identity/tenant authorization only. The checked-in identity migration sequence through `202609140002_phase1_5_scoped_role_performance_hardening.sql` is applied to the authoritative project; all identity tables have RLS and remain empty. Auth providers remain disabled pending provider configuration and live testing. Security and performance advisors have no actionable grant/index/init-plan findings after the migration sequence; intentional private-audit and device-RPC notices remain documented.
 
 The browser receives only the project URL and publishable key. The secret key is server-only and is used to provision a matching Supabase organization membership when Operations approves an owner or a staff member accepts an invitation. Production identity stays hidden until SMS, CAPTCHA and Google OAuth credentials are installed and real login tests pass.
 

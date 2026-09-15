@@ -1,0 +1,93 @@
+name: Deployed PWA and Desktop UAT
+
+on:
+  pull_request:
+    paths:
+      - 'app/**'
+      - 'lib/**'
+      - 'public/**'
+      - 'packages/product-core/**'
+      - 'native/sessions-native/e2e-deployed/**'
+      - 'native/sessions-native/playwright.deployed.config.mjs'
+      - '.github/workflows/deployed-cross-platform-uat.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deployed-cross-platform-uat-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+  SESSIONS_DEPLOYED_ORIGIN: https://sessions-music.kudzimusar.chatgpt.site
+
+jobs:
+  pwa-desktop:
+    name: Deployed PWA + desktop Phase 1-5 UAT
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.EXPECTED_SHA }}
+          persist-credentials: false
+
+      - name: Set up Node 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+
+      - name: Verify immutable source revision
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+
+      - name: Install locked UAT dependencies
+        working-directory: native/sessions-native
+        run: |
+          npm ci --include=dev
+          npm ls @playwright/test @supabase/supabase-js --depth=0
+
+      - name: Verify deployed Sessions runtime is reachable past the audience gate
+        run: |
+          set -euo pipefail
+          EVIDENCE_DIR='native/sessions-native/uat-evidence-deployed'
+          mkdir -p "$EVIDENCE_DIR"
+          STATUS="$(curl -sS -o /tmp/sessions-release-response -w '%{http_code}' "$SESSIONS_DEPLOYED_ORIGIN/api/release")"
+          {
+            echo "expected_sha=$EXPECTED_SHA"
+            echo "origin=$SESSIONS_DEPLOYED_ORIGIN"
+            echo "release_endpoint_status=$STATUS"
+          } > "$EVIDENCE_DIR/preflight.txt"
+          if [ "$STATUS" = "401" ] || [ "$STATUS" = "403" ]; then
+            echo 'result=blocked_by_chatgpt_sites_audience_gate' >> "$EVIDENCE_DIR/preflight.txt"
+            echo "Deployed PWA/desktop UAT is blocked by the ChatGPT Sites audience gate before the Sessions runtime. Provide a legitimate CI-safe audience access path or direct UAT origin; do not reuse this host gate as Sessions/native identity." >&2
+            exit 1
+          fi
+          if [ "$STATUS" != "200" ]; then
+            echo 'result=unexpected_http_status' >> "$EVIDENCE_DIR/preflight.txt"
+            echo "Unexpected deployed Sessions /api/release status: $STATUS" >&2
+            exit 1
+          fi
+          echo 'result=sessions_runtime_reachable' >> "$EVIDENCE_DIR/preflight.txt"
+
+      - name: Install Chromium runtime
+        working-directory: native/sessions-native
+        run: npx playwright install --with-deps chromium
+
+      - name: Exercise deployed PWA and desktop
+        working-directory: native/sessions-native
+        run: npx playwright test --config=playwright.deployed.config.mjs
+
+      - name: Upload deployed browser evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: deployed-pwa-desktop-uat-${{ env.EXPECTED_SHA }}
+          path: |
+            native/sessions-native/uat-evidence-deployed
+            native/sessions-native/playwright-report-deployed
+            native/sessions-native/test-results
+          if-no-files-found: error
+          retention-days: 30

@@ -1,0 +1,74 @@
+name: Native Chromium UAT
+
+on:
+  pull_request:
+    paths:
+      - 'native/sessions-native/**'
+      - 'packages/product-core/**'
+      - 'tests/native-simulator-harness-contract.test.mjs'
+      - '.github/workflows/native-browser-uat.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-browser-uat-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  chromium-mobile-uat:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Set up Node 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+
+      - name: Verify immutable source revision
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+
+      - name: Resolve locked native dependency graph
+        working-directory: native/sessions-native
+        run: |
+          set -euo pipefail
+          npm ci --include=dev
+          npm ls --depth=0
+
+      - name: Expo Doctor
+        working-directory: native/sessions-native
+        run: npm run doctor
+
+      - name: Export Expo Router web projection
+        working-directory: native/sessions-native
+        run: npm run web:export
+
+      - name: Install Playwright Chromium
+        working-directory: native/sessions-native
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Chromium mobile UAT
+        working-directory: native/sessions-native
+        run: npm run test:chromium
+
+      - name: Upload Chromium evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: native-chromium-uat-${{ github.event.pull_request.head.sha }}
+          path: |
+            native/sessions-native/playwright-report
+            native/sessions-native/test-results
+            native/sessions-native/package-lock.json
+          if-no-files-found: warn
+          retention-days: 30

@@ -1,0 +1,79 @@
+name: Supabase zero-state replay
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/**'
+      - '.github/workflows/supabase-zero-state.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-zero-state-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  replay:
+    name: replay all identity migrations from zero
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Install pinned Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.117.0
+
+      - name: Start clean local Supabase stack
+        run: supabase start
+
+      - name: Replay all migrations from zero
+        run: supabase db reset --local --no-seed
+
+      - name: Verify migration journal and authority invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          DB_CONTAINER="$(docker ps --format '{{.Names}}' | grep '^supabase_db_' | head -n 1)"
+          test -n "$DB_CONTAINER"
+
+          psql_local() {
+            docker exec "$DB_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 -Atc "$1"
+          }
+
+          migration_count="$(psql_local "select count(*) from supabase_migrations.schema_migrations;")"
+          test "$migration_count" = "8"
+
+          hardening_present="$(psql_local "select count(*) from supabase_migrations.schema_migrations where version='202609140003';")"
+          test "$hardening_present" = "1"
+
+          public_create="$(psql_local "select has_schema_privilege('authenticated','public','CREATE');")"
+          test "$public_create" = "f"
+
+          audit_privileges="$(psql_local "select count(*) from information_schema.role_table_grants where grantee in ('anon','authenticated') and table_schema='sessions_private' and table_name='identity_audit';")"
+          test "$audit_privileges" = "0"
+
+          write_grants="$(psql_local "select count(*) from information_schema.role_table_grants where grantee in ('anon','authenticated') and table_schema='public' and table_name in ('platform_role_assignments','platform_scoped_role_assignments','organizations','organization_memberships','verified_contacts','device_sessions') and privilege_type in ('INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER');")"
+          test "$write_grants" = "0"
+
+          authenticated_selects="$(psql_local "select count(*) from information_schema.role_table_grants where grantee='authenticated' and table_schema='public' and table_name in ('platform_role_assignments','platform_scoped_role_assignments','organizations','organization_memberships','verified_contacts','device_sessions') and privilege_type='SELECT';")"
+          test "$authenticated_selects" = "6"
+
+          security_definers="$(psql_local "select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname in ('register_current_device','revoke_device') and p.prosecdef;")"
+          test "$security_definers" = "2"
+
+          empty_search_paths="$(psql_local "select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname in ('register_current_device','revoke_device') and array_to_string(p.proconfig,',') like '%search_path=%';")"
+          test "$empty_search_paths" = "2"
+
+          rls_tables="$(psql_local "select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname in ('profiles','platform_role_assignments','platform_scoped_role_assignments','organizations','organization_memberships','verified_contacts','device_sessions','account_merge_requests','account_deletion_requests') and c.relrowsecurity;")"
+          test "$rls_tables" = "9"
+
+          echo "Supabase zero-state replay verified: 8/8 migrations and authority invariants passed."
+
+      - name: Stop local Supabase stack
+        if: always()
+        run: supabase stop --no-backup

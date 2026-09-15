@@ -25,8 +25,8 @@ Status: code and base identity schema complete; live provider integration blocke
 
 ## Migrations
 
-- Supabase: `supabase/migrations/202609020001_phase_r_identity.sql` (applied as `20260902085743_phase_r_identity`; tables remain empty).
-- Supabase: `supabase/migrations/202609020002_phase_r_identity_hardening.sql` (advisor follow-up prepared, not applied pending explicit RLS approval).
+- Supabase: checked-in identity migrations `202609020001_phase_r_identity.sql` through `202609140002_phase1_5_scoped_role_performance_hardening.sql` are applied to Sessions Music; tables remain empty.
+- Supabase: `supabase/migrations/202609020002_phase_r_identity_hardening.sql` enables private-audit RLS and administrative foreign-key indexes; it is applied and verified.
 - D1: `drizzle/0007_sticky_forge.sql` adds studio verification requests.
 - D1: `drizzle/0008_wise_war_machine.sql` adds studio media ownership/purpose metadata and an index.
 

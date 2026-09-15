@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "Sessions UAT",
+    "slug": "sessions-native-uat",
+    "scheme": "sessions-uat",
+    "version": "0.5.1",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "./plugins/with-ios-scene-lifecycle"
+    ],
+    "ios": {
+      "bundleIdentifier": "com.sessionstech.sessions.uat",
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.sessionstech.sessions.uat"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "extra": {
+      "sessionsPhase": 5,
+      "sessionsReleaseId": "unified-platform-v1-phase5",
+      "sessionsVisualRevision": "phase1-5-surface-consolidated-v20",
+      "sessionsUatOrigin": "https://sessions-music.kudzimusar.chatgpt.site"
+    }
+  }
+}

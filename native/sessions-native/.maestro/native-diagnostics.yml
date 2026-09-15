@@ -1,0 +1,16 @@
+appId: com.sessionstech.sessions.uat
+---
+- launchApp:
+    clearState: true
+- tapOn: "Open UAT app preview"
+- tapOn: "Diagnostics"
+- assertVisible: "Native means native."
+- assertVisible: "RELEASE PROVENANCE"
+- tapOn: "Verify /api/release"
+- assertVisible: "phase1-5-surface-consolidated-v20"
+- assertVisible: "SECURITY PROBE"
+- tapOn: "Run anonymous probe"
+- assertVisible:
+    text: ".*401.*|.*403.*"
+- assertVisible: "AI CONTRACT"
+- assertVisible: "Interpreter, never authority"
