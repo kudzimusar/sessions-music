@@ -1,6 +1,6 @@
 'use client';
 
-import {useCallback,useEffect,useMemo,useState} from 'react';
+import {useCallback,useEffect,useState} from 'react';
 import {AudioLines,Building2,CalendarDays,CheckCircle2,ChevronRight,ShieldCheck,UserRound,Users} from 'lucide-react';
 import {AuthSignIn,AccountSecurity} from './production-auth';
 import {sessionFetch} from '@/lib/supabase-browser';
@@ -54,11 +54,11 @@ function AccountContent({data,snapshot}:{data:RegistryState;snapshot:OnboardingS
   const invitationContacts=[user.phone,user.email?.toLowerCase()].filter(Boolean) as string[];
   const invitations=data.invitations.filter(member=>invitationContacts.includes(member.inviteContact||member.email||''));
   const claims=data.claims.filter(claim=>claim.applicant===user.id&&claim.status==='pending');
-  const relationships=useMemo(()=>[
+  const relationships=[
     {label:'Active sessions',value:upcoming.length,href:'/requests',icon:CalendarDays},
     {label:'Studio memberships',value:memberships.length,href:'/subscriptions',icon:Users},
     {label:'Managed studios',value:managed.length,href:'/manage',icon:Building2},
-  ],[upcoming.length,memberships.length,managed.length]);
+  ];
 
   return <main className="as-shell">
     <section className="as-identity"><div className="as-avatar"><UserRound size={30}/></div><div><span>YOUR PROFILE</span><h1>{user.displayName}</h1><p>{user.email||user.phone||'Verified Sessions identity'}</p></div><CheckCircle2 size={22}/></section>
