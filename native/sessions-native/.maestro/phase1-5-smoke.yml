@@ -16,9 +16,11 @@ appId: com.sessionstech.sessions.uat
 - assertVisible: "SESSIONS AI · INTENT, NOT INVENTION"
 - tapOn:
     id: "customer-search-tab"
+    retryTapIfNoChange: true
 - assertVisible: "Search music spaces"
 - tapOn:
     id: "customer-home-tab"
+    retryTapIfNoChange: true
 - assertVisible: "Find your next rehearsal room."
 - tapOn: "Plan with AI or guided filters"
 - assertVisible: "Say what the band needs."
