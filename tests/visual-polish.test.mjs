@@ -5,7 +5,7 @@ import {readFile} from 'node:fs/promises';
 const root = new URL('../', import.meta.url);
 const read = (path) => readFile(new URL(path, root), 'utf8');
 
-test('visual layers load in the intended additive order', async () => {
+test('visual layers load in the intended additive order with explicit product boundaries last', async () => {
   const layout = await read('app/layout.tsx');
   const globals = layout.indexOf("import './globals.css';");
   const registry = layout.indexOf("import './registry.css';");
@@ -14,30 +14,37 @@ test('visual layers load in the intended additive order', async () => {
   const v2 = layout.indexOf("import './sessions-v2.css';");
   const corporate = layout.indexOf("import './corporate-v4.css';");
   const brand = layout.indexOf("import './brand-v1.css';");
+  const native = layout.indexOf("import './customer-native.css';");
+  const boundary = layout.indexOf("import './surface-boundaries.css';");
 
   assert.ok(globals >= 0, 'global application styles must remain loaded');
   assert.ok(registry > globals, 'registry styles must remain after global styles');
   assert.ok(expansion > registry, 'expansion styles must remain after registry styles');
   assert.ok(polish > expansion, 'shared polish must remain additive');
-  assert.ok(v2 > polish, 'the rebuilt customer surface must load after shared polish');
-  assert.ok(corporate > v2, 'the Phase 4 corporate layer must load after the customer surface');
-  assert.ok(brand > corporate, 'the approved production brand layer must be the final design-system override');
+  assert.ok(v2 > polish, 'the rebuilt browser customer surface must load after shared polish');
+  assert.ok(corporate > v2, 'the Phase 4 corporate layer must load after the browser customer surface');
+  assert.ok(brand > corporate, 'the approved production brand tokens must load after legacy product layers');
+  assert.ok(native > brand, 'native composition must be allowed to specialize the shared brand tokens');
+  assert.ok(boundary > native, 'explicit product-surface ownership must be the final cascade boundary');
   assert.match(layout, /themeColor:'#4169E1'/);
   assert.match(layout, /<body[^>]*data-sessions-brand="v1"[^>]*>/);
   assert.match(layout, /data-sessions-release=\{SESSIONS_RELEASE\.id\}/);
   assert.doesNotMatch(layout, /\/og\.png/, 'unreviewed generic social imagery must not be advertised');
 });
 
-test('production routes converge on one registry/account/authority domain', async () => {
+test('production routes converge on one authority domain without converging customer compositions', async () => {
   const route = await read('app/[...slug]/page.tsx');
   const guard = await read('app/production-route-guard.tsx');
   const corporate = await read('app/corporate-workspace.tsx');
   assert.match(route, /import SessionsApp from '\.\.\/sessions-v2';/);
+  assert.match(route, /import AccountSurface from '\.\.\/account-surface';/);
+  assert.match(route, /import CustomerNative from '\.\.\/customer-native';/);
   assert.match(route, /import CorporateWorkspace from '\.\.\/corporate-workspace';/);
   assert.match(route, /if\(path==='\/provider'\)redirect\('\/manage'\)/);
   assert.match(route, /if\(path==='\/admin'\)redirect\('\/corporate'\)/);
   assert.match(route, /if\(path==='\/bookings'\)redirect\('\/requests'\)/);
-  assert.match(route, /if\(path==='\/profile'\)redirect\('\/account'\)/);
+  assert.match(route, /if\(path==='\/profile'\)redirect\('\/mobile\/profile'\)/);
+  assert.match(route, /if\(path==='\/account'\)return <AccountSurface\/>/);
   assert.match(route, /const sandboxSurface=\['demo','saved','space','booking'\]/);
   assert.doesNotMatch(route, /const sandboxSurface=\[[^\]]*'admin'/);
   assert.match(route, /slug\[0\]==='corporate'.*AccessBoundary surface="corporate".*CorporateWorkspace/s);
@@ -45,6 +52,7 @@ test('production routes converge on one registry/account/authority domain', asyn
   assert.match(route, /data-sessions-surface="corporate"/);
   assert.match(guard, /'\/admin':'\/corporate'/);
   assert.match(guard, /'\/provider':'\/manage'/);
+  assert.match(guard, /'\/profile':'\/mobile\/profile'/);
   assert.match(corporate, /SESSIONS CORPORATE/);
   assert.match(corporate, /platform:roles\.manage/);
   assert.match(corporate, /\/api\/corporate\/roles/);
@@ -75,7 +83,7 @@ test('installed app identity uses the same approved brand', async () => {
   assert.doesNotMatch(favicon.toLowerCase(), /#1f4e79|#2f80ed/);
 });
 
-test('Phase 1 remaps the legacy registry palette at the final production boundary', async () => {
+test('Phase 1 remaps the legacy registry palette at the shared brand boundary', async () => {
   const css = await read('app/brand-v1.css');
   assert.match(css, /\.registry-app\s*\{[^}]*--r-blue:\s*var\(--sessions-royal\)/s);
   assert.match(css, /--r-deep:\s*var\(--sessions-black\)/);
@@ -106,7 +114,7 @@ test('corporate brand layer keeps critical workflows mobile-usable', async () =>
   assert.match(css, /textarea\s*\{[^}]*min-height:\s*96px/s);
 });
 
-test('rebuilt customer surface exposes marketplace-critical controls', async () => {
+test('rebuilt browser customer surface exposes marketplace-critical controls', async () => {
   const source = await read('app/sessions-v2.tsx');
   assert.match(source, /Provider approval only/);
   assert.match(source, /All recurring slots are valid/);

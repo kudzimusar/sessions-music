@@ -5,7 +5,8 @@ const aliases:Record<string,string>={
  '/provider':'/manage',
  '/admin':'/corporate',
  '/bookings':'/requests',
- '/profile':'/account',
+ '/profile':'/mobile/profile',
+ '/mobile/saved':'/mobile/search',
 };
 
 function productionTarget(value:string|URL|null|undefined){
@@ -15,8 +16,8 @@ function productionTarget(value:string|URL|null|undefined){
 
 export default function ProductionRouteGuard(){
  useEffect(()=>{
-  // `/mobile` is now its own native interaction tree. Retire the old registry
-  // session flag so the desktop/PWA cannot inherit a stale "phone mode".
+  // The native-reference tree is `/mobile/...`; RegistryApp no longer owns a
+  // phone-mode product. Clear the old flag on every production navigation.
   try{sessionStorage.removeItem('sessions-phone-view')}catch{}
   const history=window.history;
   const push=history.pushState.bind(history),replace=history.replaceState.bind(history);
