@@ -1,0 +1,28 @@
+/*
+ * Phase 1–5 client boundaries.
+ *
+ * RegistryApp is the browser/PWA product and must never resurrect its legacy
+ * phone navigation. CustomerNative and ProviderNative own the mobile app
+ * interaction vocabulary. This file is intentionally small and loaded last so
+ * surface ownership is explicit rather than accidental through breakpoints.
+ */
+.registry-app .r-bottom-nav{display:none!important}
+.registry-app.phone-mode{max-width:none!important;margin:0!important;border:0!important;box-shadow:none!important}
+
+/* Dark native surfaces opt out of generic brand text remapping. */
+body[data-sessions-brand='v1'] .cn-native-banner,
+body[data-sessions-brand='v1'] .cn-native-banner strong,
+body[data-sessions-brand='v1'] .cn-native-banner>span,
+body[data-sessions-brand='v1'] .pn-header,
+body[data-sessions-brand='v1'] .pn-header strong,
+body[data-sessions-brand='v1'] .pn-back,
+body[data-sessions-brand='v1'] .pn-icon,
+body[data-sessions-brand='v1'] .pn-greeting,
+body[data-sessions-brand='v1'] .pn-greeting h1,
+body[data-sessions-brand='v1'] .pn-stats strong{color:#fff!important}
+body[data-sessions-brand='v1'] .cn-native-banner small{color:#AAB9F7!important}
+body[data-sessions-brand='v1'] .pn-header small,
+body[data-sessions-brand='v1'] .pn-greeting>small{color:#9FB1F6!important}
+
+/* Obsolete V5/Registry mobile bars must never compete with the consolidated shell. */
+.cv5-bottom-nav{display:none!important}

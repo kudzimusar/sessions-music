@@ -15,26 +15,31 @@ test('runtime brand layer is loaded after brand v1 and does not depend on host b
   assert.doesNotMatch(activeCss(css),/body\[data-sessions-brand=['"]v1['"]\]/,'runtime fallback must not depend on a body attribute the Sites host may normalize');
 });
 
-test('production registry primitives use the approved palette and canonical Sessions mark',async()=>{
-  const css=activeCss(await read('app/brand-runtime.css')).toLowerCase();
-  assert.match(css,/\.registry-app\s*\{[^}]*--r-blue:\s*#4169e1/s);
-  assert.match(css,/\.registry-app \.brand-symbol\s*\{[^}]*background:\s*#4169e1\s*!important/s);
-  assert.match(css,/\.registry-app \.brand-symbol::after\s*\{[^}]*background:\s*url\('\/favicon\.svg'\) center \/ cover no-repeat/s);
-  assert.match(css,/\.registry-app \.brand-symbol svg\s*\{[^}]*opacity:\s*0\s*!important/s);
-  assert.match(css,/\.registry-app \.r-primary[^\{]*\{[^}]*background:\s*#4169e1\s*!important/s);
-  assert.match(css,/\.registry-app \.r-bottom-nav a\.active[^\{]*\{[^}]*color:\s*#4169e1\s*!important/s);
-  assert.doesNotMatch(css,/#245c78|#163c50|#162b35|#6cb3a3/,'runtime production layer must not reintroduce the legacy teal/slate palette');
+test('production registry primitives keep approved palette while the explicit surface boundary retires registry phone navigation',async()=>{
+  const [css,boundary]=await Promise.all([read('app/brand-runtime.css'),read('app/surface-boundaries.css')]);
+  const runtime=activeCss(css).toLowerCase();
+  assert.match(runtime,/\.registry-app\s*\{[^}]*--r-blue:\s*#4169e1/s);
+  assert.match(runtime,/\.registry-app \.brand-symbol\s*\{[^}]*background:\s*#4169e1\s*!important/s);
+  assert.match(runtime,/\.registry-app \.brand-symbol::after\s*\{[^}]*background:\s*url\('\/favicon\.svg'\) center \/ cover no-repeat/s);
+  assert.match(runtime,/\.registry-app \.brand-symbol svg\s*\{[^}]*opacity:\s*0\s*!important/s);
+  assert.match(runtime,/\.registry-app \.r-primary[^\{]*\{[^}]*background:\s*#4169e1\s*!important/s);
+  assert.doesNotMatch(runtime,/#245c78|#163c50|#162b35|#6cb3a3/,'runtime production layer must not reintroduce the legacy teal/slate palette');
+  assert.match(boundary,/\.registry-app \.r-bottom-nav\{display:none!important\}/,'Registry mobile nav is historical CSS only, not a product surface');
 });
 
-test('release endpoint exposes the shared Phase 1–5 native/desktop visual revision separately from the phase marker',async()=>{
-  const [productCore,releaseAdapter,route]=await Promise.all([
-    read('packages/product-core/index.js'),
-    read('lib/release-info.ts'),
-    read('app/api/release/route.ts'),
-  ]);
-  assert.match(productCore,/visualRevision:\s*'phase1-5-native-desktop-v2'/);
-  assert.match(productCore,/brandPrimary:\s*'#4169E1'/);
-  assert.match(productCore,/phase:\s*5\b/);
-  assert.match(releaseAdapter,/SHARED_SESSIONS_RELEASE/);
+test('native product identity does not confuse the browser favicon with the in-product logo',async()=>{
+  const [customer,provider]=await Promise.all([read('app/customer-native.tsx'),read('app/provider-native.tsx')]);
+  assert.match(customer,/AudioLines/);
+  assert.match(customer,/cn-brand-symbol/);
+  assert.doesNotMatch(customer,/src="\/favicon\.svg"/);
+  assert.match(provider,/AudioLines/);
+  assert.match(provider,/pn-provider-mark/);
+});
+
+test('release endpoint exposes Version 20 consolidation separately from the Phase 5 marker',async()=>{
+  const [release,route]=await Promise.all([read('lib/release-info.ts'),read('app/api/release/route.ts')]);
+  assert.match(release,/visualRevision:\s*'phase1-5-surface-consolidated-v20'/);
+  assert.match(release,/phase:\s*5/);
+  assert.match(release,/brandPrimary:\s*'#4169E1'/);
   assert.match(route,/Response\.json\(SESSIONS_RELEASE/);
 });

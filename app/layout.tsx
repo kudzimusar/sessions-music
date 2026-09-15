@@ -10,17 +10,17 @@ import './sessions-v2.css';
 import './corporate-v4.css';
 import './brand-v1.css';
 import './brand-runtime.css';
-import './customer-v5.css';
+import './account-surface.css';
 import './onboarding.css';
 import './provider-onboarding.css';
 import './phase5-operations.css';
 import './workspace-switcher.css';
 import './customer-native.css';
 import './provider-native.css';
-import './account-surface.css';
 import './surface-corrections.css';
+import './surface-boundaries.css';
 const siteOrigin='https://sessions-music.kudzimusar.chatgpt.site';
 const description='Find music-ready rehearsal spaces in Zimbabwe by location, equipment, group size and time. Sessions makes music infrastructure searchable, bookable and easier to trust.';
 export const metadata:Metadata={metadataBase:new URL(siteOrigin),title:'Sessions',description,openGraph:{title:'Sessions',description,images:[]},twitter:{card:'summary',title:'Sessions',description,images:[]},icons:{icon:'/favicon.svg'},appleWebApp:{capable:true,title:'Sessions',statusBarStyle:'default'},other:{'sessions-release':SESSIONS_RELEASE.id,'sessions-phase':String(SESSIONS_RELEASE.phase),'sessions-brand':SESSIONS_RELEASE.brand}};
 export const viewport:Viewport={width:'device-width',initialScale:1,viewportFit:'cover',themeColor:'#4169E1'};
-export default function RootLayout({children}:{children:React.ReactNode}){return <html lang="en"><head><link rel="manifest" href="/manifest.webmanifest" crossOrigin="use-credentials"/></head><body data-sessions-brand="v1" data-sessions-release={SESSIONS_RELEASE.id}><ProductionRouteGuard/>{children}<WorkspaceSwitcher/></body></html>;}
+export default function RootLayout({children}:{children:React.ReactNode}){return <html lang="en"><head><link rel="manifest" href="/manifest.webmanifest" crossOrigin="use-credentials"/></head><body data-sessions-brand="v1" data-sessions-release={SESSIONS_RELEASE.id}><ProductionRouteGuard/>{children}<WorkspaceSwitcher/></body></html>}
