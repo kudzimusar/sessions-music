@@ -122,7 +122,7 @@ Playwright covers 390×844, 412×915 and 320×568 phone viewports and rejects ru
 From the installed app open **Native diagnostics** and verify on both platforms:
 
 1. platform is `ios` on iOS Simulator and `android` on the Android emulator;
-2. `/api/release` matches `unified-platform-v1-phase5`, Phase 5 and `phase1-5-native-desktop-v2`;
+2. `/api/release` matches `unified-platform-v1-phase5`, Phase 5 and `phase1-5-surface-consolidated-v20`;
 3. anonymous `GET /api/corporate/overview` remains protected with HTTP 401/403;
 4. the application shell is React Native, not Safari/Chrome/PWA/WebView;
 5. safe areas, Android system bars/back behavior, keyboard movement and touch targets are correct on the installed binary;

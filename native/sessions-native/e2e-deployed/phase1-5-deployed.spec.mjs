@@ -1,6 +1,6 @@
 import {expect,test} from '@playwright/test';
 
-const RELEASE={id:'unified-platform-v1-phase5',phase:5,visualRevision:'phase1-5-native-desktop-v2'};
+const RELEASE={id:'unified-platform-v1-phase5',phase:5,visualRevision:'phase1-5-surface-consolidated-v20'};
 const PROJECT_REF='ennfiyxlkvlmtkmibltz';
 
 function captureRuntimeFailures(page){

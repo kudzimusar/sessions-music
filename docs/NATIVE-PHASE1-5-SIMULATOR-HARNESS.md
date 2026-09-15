@@ -2,9 +2,9 @@
 
 Status: CONFIGURATION STARTED
 Scope: customer-native and provider-native verification only; no Phase 6 implementation
-Reference hosted build: ChatGPT Sites Version 19
-Reference commit: `a1957ed39a1d5665fad6063c28c7a7b45c796507`
-Reference release revision: `phase1-5-native-desktop-v2`
+Reference hosted build: ChatGPT Sites Version 20
+Reference commit: `be4279bfbdd69f790cce6d7787e0132b27d67e68`
+Reference release revision: `phase1-5-surface-consolidated-v20`
 
 ## Purpose
 
@@ -37,8 +37,8 @@ Required on both iOS and Android:
 - install to simulator/emulator;
 - confirm platform identity;
 - confirm Sessions UAT package identity;
-- connect to Version 19 `/api/release`;
-- confirm Phase 5 / `phase1-5-native-desktop-v2` provenance;
+- connect to Version 20 `/api/release`;
+- confirm Phase 5 / `phase1-5-surface-consolidated-v20` provenance;
 - confirm protected APIs remain fail-closed.
 
 ### Stage N1 — Phase 1 visual/navigation migration
