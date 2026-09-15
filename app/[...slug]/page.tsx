@@ -1,6 +1,6 @@
 import SessionsApp from '../sessions-v2';
 import RegistryApp from '../registry';
-import CustomerV5 from '../customer-v5';
+import AccountSurface from '../account-surface';
 import CustomerNative from '../customer-native';
 import ProviderNative from '../provider-native';
 import CorporateWorkspace from '../corporate-workspace';
@@ -31,7 +31,7 @@ const corporateSurface=(children:React.ReactNode)=><div data-sessions-surface="c
 async function sendToOnboarding(path:string,userId?:string|null,entry:'welcome'|'onboarding'='onboarding'):Promise<never>{const token=await createContinuationIntent(path,'route',userId||null);redirect(`/${entry}?continue=${encodeURIComponent(token)}`)}
 export default async function Page({params}:Props){
  const {slug}=await params;const path='/'+slug.join('/');
- if(path==='/provider')redirect('/manage');if(path==='/admin')redirect('/corporate');if(path==='/bookings')redirect('/requests');if(path==='/profile')redirect('/account');
+ if(path==='/provider')redirect('/manage');if(path==='/admin')redirect('/corporate');if(path==='/bookings')redirect('/requests');if(path==='/profile')redirect('/mobile/profile');if(path==='/mobile/saved')redirect('/mobile/search');
  const sandboxSurface=['demo','saved','space','booking'].includes(slug[0]);
  if(sandboxSurface&&(env as unknown as {SESSIONS_IDENTITY_MODE?:string}).SESSIONS_IDENTITY_MODE==='supabase'){
   const user=await getChatGPTUser();if(!user)redirect(chatGPTSignInPath(path));
@@ -51,7 +51,7 @@ export default async function Page({params}:Props){
  const customerPath=!corporatePath&&path!=='/manage'&&!sandboxSurface&&path!=='/account';
  if(customerPath&&!hasWorkspaceContext(snapshot,'personal'))return sendToOnboarding(path,actor.id);
  if(slug[0]==='studio'&&slug.length===2)return <RegistryApp path={path} initialStudio={await readPublicStudio(slug[1])}/>;
- if(path==='/account')return <CustomerV5 path="/account"/>;
+ if(path==='/account')return <AccountSurface/>;
  if(slug[0]==='corporate'){
   if(slug.length===1)return corporateSurface(<AccessBoundary surface="corporate" returnTo="/corporate"><CorporateWorkspace/></AccessBoundary>);
   if(slug.length!==2)notFound();
