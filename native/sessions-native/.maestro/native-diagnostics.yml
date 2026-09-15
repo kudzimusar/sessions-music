@@ -2,6 +2,7 @@ appId: com.sessionstech.sessions.uat
 ---
 - launchApp:
     clearState: true
+- scroll
 - tapOn: "Open native diagnostics"
 - assertVisible: "Native means native."
 - assertVisible: "RELEASE PROVENANCE"
