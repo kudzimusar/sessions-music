@@ -47,13 +47,82 @@ export const CUSTOMER_TABS=Object.freeze([
 ]);
 
 export const PROVIDER_TABS=Object.freeze([
-  Object.freeze({key:'home',label:'Home'}),
+  Object.freeze({key:'today',label:'Today'}),
   Object.freeze({key:'requests',label:'Requests'}),
-  Object.freeze({key:'calendar',label:'Calendar'}),
-  Object.freeze({key:'profile',label:'Profile'}),
+  Object.freeze({key:'rooms',label:'Rooms'}),
+  Object.freeze({key:'more',label:'More'}),
 ]);
 
-export const sessionsNativeApiBase=()=>{
-  const raw=process.env.EXPO_PUBLIC_SESSIONS_API_BASE_URL||process.env.SESSIONS_API_BASE_URL||'';
-  return raw.replace(/\/+$/,'');
-};
+export const WORKSPACE_CONTEXTS=Object.freeze([
+  Object.freeze({type:'personal',label:'Personal',description:'Personal marketplace',access:'account'}),
+  Object.freeze({type:'provider',label:'Provider',description:'Studio operations',access:'membership'}),
+  Object.freeze({type:'corporate',label:'Sessions company',description:'Authorized corporate operations',access:'authorized-only'}),
+]);
+
+export const AI_DISCOVERY_EQUIPMENT=Object.freeze(['drums','pa','vocal microphones','bass amp','guitar amps','keyboard','piano','music stands']);
+export const AI_DISCOVERY_CONTRACT=Object.freeze({
+  role:'intent-interpreter',
+  endpoint:'/api/planner',
+  editable:true,
+  requiresExplicitConsent:true,
+  mayBook:false,
+  mayInventMarketplaceFacts:false,
+  canonicalFactsAfterInterpretation:true,
+  fields:Object.freeze(['date','start','duration','size','budget','area','service','equipment','flexDays']),
+  equipment:AI_DISCOVERY_EQUIPMENT,
+  prohibitedFacts:Object.freeze(['price','availability','verification','equipment availability','provider identity','booking confirmation']),
+  privacy:Object.freeze({sendAccount:false,sendPreciseLocation:false,sendBookingHistory:false}),
+});
+
+export const NATIVE_PHASE_REQUIREMENTS=Object.freeze({
+  1:Object.freeze(['native-stack','bottom-tabs','safe-areas','single-purpose-screens','offline-state','accessible-touch-targets']),
+  2:Object.freeze(['one-identity','context-projection','no-workforce-leakage']),
+  3:Object.freeze(['deny-by-default','tenant-scope','no-public-corporate-selection','privileged-step-up-boundary']),
+  4:Object.freeze(['provider-today','provider-requests','room-status','availability-quick-action','critical-corporate-mobile-subset']),
+  4.5:Object.freeze(['sessions-gateway','customer-onboarding','provider-intent','trusted-corporate-invite','safe-continuation','recovery','device-session-management']),
+  5:Object.freeze(['booking-time-inventory','booking-summary','rebook','critical-case-queue','case-summary','assignment-status-next-action','escalation-note']),
+});
+
+export const REGISTRY_BOOKING_STATES=Object.freeze([
+  'requested','confirmed','completed','declined','cancelled',
+]);
+
+const BOOKING_TRANSITIONS=Object.freeze({
+  requested:Object.freeze(['confirmed','declined','cancelled']),
+  confirmed:Object.freeze(['completed','cancelled']),
+  completed:Object.freeze([]),
+  declined:Object.freeze([]),
+  cancelled:Object.freeze([]),
+});
+
+export function canTransitionRegistryBooking(from,to){
+  return Boolean(BOOKING_TRANSITIONS[from]?.includes(to));
+}
+
+export const NATIVE_AUTH_BOUNDARY=Object.freeze({
+  provider:'supabase-auth',
+  audienceGateIsNativeAuth:false,
+  browserCookieImportAllowed:false,
+  secureDeviceStorage:'expo-secure-store',
+  status:'ready',
+  projectName:'Sessions Music',
+  projectRef:'ennfiyxlkvlmtkmibltz',
+  projectUrl:'https://ennfiyxlkvlmtkmibltz.supabase.co',
+  region:'ap-northeast-1',
+  requiresActiveProject:true,
+  requiresPublishableKey:true,
+  forbiddenProject:'svhxjfearcuqxikzvlyb',
+});
+
+export const PHASE_1_5_PARITY=Object.freeze({
+  1:Object.freeze({name:'Foundation, native navigation and product UI',ios:'testing',android:'testing',pwa:'passed',desktop:'passed'}),
+  2:Object.freeze({name:'Identity projection',ios:'testing',android:'testing',pwa:'passed',desktop:'passed'}),
+  3:Object.freeze({name:'Workspace and authority projection',ios:'testing',android:'testing',pwa:'passed',desktop:'passed'}),
+  4:Object.freeze({name:'Provider daily operations and corporate critical-mobile subset',ios:'testing',android:'testing',pwa:'passed',desktop:'passed'}),
+  4.5:Object.freeze({name:'Native identity, onboarding, continuation and session posture',ios:'testing',android:'testing',pwa:'testing',desktop:'testing'}),
+  5:Object.freeze({name:'Booking operations and critical case workflows',ios:'testing',android:'testing',pwa:'passed',desktop:'passed'}),
+});
+
+export function releaseMatchesPhase5(value){
+  return Boolean(value&&value.id===SESSIONS_RELEASE.id&&value.phase===SESSIONS_RELEASE.phase&&value.visualRevision===SESSIONS_RELEASE.visualRevision);
+}
